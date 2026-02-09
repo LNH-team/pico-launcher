@@ -21,7 +21,7 @@
 #include "themes/IFontRepository.h"
 #include "DisplaySettingsBottomSheetView.h"
 
-#define TITLE_LABEL_X       20
+#define TITLE_LABEL_X       15
 #define TITLE_LABEL_Y       16
 
 #define LAYOUT_LABEL_X      20
@@ -58,11 +58,11 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     , _materialColorScheme(materialColorScheme)
     // , _filtersLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
 {
-    _titleLabel.SetText(u"Display Settings");
+    _titleLabel.SetText(u"Impostazioni");
     AddChildTail(&_titleLabel);
-    _layoutLabel.SetText(u"Layout");
+    _layoutLabel.SetText(u"Disposizione");
     AddChildTail(&_layoutLabel);
-    _sortingLabel.SetText(u"Sorting");
+    _sortingLabel.SetText(u"Ordinamento");
     AddChildTail(&_sortingLabel);
     // _filtersLabel.SetText(u"Filters");
     // AddChildTail(&_filtersLabel);
@@ -180,7 +180,7 @@ void DisplaySettingsBottomSheetView::Update()
     u32 idx = 0;
     for (auto& layoutOption : _layoutOptions)
     {
-        layoutOption.SetPosition(x, _position.y + 38);
+        layoutOption.SetPosition(x + 25, _position.y + 38);
         layoutOption.SetState(sRomBrowserDisplayModes[idx] == selectedDisplayMode
             ? IconButtonView::State::ToggleSelected
             : IconButtonView::State::ToggleUnselected);
@@ -192,7 +192,7 @@ void DisplaySettingsBottomSheetView::Update()
     idx = 0;
     for (auto& sortOption : _sortOptions)
     {
-        sortOption.SetPosition(x, _position.y + 70);
+        sortOption.SetPosition(x + 25, _position.y + 70);
         sortOption.SetState(sRomBrowserSortModes[idx] == selectedSortMode
             ? IconButtonView::State::ToggleSelected
             : IconButtonView::State::ToggleUnselected);
