@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include "core/String.h"
 #include "BottomSheetView.h"
 #include "gui/views/Label2DView.h"
 #include "IconButton2DView.h"
@@ -38,6 +39,8 @@ private:
     Label2DView _titleLabel;
     Label2DView _layoutLabel;
     Label2DView _sortingLabel;
+    Label2DView _themeLabel;
+    Label2DView _themeValueLabel;
     Label2DView _languageLabel;
     Label2DView _languageValueLabel;
     // LabelView _filtersLabel;
@@ -47,6 +50,11 @@ private:
     // std::array<IconButton2DView, 5> _filterOptions;
 
     const MaterialColorScheme* _materialColorScheme;
+
+    static constexpr int kMaxThemeCount = 16;
+    std::array<String<char, 64>, kMaxThemeCount> _themeNames;
+    int _themeCount = 0;
+    int _selectedThemeIdx = 0;
 
     static constexpr int kLanguageCount = 6;
     static constexpr const char* sLanguages[kLanguageCount] = {"english", "italian", "spanish", "french", "german", "portuguese"};
@@ -58,6 +66,9 @@ private:
     // IconButton2DView CreateFilterOptionIconButton();
 
     void UpdateLabels();
+    void LoadThemes();
+    void UpdateThemeUI();
+    void ChangeTheme(int newIdx);
     void UpdateLanguageUI();
     void ChangeLanguage(int newIdx);
     u32 LoadIcon(IVramManager& vramManager, const unsigned int* tiles, u32 tilesLength) const;

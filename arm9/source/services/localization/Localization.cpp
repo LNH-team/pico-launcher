@@ -34,6 +34,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Disposizione";
         if (!strcasecmp(key, "sorting"))
             return u"Ordinamento";
+        if (!strcasecmp(key, "theme"))
+            return u"Tema";
         if (!strcasecmp(key, "language"))
             return u"Lingua";
     }
@@ -47,6 +49,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Diseño";
         if (!strcasecmp(key, "sorting"))
             return u"Clasificación";
+        if (!strcasecmp(key, "theme"))
+            return u"Tema";
         if (!strcasecmp(key, "language"))
             return u"Idioma";
     }
@@ -60,6 +64,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Disposition";
         if (!strcasecmp(key, "sorting"))
             return u"Tri";
+        if (!strcasecmp(key, "theme"))
+            return u"Thème";
         if (!strcasecmp(key, "language"))
             return u"Langue";
     }
@@ -73,6 +79,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Layout";
         if (!strcasecmp(key, "sorting"))
             return u"Sortierung";
+        if (!strcasecmp(key, "theme"))
+            return u"Thema";
         if (!strcasecmp(key, "language"))
             return u"Sprache";
     }
@@ -86,6 +94,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Layout";
         if (!strcasecmp(key, "sorting"))
             return u"Ordenação";
+        if (!strcasecmp(key, "theme"))
+            return u"Tema";
         if (!strcasecmp(key, "language"))
             return u"Idioma";
     }
@@ -99,6 +109,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Indeling";
         if (!strcasecmp(key, "sorting"))
             return u"Sortering";
+        if (!strcasecmp(key, "theme"))
+            return u"Thema";
         if (!strcasecmp(key, "language"))
             return u"Taal";
     }
@@ -110,6 +122,8 @@ const char16_t* Localization::Translate(const char* key)
         return u"Layout";
     if (!strcasecmp(key, "sorting"))
         return u"Sorting";
+    if (!strcasecmp(key, "theme"))
+        return u"Theme";
     if (!strcasecmp(key, "language"))
         return u"Language";
 
