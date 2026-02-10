@@ -29,14 +29,14 @@ const char16_t* Localization::Translate(const char* key)
     if (!strcasecmp(s_languageBuf, "italian") || !strcasecmp(s_languageBuf, "italiano"))
     {
         if (!strcasecmp(key, "display_settings"))
-            return u"Impostazioni";
+            return u"Impostazioni schermo";
         if (!strcasecmp(key, "layout"))
             return u"Disposizione";
         if (!strcasecmp(key, "sorting"))
             return u"Ordinamento";
     }
 
-    // Spainish
+    // Spanish
     if (!strcasecmp(s_languageBuf, "spanish") || !strcasecmp(s_languageBuf, "espanol"))
     {
         if (!strcasecmp(key, "display_settings"))
@@ -45,6 +45,50 @@ const char16_t* Localization::Translate(const char* key)
             return u"Diseño";
         if (!strcasecmp(key, "sorting"))
             return u"Clasificación";
+    }
+
+    // French
+    if (!strcasecmp(s_languageBuf, "french") || !strcasecmp(s_languageBuf, "francais"))
+    {
+        if (!strcasecmp(key, "display_settings"))
+            return u"Paramètres d’affichage";
+        if (!strcasecmp(key, "layout"))
+            return u"Disposition";
+        if (!strcasecmp(key, "sorting"))
+            return u"Tri";
+    }
+
+    // German
+    if (!strcasecmp(s_languageBuf, "german") || !strcasecmp(s_languageBuf, "deutsch"))
+    {
+        if (!strcasecmp(key, "display_settings"))
+            return u"Anzeigeeinstellungen";
+        if (!strcasecmp(key, "layout"))
+            return u"Layout";
+        if (!strcasecmp(key, "sorting"))
+            return u"Sortierung";
+    }
+
+    // Portuguese
+    if (!strcasecmp(s_languageBuf, "portuguese") || !strcasecmp(s_languageBuf, "portugues"))
+    {
+        if (!strcasecmp(key, "display_settings"))
+            return u"Configurações de exibição";
+        if (!strcasecmp(key, "layout"))
+            return u"Layout";
+        if (!strcasecmp(key, "sorting"))
+            return u"Ordenação";
+    }
+
+    // Dutch
+    if (!strcasecmp(s_languageBuf, "dutch") || !strcasecmp(s_languageBuf, "nederlands"))
+    {
+        if (!strcasecmp(key, "display_settings"))
+            return u"Weergave-instellingen";
+        if (!strcasecmp(key, "layout"))
+            return u"Indeling";
+        if (!strcasecmp(key, "sorting"))
+            return u"Sortering";
     }
 
     // Default: English
@@ -57,3 +101,4 @@ const char16_t* Localization::Translate(const char* key)
 
     return u"";
 }
+
