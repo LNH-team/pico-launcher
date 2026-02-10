@@ -34,6 +34,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Disposizione";
         if (!strcasecmp(key, "sorting"))
             return u"Ordinamento";
+        if (!strcasecmp(key, "language"))
+            return u"Lingua";
     }
 
     // Spanish
@@ -45,6 +47,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Diseño";
         if (!strcasecmp(key, "sorting"))
             return u"Clasificación";
+        if (!strcasecmp(key, "language"))
+            return u"Idioma";
     }
 
     // French
@@ -56,6 +60,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Disposition";
         if (!strcasecmp(key, "sorting"))
             return u"Tri";
+        if (!strcasecmp(key, "language"))
+            return u"Langue";
     }
 
     // German
@@ -67,6 +73,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Layout";
         if (!strcasecmp(key, "sorting"))
             return u"Sortierung";
+        if (!strcasecmp(key, "language"))
+            return u"Sprache";
     }
 
     // Portuguese
@@ -78,6 +86,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Layout";
         if (!strcasecmp(key, "sorting"))
             return u"Ordenação";
+        if (!strcasecmp(key, "language"))
+            return u"Idioma";
     }
 
     // Dutch
@@ -89,6 +99,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Indeling";
         if (!strcasecmp(key, "sorting"))
             return u"Sortering";
+        if (!strcasecmp(key, "language"))
+            return u"Taal";
     }
 
     // Default: English
@@ -98,6 +110,8 @@ const char16_t* Localization::Translate(const char* key)
         return u"Layout";
     if (!strcasecmp(key, "sorting"))
         return u"Sorting";
+    if (!strcasecmp(key, "language"))
+        return u"Language";
 
     return u"";
 }
