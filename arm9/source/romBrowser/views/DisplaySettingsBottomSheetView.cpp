@@ -20,6 +20,7 @@
 #include "themes/material/MaterialColorScheme.h"
 #include "themes/IFontRepository.h"
 #include "DisplaySettingsBottomSheetView.h"
+#include "services/localization/Localization.h"
 
 #define TITLE_LABEL_X       15
 #define TITLE_LABEL_Y       16
@@ -50,21 +51,23 @@ static RomBrowserSortMode sRomBrowserSortModes[4] =
 
 DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     DisplaySettingsViewModel* viewModel, const MaterialColorScheme* materialColorScheme,
-    const IFontRepository* fontRepository)
+    const IFontRepository* fontRepository, const IAppSettingsService* appSettingsService)
     : _viewModel(viewModel)
     , _titleLabel(128, 16, 25, fontRepository->GetFont(FontType::Medium11))
     , _layoutLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
     , _sortingLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
     , _materialColorScheme(materialColorScheme)
+    , _appSettingsService(appSettingsService)
     // , _filtersLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
 {
-    _titleLabel.SetText(u"Impostazioni");
+    Localization::Initialize(_appSettingsService);
+    _titleLabel.SetText(Localization::Translate("display_settings"));
     AddChildTail(&_titleLabel);
-    _layoutLabel.SetText(u"Disposizione");
+    _layoutLabel.SetText(Localization::Translate("layout"));
     AddChildTail(&_layoutLabel);
-    _sortingLabel.SetText(u"Ordinamento");
+    _sortingLabel.SetText(Localization::Translate("sorting"));
     AddChildTail(&_sortingLabel);
-    // _filtersLabel.SetText(u"Filters");
+    // _sortingLabel.SetText(Localization::Translate("filters"));
     // AddChildTail(&_filtersLabel);
 
     for (auto& layoutOption : _layoutOptions)

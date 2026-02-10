@@ -4,6 +4,7 @@
 #include "gui/views/Label2DView.h"
 #include "IconButton2DView.h"
 #include "../viewModels/DisplaySettingsViewModel.h"
+#include "services/settings/IAppSettingsService.h"
 
 class IRomBrowserController;
 class MaterialColorScheme;
@@ -13,7 +14,8 @@ class DisplaySettingsBottomSheetView : public BottomSheetView
 {
 public:
     DisplaySettingsBottomSheetView(DisplaySettingsViewModel* viewModel,
-        const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository);
+        const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository,
+        const IAppSettingsService* appSettingsService);
 
     void InitVram(const VramContext& vramContext) override;
     void Update() override;
@@ -31,6 +33,7 @@ public:
 
 private:
     DisplaySettingsViewModel* _viewModel;
+    const IAppSettingsService* _appSettingsService;
 
     Label2DView _titleLabel;
     Label2DView _layoutLabel;
