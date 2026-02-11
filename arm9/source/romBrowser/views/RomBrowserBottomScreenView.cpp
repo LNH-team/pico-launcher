@@ -93,6 +93,11 @@ View* RomBrowserBottomScreenView::MoveFocus(View* currentFocus, FocusMoveDirecti
 
 bool RomBrowserBottomScreenView::HandleInput(const InputProvider& inputProvider, FocusManager& focusManager)
 {
+    if (inputProvider.Triggered(InputKey::Select))
+    {
+        if (_viewModel->TryShowDisplaySettings())
+            return true;
+    }
     if (inputProvider.Triggered(InputKey::B))
     {
         _viewModel->NavigateUp();

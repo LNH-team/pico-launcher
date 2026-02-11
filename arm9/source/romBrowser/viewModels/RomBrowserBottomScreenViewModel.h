@@ -38,6 +38,16 @@ public:
         _romBrowserController->NavigateUp();
     }
 
+    bool TryShowDisplaySettings()
+    {
+        auto state = _romBrowserController->GetStateMachine().GetCurrentState();
+        if (state != RomBrowserState::Browser)
+            return false;
+
+        _romBrowserController->ShowDisplaySettings();
+        return true;
+    }
+
 private:
     IRomBrowserController* _romBrowserController;
     RomBrowserAppBarViewModel _romBrowserAppBarViewModel;
