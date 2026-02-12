@@ -29,6 +29,13 @@ public:
     void ToggleSelectedFileFavorite() override;
     bool IsSelectedFileFavorite() override;
 
+    bool ConsumeViewModelInvalidated()
+    {
+        const bool invalidated = _viewModelInvalidated;
+        _viewModelInvalidated = false;
+        return invalidated;
+    }
+
     void Update() override;
 
     const SdFolder& GetSdFolder() const override
@@ -70,6 +77,7 @@ private:
     bool _favoritesViewActive = false;
     bool _favoritesLoadPending = false;
     bool _saveSettingsPending = false;
+    bool _viewModelInvalidated = false;
     std::unique_ptr<CoverRepository> _coverRepository;
     ExtensionFileTypeProvider _fileTypeProvider;
 

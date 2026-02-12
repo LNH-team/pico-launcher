@@ -346,6 +346,23 @@ void App::HandleFolderLoadDoneTrigger()
         _romBrowserBottomScreenView->Focus(_focusManager);
 }
 
+void App::HandleRomBrowserViewModelInvalidated()
+{
+    _romBrowserTopScreenView.reset();
+    RestoreVramState(_vramStateAfterMakeBottomScreenView);
+    auto displayMode = RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
+        _romBrowserController.GetRomBrowserDisplaySettings().layout);
+    _romBrowserTopScreenView = std::make_unique<RomBrowserTopScreenView>(
+        _romBrowserController.GetRomBrowserViewModel(),
+        displayMode,
+        _materialThemeFileIconFactory.get(),
+        _theme->GetRomBrowserViewFactory());
+    _romBrowserTopScreenView->InitVram(_subVramContext);
+    _romBrowserBottomScreenView->RomBrowserViewModelInvalidated(_mainVramContext);
+    if (!_focusManager.GetCurrentFocus())
+        _romBrowserBottomScreenView->Focus(_focusManager);
+}
+
 void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)
 {
     _dialogPresenter.ClearOldFocus();
@@ -394,6 +411,10 @@ void App::Update()
     if (stateMachine.HasStateChanged())
     {
         HandleTrigger(stateMachine.GetLastTrigger(), curState);
+    }
+    if (!_changeDisplayMode && _romBrowserController.ConsumeViewModelInvalidated())
+    {
+        HandleRomBrowserViewModelInvalidated();
     }
 
     bool isRomBrowserVisible = IsRomBrowserVisible();

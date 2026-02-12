@@ -115,6 +115,7 @@ private:
     void HandleHideDisplaySettingsTrigger();
     void HandleNavigateTrigger();
     void HandleFolderLoadDoneTrigger();
+    void HandleRomBrowserViewModelInvalidated();
     void HandleChangeDisplayModeTrigger(RomBrowserState newState);
 
     bool IsRomBrowserVisible() const;

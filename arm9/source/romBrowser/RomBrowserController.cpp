@@ -23,6 +23,7 @@ void RomBrowserController::NavigateUp()
     {
         _favoritesViewActive = false;
         _romBrowserViewModel = SharedPtr(new RomBrowserViewModel(this, _navigateFileName));
+        _viewModelInvalidated = true;
         return;
     }
 
@@ -93,6 +94,7 @@ void RomBrowserController::ToggleFavoritesView()
     {
         _favoritesViewActive = false;
         _romBrowserViewModel = SharedPtr(new RomBrowserViewModel(this, _navigateFileName));
+        _viewModelInvalidated = true;
         return;
     }
 
@@ -299,6 +301,7 @@ void RomBrowserController::CompleteFavoritesLoad()
     _favoritesLoadPending = false;
     _favoritesViewActive = true;
     _romBrowserViewModel = SharedPtr(new RomBrowserViewModel(this));
+    _viewModelInvalidated = true;
 }
 
 bool RomBrowserController::TryBuildFilePath(const FileInfo& fileInfo, char* outPath, u32 outPathSize) const
