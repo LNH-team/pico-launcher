@@ -14,6 +14,8 @@
 #include "gui/IVramManager.h"
 #include "../DisplayMode/RomBrowserDisplayMode.h"
 #include "RomBrowserAppBarView.h"
+#include "gui/input/InputKey.h"
+#include "gui/input/InputProvider.h"
 
 RomBrowserAppBarView::RomBrowserAppBarView(
     RomBrowserAppBarViewModel* viewModel, const RomBrowserDisplayMode& displayMode,
@@ -35,6 +37,20 @@ RomBrowserAppBarView::RomBrowserAppBarView(
     {
         ((RomBrowserAppBarViewModel*)arg)->ToggleFavoritesView();
     }, _viewModel);
+}
+
+bool RomBrowserAppBarView::HandleInput(const InputProvider& inputProvider, FocusManager& focusManager)
+{
+    if (inputProvider.Triggered(InputKey::B))
+    {
+        if (_viewModel->IsFavoritesViewActive())
+        {
+            _appBarView->Focus(focusManager, APP_BAR_BUTTON_FAVORITES);
+            _viewModel->ToggleFavoritesView();
+            return true;
+        }
+    }
+    return View::HandleInput(inputProvider, focusManager);
 }
 
 void RomBrowserAppBarView::InitVram(const VramContext& vramContext)

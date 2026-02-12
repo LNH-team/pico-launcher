@@ -13,6 +13,8 @@ public:
         RomBrowserAppBarViewModel* viewModel, const RomBrowserDisplayMode& displayMode,
         const IRomBrowserViewFactory* romBrowserViewFactory);
 
+    bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
+
     void InitVram(const VramContext& vramContext) override;
     void Update() override;
     void Draw(GraphicsContext& graphicsContext) override;

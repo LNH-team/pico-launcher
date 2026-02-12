@@ -98,11 +98,17 @@ bool RomBrowserBottomScreenView::HandleInput(const InputProvider& inputProvider,
         if (_viewModel->TryShowDisplaySettings())
             return true;
     }
-    if (inputProvider.Triggered(InputKey::B))
-    {
-        _viewModel->NavigateUp();
-        return true;
-    }
+        if (inputProvider.Triggered(InputKey::B)
+            && _viewModel->GetRomBrowserAppBarViewModel()->IsFavoritesViewActive())
+        {
+            _romBrowserAppBarView.HandleInput(inputProvider, focusManager);
+            return true;
+        }
+        if (inputProvider.Triggered(InputKey::B))
+        {
+            _viewModel->NavigateUp();
+            return true;
+        }
     return View::HandleInput(inputProvider, focusManager);
 }
 
