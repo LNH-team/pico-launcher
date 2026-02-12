@@ -110,31 +110,35 @@ bool NdsGameDetailsBottomSheetView::HandleInput(const InputProvider& inputProvid
         if (focusManager.GetCurrentFocus() == &_favoriteChip)
         {
             bool wasFavorite = _isFavorite;
+            
+            // Toggle favorite status via controller and sync local state
             _romBrowserController->ToggleSelectedFileFavorite();
             _isFavorite = _romBrowserController->IsSelectedFileFavorite();
             UpdateFavoriteChipIcon();
 
-            // Se era un favorito e ora non lo è più, controlla la modalità solo favoriti
-            if (wasFavorite && !_isFavorite && _romBrowserController->IsFavoritesViewActive()) {
-                // Controlla quanti favoriti sono rimasti
+            // If the item was removed from favorites while in "Favorites View", close the panel
+            if (wasFavorite && !_isFavorite && _romBrowserController->IsFavoritesViewActive()) 
+            {
+                // Check if any favorite items remain in the list
                 const auto& viewModel = _romBrowserController->GetRomBrowserViewModel();
                 int favoritesCount = 0;
                 if (viewModel.IsValid()) {
                     favoritesCount = viewModel->GetFileInfoManager().GetItemCount();
                 }
-                // Chiudi il menu info game
+
+                // Close the game details view since the item is no longer in the filtered list
                 _romBrowserController->HideGameInfo();
-                // Gestisci il focus
+
+                // Focus Management Logic:
                 if (favoritesCount > 0) {
-                    // Metti il focus sul primo elemento rimasto
-                    // (il ViewModel aggiornerà la selezione, quindi il focus tornerà sulla lista)
+                    // Focus will automatically return to the list (handled by ViewModel/View update)
                 } else {
-                    // Nessun favorito rimasto: metti il focus sull'icona dei favoriti nella toolbar
-                    // Serve accedere al FocusManager e alla toolbar, quindi qui si può solo segnalare
-                    // che il focus va aggiornato a livello superiore (App/RomBrowserBottomScreenView)
+                    // No favorites left: focus should be moved to the toolbar favorite icon.
+                    // This needs to be handled at a higher level (App or RomBrowserBottomScreenView).
                 }
                 return true;
             }
+            
             return true;
         }
         if (_hasCheatsChip && focusManager.GetCurrentFocus() == &_cheatsChip) {
