@@ -154,6 +154,7 @@ void DisplaySettingsBottomSheetView::LoadThemes()
     if (directory.Open("/_pico/themes") == FR_OK)
     {
         FILINFO fileInfo;
+        
         while (true)
         {
             if (directory.Read(&fileInfo) != FR_OK)
@@ -175,6 +176,10 @@ void DisplaySettingsBottomSheetView::LoadThemes()
     {
         _themeNames[0] = "NULL";
         _themeCount = 1;
+    }
+    else
+    {
+        _themeNames[_themeCount++] = "RANDOM";
     }
 }
 

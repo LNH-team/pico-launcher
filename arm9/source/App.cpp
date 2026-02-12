@@ -28,6 +28,7 @@
 #include "gui/Gx.h"
 #include "splashTop.h"
 #include "App.h"
+#include "fat/Directory.h"
 
 #define SPLASH_FRAMES       44
 
@@ -88,12 +89,45 @@ void App::DisplaySplashScreen() const
 void App::LoadTheme()
 {
     ThemeInfoFactory themeInfoFactory;
-    auto themeInfo = themeInfoFactory.CreateFromThemeFolder(_appSettingsService.GetAppSettings().theme);
+    std::unique_ptr<ThemeInfo> themeInfo;
+    if (strcmp(_appSettingsService.GetAppSettings().theme.GetString(), "RANDOM") == 0) 
+    {
+        _themeCount = 0;
+        Directory directory;
+        if (directory.Open("/_pico/themes") == FR_OK) {
+            FILINFO fileInfo;
+            while (true) {
+                if (directory.Read(&fileInfo) != FR_OK)
+                    break;
+                if (fileInfo.fname[0] == 0)
+                    break;
+                if (fileInfo.fname[0] == '.')
+                    continue;
+                if ((fileInfo.fattrib & AM_DIR) == 0)
+                    continue;
+                if (_themeCount >= kMaxThemeCount)
+                    break;
+                _themeNames[_themeCount++] = String<char, 64>(fileInfo.fname);
+            }
+        }
+        if (_themeCount > 0) {
+            uint32_t randIdx = gRandomGenerator->NextU32(_themeCount);
+            themeInfo = themeInfoFactory.CreateFromThemeFolder(_themeNames[randIdx].GetString());
+        } else {
+            themeInfo = themeInfoFactory.CreateFallbackTheme();
+        }
+    } 
+    else
+    {
+        themeInfo = themeInfoFactory.CreateFromThemeFolder(_appSettingsService.GetAppSettings().theme);
+    } 
+
     if (!themeInfo)
     {
         LOG_DEBUG("Failed to load theme '%s'. Using fallback theme.\n", _appSettingsService.GetAppSettings().theme.GetString());
         themeInfo = themeInfoFactory.CreateFallbackTheme();
     }
+
     _theme = ThemeFactory().CreateFromThemeInfo(themeInfo.get());
     themeInfo.reset();
     _theme->LoadRomBrowserResources(_mainVramContext, _subVramContext);

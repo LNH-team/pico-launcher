@@ -127,4 +127,8 @@ private:
 
     void StoreVramState(VramState& vramState) const;
     void RestoreVramState(const VramState& vramState);
+
+    static constexpr int kMaxThemeCount = 64;
+    std::array<String<char, 64>, kMaxThemeCount> _themeNames;
+    int _themeCount = 0;
 };
