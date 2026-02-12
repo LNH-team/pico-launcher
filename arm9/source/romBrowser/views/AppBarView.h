@@ -26,6 +26,11 @@ public:
         _buttons[button]->SetAction(action, arg);
     }
 
+    void SetButtonState(int button, IconButtonView::State state)
+    {
+        _buttons[button]->SetState(state);
+    }
+
     Rectangle GetBounds() const override;
     void Update() override;
     View* MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source) override;

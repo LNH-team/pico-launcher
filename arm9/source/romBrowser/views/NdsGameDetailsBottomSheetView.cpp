@@ -20,7 +20,8 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     _cheatsChip.SetSelected(false);
     AddChildTail(&_cheatsChip);
     _favoriteChip.SetText(u"Favorite");
-    _favoriteChip.SetSelected(true);
+    _isFavorite = _romBrowserController->IsSelectedFileFavorite();
+    _favoriteChip.SetSelected(_isFavorite);
     AddChildTail(&_favoriteChip);
 }
 
@@ -37,7 +38,7 @@ void NdsGameDetailsBottomSheetView::InitVram(const VramContext& vramContext)
         _smallHeartIconFilledVramOffset = objVramManager->Alloc(smallHeartIconFilledTilesLen);
         dma_ntrCopy32(3, smallHeartIconFilledTiles, objVramManager->GetVramAddress(_smallHeartIconFilledVramOffset), smallHeartIconFilledTilesLen);
 
-        _favoriteChip.SetIcon(true, _smallHeartIconFilledVramOffset);
+        UpdateFavoriteChipIcon();
     }
 }
 
@@ -71,6 +72,16 @@ View* NdsGameDetailsBottomSheetView::MoveFocus(View* currentFocus,
 
 bool NdsGameDetailsBottomSheetView::HandleInput(const InputProvider& inputProvider, FocusManager& focusManager)
 {
+    if (inputProvider.Triggered(InputKey::A))
+    {
+        if (focusManager.GetCurrentFocus() == &_favoriteChip)
+        {
+            _romBrowserController->ToggleSelectedFileFavorite();
+            _isFavorite = _romBrowserController->IsSelectedFileFavorite();
+            UpdateFavoriteChipIcon();
+            return true;
+        }
+    }
     if (inputProvider.Triggered(InputKey::B))
     {
         _romBrowserController->HideGameInfo();

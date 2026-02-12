@@ -14,4 +14,7 @@ public:
 
     std::unique_ptr<FileAssociation[]> fileAssociations;
     u32 numberOfFileAssociations = 0;
+
+    std::unique_ptr<String<char, 256>[]> favorites;
+    u32 numberOfFavorites = 0;
 };

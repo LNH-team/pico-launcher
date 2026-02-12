@@ -34,11 +34,10 @@ private:
     enum AppBarButton
     {
         APP_BAR_BUTTON_BACK = 0,
-
-        APP_BAR_BUTTON_DISPLAY_SETTINGS,
-        // APP_BAR_BUTTON_RECENT,
-        // APP_BAR_BUTTON_FAVORITE,
         // APP_BAR_BUTTON_SETTINGS
+        // APP_BAR_BUTTON_SETTINGS,
+        APP_BAR_BUTTON_FAVORITES,
+        APP_BAR_BUTTON_DISPLAY_SETTINGS
     };
 
     RomBrowserAppBarViewModel* _viewModel;

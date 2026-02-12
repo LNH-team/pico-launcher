@@ -18,6 +18,16 @@ public:
         _romBrowserController->ShowDisplaySettings();
     }
 
+    void ToggleFavoritesView()
+    {
+        _romBrowserController->ToggleFavoritesView();
+    }
+
+    bool IsFavoritesViewActive() const
+    {
+        return _romBrowserController->IsFavoritesViewActive();
+    }
+
     constexpr RomBrowserLayout GetRomBrowserLayout() const
     {
         return _romBrowserController->GetRomBrowserDisplaySettings().layout;

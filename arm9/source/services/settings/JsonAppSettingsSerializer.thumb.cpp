@@ -7,7 +7,7 @@
 
 #pragma GCC optimize("Os")
 
-#define JSON_RESERVED_SIZE  2048
+#define JSON_RESERVED_SIZE  8192
 
 #define KEY_LANGUAGE                 "language"
 #define KEY_ROM_BROWSER_LAYOUT       "romBrowserLayout"
@@ -16,6 +16,7 @@
 #define KEY_LAST_USED_FILE_PATH      "lastUsedFilePath"
 #define KEY_FILE_ASSOCIATIONS        "fileAssociations"
 #define KEY_FILE_ASSOCIATIONS_APPLICATION_PATH  "appPath"
+#define KEY_FAVORITES                "favorites"
 
 static const char* serializeRomBrowserLayout(RomBrowserLayout romBrowserLayout)
 {
@@ -121,6 +122,36 @@ static void serializeFileAssociations(DynamicJsonDocument& json, const AppSettin
     }
 }
 
+static bool tryParseFavorites(const JsonArrayConst& json, AppSettings* appSettings)
+{
+    if (json.isNull())
+    {
+        return false;
+    }
+
+    appSettings->favorites = std::make_unique_for_overwrite<String<char, 256>[]>(json.size());
+    u32 i = 0;
+    for (auto item : json)
+    {
+        const char* path = item.as<const char*>();
+        if (path && path[0] != 0)
+        {
+            appSettings->favorites[i++] = path;
+        }
+    }
+    appSettings->numberOfFavorites = i;
+    return true;
+}
+
+static void serializeFavorites(DynamicJsonDocument& json, const AppSettings* appSettings)
+{
+    auto jsonArray = json[KEY_FAVORITES].to<JsonArray>();
+    for (u32 i = 0; i < appSettings->numberOfFavorites; i++)
+    {
+        jsonArray.add(appSettings->favorites[i].GetString());
+    }
+}
+
 static std::unique_ptr<u8[]> writeJson(const AppSettings* appSettings, u32& length)
 {
     DynamicJsonDocument json(JSON_RESERVED_SIZE);
@@ -130,6 +161,7 @@ static std::unique_ptr<u8[]> writeJson(const AppSettings* appSettings, u32& leng
     json[KEY_THEME] = appSettings->theme.GetString();
     json[KEY_LAST_USED_FILE_PATH] = appSettings->lastUsedFilePath.GetString();
     serializeFileAssociations(json, appSettings);
+    serializeFavorites(json, appSettings);
 
     u32 outputSize = measureJsonPretty(json);
     std::unique_ptr<u8[]> fileData(new(cache_align) u8[outputSize]);
@@ -182,6 +214,7 @@ static void readJson(AppSettings* appSettings, const JsonDocument& json)
     }
 
     tryParseFileAssociations(json[KEY_FILE_ASSOCIATIONS], appSettings);
+    tryParseFavorites(json[KEY_FAVORITES].as<JsonArrayConst>(), appSettings);
 }
 
 bool JsonAppSettingsSerializer::Deserialize(AppSettings* appSettings, const char* filePath) const

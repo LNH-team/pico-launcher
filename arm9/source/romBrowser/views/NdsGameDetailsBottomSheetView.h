@@ -40,4 +40,12 @@ private:
     u32 _smallHeartIconFilledVramOffset;
     ChipView _cheatsChip;
     ChipView _favoriteChip;
+    bool _isFavorite = false;
+
+    void UpdateFavoriteChipIcon()
+    {
+        _favoriteChip.SetSelected(_isFavorite);
+        u32 iconOffset = _isFavorite ? _smallHeartIconFilledVramOffset : _smallHeartIconVramOffset;
+        _favoriteChip.SetIcon(true, iconOffset);
+    }
 };
