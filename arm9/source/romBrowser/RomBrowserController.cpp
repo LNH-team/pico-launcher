@@ -3,6 +3,7 @@
 #include "picoLoaderBootstrap.h"
 #include "core/StringUtil.h"
 #include "PicoLoaderProcess.h"
+#include "services/LaunchStats/LaunchStatsService.h"
 #include "FileType/ExtensionFileTypeProvider.h"
 #include "FileType/FileType.h"
 #include "SdFolderFactory.h"
@@ -259,8 +260,11 @@ void RomBrowserController::HandleLaunchTrigger()
             LOG_ERROR("Failed to build launch path.\n");
             return TaskResult<void>::Completed();
         }
-        _appSettingsService->GetAppSettings().lastUsedFilePath = _navigatePath;
+        auto& appSettings = _appSettingsService->GetAppSettings();
+        appSettings.lastUsedFilePath = _navigatePath;
         _appSettingsService->Save();
+
+        LaunchStatsService::Instance().Increment(_navigatePath);
 
         auto loadParams = pload_getLoadParams();
         loadParams->savePath[0] = 0;
