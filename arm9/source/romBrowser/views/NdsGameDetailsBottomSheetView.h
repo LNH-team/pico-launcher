@@ -1,7 +1,9 @@
+#include "../FileInfo.h"
 #pragma once
 #include "BottomSheetView.h"
 #include "ChipView.h"
 #include "gui/FocusManager.h"
+#include "../FileType/Nds/NdsFileType.h"
 
 class IRomBrowserController;
 class IFontRepository;
@@ -27,7 +29,11 @@ public:
 
     void Focus(FocusManager& focusManager) override
     {
-        focusManager.Focus(&_cheatsChip);
+        if (_hasCheatsChip) {
+            focusManager.Focus(&_cheatsChip);
+        } else {
+            focusManager.Focus(&_favoriteChip);
+        }
     }
 
     View* MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source) override;
@@ -35,6 +41,7 @@ public:
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
 
 private:
+    bool _hasCheatsChip = false;
     IRomBrowserController* _romBrowserController;
     u32 _smallHeartIconVramOffset;
     u32 _smallHeartIconFilledVramOffset;

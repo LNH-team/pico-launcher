@@ -7,7 +7,9 @@
 #include "smallHeartIcon.h"
 #include "smallHeartIconFilled.h"
 #include "../IRomBrowserController.h"
+#include "../FileInfo.h"
 #include "NdsGameDetailsBottomSheetView.h"
+#include "../viewModels/RomBrowserViewModel.h"
 
 NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     IRomBrowserController* romBrowserController, const MaterialColorScheme* materialColorScheme,
@@ -16,9 +18,33 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     , _cheatsChip(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository)
     , _favoriteChip(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository)
 {
-    _cheatsChip.SetText(u"Cheats");
-    _cheatsChip.SetSelected(false);
-    AddChildTail(&_cheatsChip);
+    bool isNds = false;
+    if (_romBrowserController) {
+        const auto& viewModel = _romBrowserController->GetRomBrowserViewModel();
+        if (viewModel.IsValid()) {
+            int selected = viewModel->GetSelectedItem();
+            if (selected >= 0) {
+                const auto& fileInfo = viewModel->GetFileInfoManager().GetItem(selected);
+                if (fileInfo.GetFileType() == &NdsFileType::sInstance) {
+                    // Check extension for .nds, .dsi, .srl
+                    const TCHAR* name = fileInfo.GetFileName();
+                    const char* ext = strrchr(name, '.');
+                    if (ext) {
+                        ext++;
+                        if (!strcasecmp(ext, "nds") || !strcasecmp(ext, "dsi") || !strcasecmp(ext, "srl")) {
+                            isNds = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (isNds) {
+        _cheatsChip.SetText(u"Cheats");
+        _cheatsChip.SetSelected(false);
+        AddChildTail(&_cheatsChip);
+        _hasCheatsChip = true;
+    }
     _favoriteChip.SetText(u"Favorite");
     _isFavorite = _romBrowserController->IsSelectedFileFavorite();
     _favoriteChip.SetSelected(_isFavorite);
@@ -45,8 +71,12 @@ void NdsGameDetailsBottomSheetView::InitVram(const VramContext& vramContext)
 void NdsGameDetailsBottomSheetView::Update()
 {
     BottomSheetView::Update();
-    _cheatsChip.SetPosition(92, _position.y + 21);
-    _favoriteChip.SetPosition(162, _position.y + 21);
+    if (_hasCheatsChip) {
+        _cheatsChip.SetPosition(92, _position.y + 21);
+        _favoriteChip.SetPosition(162, _position.y + 21);
+    } else {
+        _favoriteChip.SetPosition(92, _position.y + 21);
+    }
 }
 
 void NdsGameDetailsBottomSheetView::Draw(GraphicsContext& graphicsContext)
@@ -63,10 +93,12 @@ void NdsGameDetailsBottomSheetView::Draw(GraphicsContext& graphicsContext)
 View* NdsGameDetailsBottomSheetView::MoveFocus(View* currentFocus,
     FocusMoveDirection direction, View* source)
 {
-    if (currentFocus == &_cheatsChip && direction == FocusMoveDirection::Right)
-        return &_favoriteChip;
-    else if (currentFocus == &_favoriteChip && direction == FocusMoveDirection::Left)
-        return &_cheatsChip;
+    if (_hasCheatsChip) {
+        if (currentFocus == &_cheatsChip && direction == FocusMoveDirection::Right)
+            return &_favoriteChip;
+        else if (currentFocus == &_favoriteChip && direction == FocusMoveDirection::Left)
+            return &_cheatsChip;
+    }
     return nullptr;
 }
 
@@ -79,6 +111,10 @@ bool NdsGameDetailsBottomSheetView::HandleInput(const InputProvider& inputProvid
             _romBrowserController->ToggleSelectedFileFavorite();
             _isFavorite = _romBrowserController->IsSelectedFileFavorite();
             UpdateFavoriteChipIcon();
+            return true;
+        }
+        if (_hasCheatsChip && focusManager.GetCurrentFocus() == &_cheatsChip) {
+            // Handle cheats chip action here if needed
             return true;
         }
     }
