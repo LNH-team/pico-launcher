@@ -95,20 +95,22 @@ bool RomBrowserBottomScreenView::HandleInput(const InputProvider& inputProvider,
 {
     if (inputProvider.Triggered(InputKey::Select))
     {
-        if (_viewModel->TryShowDisplaySettings())
+            if (_viewModel->TryShowDisplaySettings()) {
+                _romBrowserAppBarView.Focus(focusManager, RomBrowserAppBarView::APP_BAR_BUTTON_DISPLAY_SETTINGS);
             return true;
+        }
     }
-        if (inputProvider.Triggered(InputKey::B)
-            && _viewModel->GetRomBrowserAppBarViewModel()->IsFavoritesViewActive())
-        {
-            _romBrowserAppBarView.HandleInput(inputProvider, focusManager);
-            return true;
-        }
-        if (inputProvider.Triggered(InputKey::B))
-        {
-            _viewModel->NavigateUp();
-            return true;
-        }
+    if (inputProvider.Triggered(InputKey::B)
+        && _viewModel->GetRomBrowserAppBarViewModel()->IsFavoritesViewActive())
+    {
+        _romBrowserAppBarView.HandleInput(inputProvider, focusManager);
+        return true;
+    }
+    if (inputProvider.Triggered(InputKey::B))
+    {
+        _viewModel->NavigateUp();
+        return true;
+    }
     return View::HandleInput(inputProvider, focusManager);
 }
 

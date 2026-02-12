@@ -32,7 +32,8 @@ public:
         _appBarView->Focus(focusManager, 0);
     }
 
-private:
+
+public:
     enum AppBarButton
     {
         APP_BAR_BUTTON_BACK = 0,
@@ -41,6 +42,11 @@ private:
         APP_BAR_BUTTON_FAVORITES,
         APP_BAR_BUTTON_DISPLAY_SETTINGS
     };
+
+    void Focus(FocusManager& focusManager, AppBarButton button)
+    {
+        _appBarView->Focus(focusManager, button);
+    }
 
     RomBrowserAppBarViewModel* _viewModel;
     std::unique_ptr<AppBarView> _appBarView;
