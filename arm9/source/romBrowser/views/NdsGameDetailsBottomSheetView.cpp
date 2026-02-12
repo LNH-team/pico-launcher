@@ -10,6 +10,7 @@
 #include "../FileInfo.h"
 #include "NdsGameDetailsBottomSheetView.h"
 #include "../viewModels/RomBrowserViewModel.h"
+#include "services/localization/Localization.h"
 
 NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     IRomBrowserController* romBrowserController, const MaterialColorScheme* materialColorScheme,
@@ -40,12 +41,12 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
         }
     }
     if (isNds) {
-        _cheatsChip.SetText(u"Cheats");
+        _cheatsChip.SetText(Localization::Translate("cheats"));
         _cheatsChip.SetSelected(false);
         AddChildTail(&_cheatsChip);
         _hasCheatsChip = true;
     }
-    _favoriteChip.SetText(u"Favorite");
+    _favoriteChip.SetText(Localization::Translate("favorites"));
     _isFavorite = _romBrowserController->IsSelectedFileFavorite();
     _favoriteChip.SetSelected(_isFavorite);
     AddChildTail(&_favoriteChip);
@@ -108,9 +109,32 @@ bool NdsGameDetailsBottomSheetView::HandleInput(const InputProvider& inputProvid
     {
         if (focusManager.GetCurrentFocus() == &_favoriteChip)
         {
+            bool wasFavorite = _isFavorite;
             _romBrowserController->ToggleSelectedFileFavorite();
             _isFavorite = _romBrowserController->IsSelectedFileFavorite();
             UpdateFavoriteChipIcon();
+
+            // Se era un favorito e ora non lo è più, controlla la modalità solo favoriti
+            if (wasFavorite && !_isFavorite && _romBrowserController->IsFavoritesViewActive()) {
+                // Controlla quanti favoriti sono rimasti
+                const auto& viewModel = _romBrowserController->GetRomBrowserViewModel();
+                int favoritesCount = 0;
+                if (viewModel.IsValid()) {
+                    favoritesCount = viewModel->GetFileInfoManager().GetItemCount();
+                }
+                // Chiudi il menu info game
+                _romBrowserController->HideGameInfo();
+                // Gestisci il focus
+                if (favoritesCount > 0) {
+                    // Metti il focus sul primo elemento rimasto
+                    // (il ViewModel aggiornerà la selezione, quindi il focus tornerà sulla lista)
+                } else {
+                    // Nessun favorito rimasto: metti il focus sull'icona dei favoriti nella toolbar
+                    // Serve accedere al FocusManager e alla toolbar, quindi qui si può solo segnalare
+                    // che il focus va aggiornato a livello superiore (App/RomBrowserBottomScreenView)
+                }
+                return true;
+            }
             return true;
         }
         if (_hasCheatsChip && focusManager.GetCurrentFocus() == &_cheatsChip) {

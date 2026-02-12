@@ -38,6 +38,10 @@ const char16_t* Localization::Translate(const char* key)
             return u"Tema";
         if (!strcasecmp(key, "language"))
             return u"Lingua";
+        if (!strcasecmp(key, "favorites"))
+            return u"Preferiti";
+        if (!strcasecmp(key, "cheats"))
+            return u"Trucchi";
     }
 
     // Spanish
@@ -53,6 +57,10 @@ const char16_t* Localization::Translate(const char* key)
             return u"Tema";
         if (!strcasecmp(key, "language"))
             return u"Idioma";
+        if (!strcasecmp(key, "favorites"))
+            return u"Favoritos";
+        if (!strcasecmp(key, "cheats"))
+            return u"Trucos";
     }
 
     // French
@@ -68,6 +76,10 @@ const char16_t* Localization::Translate(const char* key)
             return u"Thème";
         if (!strcasecmp(key, "language"))
             return u"Langue";
+        if (!strcasecmp(key, "favorites"))
+            return u"Favoris";
+        if (!strcasecmp(key, "cheats"))
+            return u"Triches";
     }
 
     // German
@@ -83,6 +95,10 @@ const char16_t* Localization::Translate(const char* key)
             return u"Thema";
         if (!strcasecmp(key, "language"))
             return u"Sprache";
+        if (!strcasecmp(key, "favorites"))
+            return u"Favoriten";
+        if (!strcasecmp(key, "cheats"))
+            return u"Codes";
     }
 
     // Portuguese
@@ -98,6 +114,10 @@ const char16_t* Localization::Translate(const char* key)
             return u"Tema";
         if (!strcasecmp(key, "language"))
             return u"Idioma";
+        if (!strcasecmp(key, "favorites"))
+            return u"Favoritos";
+        if (!strcasecmp(key, "cheats"))
+            return u"Truques";
     }
 
     // Dutch
@@ -113,6 +133,10 @@ const char16_t* Localization::Translate(const char* key)
             return u"Thema";
         if (!strcasecmp(key, "language"))
             return u"Taal";
+        if (!strcasecmp(key, "favorites"))
+            return u"Favorieten";
+        if (!strcasecmp(key, "cheats"))
+            return u"Cheats";
     }
 
     // Default: English
@@ -126,6 +150,10 @@ const char16_t* Localization::Translate(const char* key)
         return u"Theme";
     if (!strcasecmp(key, "language"))
         return u"Language";
+    if (!strcasecmp(key, "favorites"))
+        return u"Favorites";
+    if (!strcasecmp(key, "cheats"))
+        return u"Cheats";
 
     return u"";
 }
