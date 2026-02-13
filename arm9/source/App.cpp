@@ -338,8 +338,13 @@ void App::HandleShowGameInfoTrigger()
 void App::HandleHideGameInfoTrigger()
 {
     _dialogPresenter.CloseDialog();
-    if (!_dialogPresenter.GetOldFocus())
+    if (_romBrowserController.IsFavoritesViewActive()) {
+        _dialogPresenter.ClearOldFocus();
+        _romBrowserBottomScreenView->FocusAppBar(_focusManager, RomBrowserAppBarView::APP_BAR_BUTTON_FAVORITES);
+    }
+    else if (!_dialogPresenter.GetOldFocus()) {
         _romBrowserBottomScreenView->Focus(_focusManager);
+    }
 }
 
 void App::HandleShowDisplaySettingsTrigger()

@@ -42,6 +42,11 @@ public:
 
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
 
+    void FocusAppBar(FocusManager& focusManager, RomBrowserAppBarView::AppBarButton button)
+    {
+        _romBrowserAppBarView.Focus(focusManager, button);
+    }
+
     void RomBrowserViewModelInvalidated(const VramContext& vramContext);
 
     bool IsAppBarFocused(const FocusManager& focusManager) const

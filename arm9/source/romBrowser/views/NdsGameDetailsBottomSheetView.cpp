@@ -111,38 +111,19 @@ bool NdsGameDetailsBottomSheetView::HandleInput(const InputProvider& inputProvid
         {
             bool wasFavorite = _isFavorite;
             
-            // Toggle favorite status via controller and sync local state
             _romBrowserController->ToggleSelectedFileFavorite();
             _isFavorite = _romBrowserController->IsSelectedFileFavorite();
             UpdateFavoriteChipIcon();
 
-            // If the item was removed from favorites while in "Favorites View", close the panel
             if (wasFavorite && !_isFavorite && _romBrowserController->IsFavoritesViewActive()) 
             {
-                // Check if any favorite items remain in the list
-                const auto& viewModel = _romBrowserController->GetRomBrowserViewModel();
-                int favoritesCount = 0;
-                if (viewModel.IsValid()) {
-                    favoritesCount = viewModel->GetFileInfoManager().GetItemCount();
-                }
-
-                // Close the game details view since the item is no longer in the filtered list
                 _romBrowserController->HideGameInfo();
-
-                // Focus Management Logic:
-                if (favoritesCount > 0) {
-                    // Focus will automatically return to the list (handled by ViewModel/View update)
-                } else {
-                    // No favorites left: focus should be moved to the toolbar favorite icon.
-                    // This needs to be handled at a higher level (App or RomBrowserBottomScreenView).
-                }
-                return true;
             }
             
             return true;
         }
         if (_hasCheatsChip && focusManager.GetCurrentFocus() == &_cheatsChip) {
-            // Handle cheats chip action here if needed
+            // Handle cheats chip action
             return true;
         }
     }
