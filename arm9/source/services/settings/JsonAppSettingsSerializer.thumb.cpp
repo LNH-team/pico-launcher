@@ -133,10 +133,25 @@ static bool tryParseFavorites(const JsonArrayConst& json, AppSettings* appSettin
     u32 i = 0;
     for (auto item : json)
     {
-        const char* path = item.as<const char*>();
-        if (path && path[0] != 0)
+        const char* raw = item.as<const char*>();
+        if (raw && raw[0] != 0)
         {
-            appSettings->favorites[i++] = path;
+            if (raw[0] == ':')
+            {
+                char fullPath[256];
+                snprintf(fullPath, sizeof(fullPath), "fat%s", raw);
+                appSettings->favorites[i++] = fullPath;
+            }
+            else if (strchr(raw, ':') == nullptr)
+            {
+                char fullPath[256];
+                snprintf(fullPath, sizeof(fullPath), "fat:%s", raw);
+                appSettings->favorites[i++] = fullPath;
+            }
+            else
+            {
+                appSettings->favorites[i++] = raw;
+            }
         }
     }
     appSettings->numberOfFavorites = i;
@@ -148,7 +163,10 @@ static void serializeFavorites(DynamicJsonDocument& json, const AppSettings* app
     auto jsonArray = json[KEY_FAVORITES].to<JsonArray>();
     for (u32 i = 0; i < appSettings->numberOfFavorites; i++)
     {
-        jsonArray.add(appSettings->favorites[i].GetString());
+        const char* full = appSettings->favorites[i].GetString();
+        const char* colon = strchr(full, ':');
+        const char* toSave = colon ? colon : full;
+        jsonArray.add(toSave);
     }
 }
 

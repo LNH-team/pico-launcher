@@ -437,7 +437,12 @@ bool RomBrowserController::IsFavoritePath(const char* fullPath) const
     const auto& appSettings = _appSettingsService->GetAppSettings();
     for (u32 i = 0; i < appSettings.numberOfFavorites; i++)
     {
-        if (!strcasecmp(appSettings.favorites[i].GetString(), fullPath))
+        const char* fav = appSettings.favorites[i].GetString();
+        const char* favSuffix = strchr(fav, ':');
+        const char* pathSuffix = strchr(fullPath, ':');
+        const char* a = favSuffix ? favSuffix : fav;
+        const char* b = pathSuffix ? pathSuffix : fullPath;
+        if (!strcasecmp(a, b))
             return true;
     }
     return false;
@@ -469,7 +474,12 @@ void RomBrowserController::RemoveFavoritePath(const char* fullPath)
     bool found = false;
     for (u32 i = 0; i < appSettings.numberOfFavorites; i++)
     {
-        if (!strcasecmp(appSettings.favorites[i].GetString(), fullPath))
+        const char* fav = appSettings.favorites[i].GetString();
+        const char* favSuffix = strchr(fav, ':');
+        const char* pathSuffix = strchr(fullPath, ':');
+        const char* a = favSuffix ? favSuffix : fav;
+        const char* b = pathSuffix ? pathSuffix : fullPath;
+        if (!strcasecmp(a, b))
         {
             found = true;
             break;
@@ -490,7 +500,12 @@ void RomBrowserController::RemoveFavoritePath(const char* fullPath)
     u32 writeIndex = 0;
     for (u32 i = 0; i < appSettings.numberOfFavorites; i++)
     {
-        if (strcasecmp(appSettings.favorites[i].GetString(), fullPath) == 0)
+        const char* fav = appSettings.favorites[i].GetString();
+        const char* favSuffix = strchr(fav, ':');
+        const char* pathSuffix = strchr(fullPath, ':');
+        const char* a = favSuffix ? favSuffix : fav;
+        const char* b = pathSuffix ? pathSuffix : fullPath;
+        if (strcasecmp(a, b) == 0)
             continue;
         if (writeIndex < newCount)
             newFavorites[writeIndex++] = appSettings.favorites[i];
