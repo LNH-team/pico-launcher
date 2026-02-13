@@ -184,8 +184,8 @@ void NdsGameDetailsBottomSheetView::InitLaunchCountLabel(const MaterialColorSche
     _countLaunchLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
     AddChildTail(&_countLaunchLabel);
 
-    char16_t countText[12];
-    snprintf((char*)countText, sizeof(countText), "%lu", launchCount);
+    char countText[12];
+    snprintf(countText, sizeof(countText), "%lu", launchCount);
     
     _countLaunchValueLabel.SetText(countText);
     _countLaunchValueLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
