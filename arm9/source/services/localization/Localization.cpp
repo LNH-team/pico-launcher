@@ -42,6 +42,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Preferiti";
         if (!strcasecmp(key, "cheats"))
             return u"Trucchi";
+        if (!strcasecmp(key, "total_launches"))
+            return u"Avvii totali";
     }
 
     // Spanish
@@ -61,6 +63,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Favoritos";
         if (!strcasecmp(key, "cheats"))
             return u"Trucos";
+        if (!strcasecmp(key, "total_launches"))
+            return u"Inicios totales";
     }
 
     // French
@@ -80,6 +84,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Favoris";
         if (!strcasecmp(key, "cheats"))
             return u"Triches";
+        if (!strcasecmp(key, "total_launches"))
+            return u"Lancements totaux";
     }
 
     // German
@@ -99,6 +105,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Favoriten";
         if (!strcasecmp(key, "cheats"))
             return u"Codes";
+        if (!strcasecmp(key, "total_launches"))
+            return u"Gesamtstarts";
     }
 
     // Portuguese
@@ -118,6 +126,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Favoritos";
         if (!strcasecmp(key, "cheats"))
             return u"Truques";
+        if (!strcasecmp(key, "total_launches"))
+            return u"Inícios totais";
     }
 
     // Dutch
@@ -137,6 +147,8 @@ const char16_t* Localization::Translate(const char* key)
             return u"Favorieten";
         if (!strcasecmp(key, "cheats"))
             return u"Cheats";
+        if (!strcasecmp(key, "total_launches"))
+            return u"Totaal aantal starts";
     }
 
     // Default: English
@@ -154,7 +166,8 @@ const char16_t* Localization::Translate(const char* key)
         return u"Favorites";
     if (!strcasecmp(key, "cheats"))
         return u"Cheats";
+    if (!strcasecmp(key, "total_launches"))
+        return u"Total Launches";
 
     return u"";
 }
-

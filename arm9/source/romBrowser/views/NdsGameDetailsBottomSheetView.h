@@ -4,6 +4,9 @@
 #include "ChipView.h"
 #include "gui/FocusManager.h"
 #include "../FileType/Nds/NdsFileType.h"
+#include "gui/views/Label2DView.h"
+#include "themes/material/MaterialColorScheme.h"
+#include "themes/IFontRepository.h"
 
 class IRomBrowserController;
 class IFontRepository;
@@ -55,4 +58,9 @@ private:
         u32 iconOffset = _isFavorite ? _smallHeartIconFilledVramOffset : _smallHeartIconVramOffset;
         _favoriteChip.SetIcon(true, iconOffset);
     }
+
+    void InitLaunchCountLabel(const MaterialColorScheme* materialColorScheme);
+    Label2DView _countLaunchLabel;
+    Label2DView _countLaunchValueLabel;
+
 };

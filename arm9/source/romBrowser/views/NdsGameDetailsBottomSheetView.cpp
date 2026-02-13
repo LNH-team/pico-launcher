@@ -9,17 +9,23 @@
 #include "../IRomBrowserController.h"
 #include "../FileInfo.h"
 #include "NdsGameDetailsBottomSheetView.h"
+#include "themes/material/MaterialColorScheme.h"
 #include "../viewModels/RomBrowserViewModel.h"
 #include "services/localization/Localization.h"
+#include "services/launchStats/LaunchStatsService.h"
 
 NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
-    IRomBrowserController* romBrowserController, const MaterialColorScheme* materialColorScheme,
+    IRomBrowserController* romBrowserController,
+    const MaterialColorScheme* materialColorScheme,
     const IFontRepository* fontRepository)
     : _romBrowserController(romBrowserController)
     , _cheatsChip(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository)
     , _favoriteChip(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository)
+    , _countLaunchLabel(80, 16, 20, fontRepository->GetFont(FontType::Regular10))
+    , _countLaunchValueLabel(30, 16, 20, fontRepository->GetFont(FontType::Regular10))
 {
     bool isNds = false;
+
     if (_romBrowserController) {
         const auto& viewModel = _romBrowserController->GetRomBrowserViewModel();
         if (viewModel.IsValid()) {
@@ -50,6 +56,7 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     _isFavorite = _romBrowserController->IsSelectedFileFavorite();
     _favoriteChip.SetSelected(_isFavorite);
     AddChildTail(&_favoriteChip);
+    InitLaunchCountLabel(materialColorScheme);
 }
 
 void NdsGameDetailsBottomSheetView::InitVram(const VramContext& vramContext)
@@ -78,6 +85,8 @@ void NdsGameDetailsBottomSheetView::Update()
     } else {
         _favoriteChip.SetPosition(92, _position.y + 21);
     }
+    _countLaunchLabel.SetPosition(10, _position.y + 25); 
+    _countLaunchValueLabel.SetPosition(20, _position.y + 40);
 }
 
 void NdsGameDetailsBottomSheetView::Draw(GraphicsContext& graphicsContext)
@@ -110,7 +119,6 @@ bool NdsGameDetailsBottomSheetView::HandleInput(const InputProvider& inputProvid
         if (focusManager.GetCurrentFocus() == &_favoriteChip)
         {
             bool wasFavorite = _isFavorite;
-            
             _romBrowserController->ToggleSelectedFileFavorite();
             _isFavorite = _romBrowserController->IsSelectedFileFavorite();
             UpdateFavoriteChipIcon();
@@ -119,7 +127,6 @@ bool NdsGameDetailsBottomSheetView::HandleInput(const InputProvider& inputProvid
             {
                 _romBrowserController->HideGameInfo();
             }
-            
             return true;
         }
         if (_hasCheatsChip && focusManager.GetCurrentFocus() == &_cheatsChip) {
@@ -133,4 +140,55 @@ bool NdsGameDetailsBottomSheetView::HandleInput(const InputProvider& inputProvid
         return true;
     }
     return false;
+}
+
+void NdsGameDetailsBottomSheetView::InitLaunchCountLabel(const MaterialColorScheme* materialColorScheme)
+{
+    u32 launchCount = 0;
+
+    if (_romBrowserController) {
+        const auto& viewModel = _romBrowserController->GetRomBrowserViewModel();
+        if (viewModel.IsValid()) {
+            int selected = viewModel->GetSelectedItem();
+            if (selected >= 0) {
+                const auto& fileInfo = viewModel->GetFileInfoManager().GetItem(selected);
+                const TCHAR* fullPath = fileInfo.GetFullPath();
+                char pathBuf[256];
+
+                if (fullPath && fullPath[0] != 0) {
+                    strncpy(pathBuf, fullPath, sizeof(pathBuf));
+                    pathBuf[sizeof(pathBuf) - 1] = 0;
+                } else {
+                    if (f_getcwd(pathBuf, sizeof(pathBuf)) == FR_OK) {
+                        int idx = strlcat(pathBuf, "/", sizeof(pathBuf));
+                        if (idx > 1 && pathBuf[idx - 2] == '/')
+                            pathBuf[idx - 1] = 0;
+                        strlcat(pathBuf, fileInfo.GetFileName(), sizeof(pathBuf));
+                    } else {
+                        pathBuf[0] = 0;
+                    }
+                }
+
+                if (pathBuf[0] != 0) {
+                    const char* normalizedPath = strchr(pathBuf, ':');
+                    if (normalizedPath) {
+                        launchCount = LaunchStatsService::Instance().GetCount(normalizedPath);
+                    }
+                }
+            }
+        }
+    }
+
+    _countLaunchLabel.SetText(Localization::Translate("total_launches"));
+    _countLaunchLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+    _countLaunchLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+    AddChildTail(&_countLaunchLabel);
+
+    char16_t countText[12];
+    snprintf((char*)countText, sizeof(countText), "%lu", launchCount);
+    
+    _countLaunchValueLabel.SetText(countText);
+    _countLaunchValueLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+    _countLaunchValueLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+    AddChildTail(&_countLaunchValueLabel);
 }
