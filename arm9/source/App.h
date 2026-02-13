@@ -131,4 +131,6 @@ private:
     static constexpr int kMaxThemeCount = 64;
     std::array<String<char, 64>, kMaxThemeCount> _themeNames;
     int _themeCount = 0;
+
+    String<char, 64> _effectiveThemeName;
 };

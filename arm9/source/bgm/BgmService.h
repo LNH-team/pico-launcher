@@ -18,7 +18,7 @@ public:
         , _randomGenerator(randomGenerator) { }
 
     bool StartBgm(const TCHAR* filePath) override;
-    void StartBgmFromConfig() override;
+    void StartBgmFromConfig(const char* themeName) override;
     void StopBgm() override;
 
 private:

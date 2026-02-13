@@ -16,10 +16,10 @@ bool BgmService::StartBgm(const TCHAR* filePath)
     return _audioStreamPlayer->StartPlayback(std::move(stream));
 }
 
-void BgmService::StartBgmFromConfig()
+void BgmService::StartBgmFromConfig(const char* themeName)
 {
     TCHAR pathBuffer[128];
-    mini_snprintf(pathBuffer, sizeof(pathBuffer), "/_pico/themes/%s/bgm", _appSettingsService.GetAppSettings().theme.GetString());
+    mini_snprintf(pathBuffer, sizeof(pathBuffer), "/_pico/themes/%s/bgm", themeName);
     NullFileTypeProvider fileTypeProvider;
     auto bgmFolder = SdFolderFactory(&fileTypeProvider).CreateFromPath(pathBuffer);
     if (!bgmFolder || bgmFolder->GetFileCount() == 0)

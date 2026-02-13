@@ -90,6 +90,7 @@ void App::LoadTheme()
 {
     ThemeInfoFactory themeInfoFactory;
     std::unique_ptr<ThemeInfo> themeInfo;
+
     if (strcmp(_appSettingsService.GetAppSettings().theme.GetString(), "RANDOM") == 0) 
     {
         _themeCount = 0;
@@ -112,14 +113,17 @@ void App::LoadTheme()
         }
         if (_themeCount > 0) {
             uint32_t randIdx = gRandomGenerator->NextU32(_themeCount);
-            themeInfo = themeInfoFactory.CreateFromThemeFolder(_themeNames[randIdx].GetString());
+            _effectiveThemeName = _themeNames[randIdx];
+            themeInfo = themeInfoFactory.CreateFromThemeFolder(_effectiveThemeName.GetString());
         } else {
+            _effectiveThemeName = "";
             themeInfo = themeInfoFactory.CreateFallbackTheme();
         }
     } 
     else
     {
-        themeInfo = themeInfoFactory.CreateFromThemeFolder(_appSettingsService.GetAppSettings().theme);
+        _effectiveThemeName = _appSettingsService.GetAppSettings().theme;
+        themeInfo = themeInfoFactory.CreateFromThemeFolder(_effectiveThemeName.GetString());
     } 
 
     if (!themeInfo)
@@ -212,7 +216,7 @@ void App::Run()
 
     _ioTaskQueue.Enqueue([this] (const vu8& cancelRequested)
     {
-        _bgmService.StartBgmFromConfig();
+        _bgmService.StartBgmFromConfig(_effectiveThemeName.GetString());
         return TaskResult<void>::Completed();
     });
 
