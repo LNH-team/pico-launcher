@@ -62,6 +62,7 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     DisplaySettingsViewModel* viewModel, const MaterialColorScheme* materialColorScheme,
     const IFontRepository* fontRepository, IAppSettingsService* appSettingsService)
     : _viewModel(viewModel)
+    , _appSettingsService(appSettingsService)
     , _titleLabel(128, 16, 25, fontRepository->GetFont(FontType::Medium11))
     , _layoutLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
     , _sortingLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
@@ -70,7 +71,6 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     , _languageLabel(80, 16, 20, fontRepository->GetFont(FontType::Regular10))
     , _languageValueLabel(120, 16, 20, fontRepository->GetFont(FontType::Regular10))
     , _materialColorScheme(materialColorScheme)
-    , _appSettingsService(appSettingsService)
     // , _filtersLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
 
 {
