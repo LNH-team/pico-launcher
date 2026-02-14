@@ -71,5 +71,8 @@ private:
     void ChangeTheme(int newIdx);
     void UpdateLanguageUI();
     void ChangeLanguage(int newIdx);
+    void SaveIfDirty();
     u32 LoadIcon(IVramManager& vramManager, const unsigned int* tiles, u32 tilesLength) const;
+
+    bool _settingsDirty = false;
 };

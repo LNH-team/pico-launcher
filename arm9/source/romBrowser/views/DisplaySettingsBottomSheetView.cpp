@@ -136,7 +136,7 @@ void DisplaySettingsBottomSheetView::ChangeLanguage(int newIdx)
 {
     _selectedLanguageIdx = newIdx;
     _appSettingsService->GetAppSettings().language = sLanguages[_selectedLanguageIdx];
-    _appSettingsService->Save();
+    _settingsDirty = true;
     Localization::Initialize(_appSettingsService);
     UpdateLanguageUI();
     _titleLabel.SetText(Localization::Translate("display_settings"));
@@ -187,7 +187,7 @@ void DisplaySettingsBottomSheetView::ChangeTheme(int newIdx)
 {
     _selectedThemeIdx = newIdx;
     _appSettingsService->GetAppSettings().theme = _themeNames[_selectedThemeIdx].GetString();
-    _appSettingsService->Save();
+    _settingsDirty = true;
     UpdateThemeUI();
 }
 
@@ -363,11 +363,21 @@ void DisplaySettingsBottomSheetView::Draw(GraphicsContext& graphicsContext)
     graphicsContext.ResetClipArea();
 }
 
+void DisplaySettingsBottomSheetView::SaveIfDirty()
+{
+    if (_settingsDirty)
+    {
+        _appSettingsService->Save();
+        _settingsDirty = false;
+    }
+}
+
 bool DisplaySettingsBottomSheetView::HandleInput(
     const InputProvider& inputProvider, FocusManager& focusManager)
 {
     if (inputProvider.Triggered(InputKey::B))
     {
+        SaveIfDirty();
         _viewModel->Close();
         return true;
     }
