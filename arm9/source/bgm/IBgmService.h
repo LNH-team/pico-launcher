@@ -17,6 +17,10 @@ public:
 
     /// @brief If currently playing, stops playback.
     virtual void StopBgm() = 0;
+
+    /// @brief Gets the display name for the currently playing BGM.
+    /// @return The display name, or an empty string if none.
+    virtual const char* GetCurrentBgmName() const = 0;
 };
 
 inline IBgmService::~IBgmService() { }

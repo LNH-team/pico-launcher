@@ -1,13 +1,14 @@
 #include "common.h"
+#include <string.h>
 #include <libtwl/mem/memVram.h>
 #include <libtwl/gfx/gfx.h>
 #include <libtwl/gfx/gfxBackground.h>
 #include <libtwl/gfx/gfxPalette.h>
 #include <libtwl/gfx/gfxWindow.h>
+#include "bgm/IBgmService.h"
 #include "../viewModels/RomBrowserViewModel.h"
 #include "gui/GraphicsContext.h"
 #include "gui/IVramManager.h"
-#include "themes/material/MaterialColorScheme.h"
 #include "../Theme/IRomBrowserViewFactory.h"
 #include "RomBrowserTopScreenView.h"
 
@@ -15,13 +16,19 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
     const SharedPtr<RomBrowserViewModel>& viewModel,
     const RomBrowserDisplayMode* displayMode,
     const IThemeFileIconFactory* themeFileIconFactory,
-    const IRomBrowserViewFactory* romBrowserViewFactory)
+    const IRomBrowserViewFactory* romBrowserViewFactory,
+    const MaterialColorScheme* materialColorScheme,
+    const IFontRepository* fontRepository,
+    const IBgmService* bgmService)
     : _viewModel(viewModel)
     , _themeFileIconFactory(themeFileIconFactory)
     , _fileInfoView(romBrowserViewFactory->CreateFileInfoView())
+    , _bgmNowPlayingView(std::make_unique<BgmNowPlayingView>(materialColorScheme, fontRepository))
     , _showCover(displayMode->ShowCoverOnTopScreen())
+    , _bgmService(bgmService)
 {
     AddChildTail(_fileInfoView.get());
+    AddChildTail(_bgmNowPlayingView.get());
 }
 
 void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
@@ -42,6 +49,18 @@ void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
 
 void RomBrowserTopScreenView::Update()
 {
+    if (_bgmService && _bgmNowPlayingView)
+    {
+        const char* name = _bgmService->GetCurrentBgmName();
+        if (!name)
+            name = "";
+        if (strcmp(_lastBgmName.GetString(), name) != 0)
+        {
+            _bgmNowPlayingView->SetBgmName(name);
+            _lastBgmName = name;
+        }
+    }
+
     int selectedItem = _viewModel->GetSelectedItem();
     if (selectedItem != _lastSelectedItem)
     {

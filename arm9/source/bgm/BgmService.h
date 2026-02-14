@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include "core/String.h"
 #include "IAudioStreamPlayer.h"
 #include "services/settings/IAppSettingsService.h"
 #include "rng/RandomGenerator.h"
@@ -20,9 +21,11 @@ public:
     bool StartBgm(const TCHAR* filePath) override;
     void StartBgmFromConfig(const char* themeName) override;
     void StopBgm() override;
+    const char* GetCurrentBgmName() const override { return _currentBgmName.GetString(); }
 
 private:
     std::unique_ptr<IAudioStreamPlayer> _audioStreamPlayer;
     IAppSettingsService& _appSettingsService;
     RandomGenerator& _randomGenerator;
+    String<char, 64> _currentBgmName;
 };
