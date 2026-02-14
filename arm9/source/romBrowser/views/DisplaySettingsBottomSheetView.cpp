@@ -394,12 +394,10 @@ View* DisplaySettingsBottomSheetView::MoveFocus(View* currentFocus,
                     idx = 0;
                 return &_layoutOptions[idx];
             }
-            // else if (direction == FocusMoveDirection::Up)
-            // {
-            //     if (idx >= (int)_filterOptions.size())
-            //         idx = _filterOptions.size() - 1;
-            //     return &_filterOptions[idx];
-            // }
+            else if (direction == FocusMoveDirection::Up)
+            {
+                return &_languageValueLabel;
+            }
             else //if (direction == FocusMoveDirection::Down)
             {
                 if (idx >= (int)_sortOptions.size())
@@ -439,7 +437,7 @@ View* DisplaySettingsBottomSheetView::MoveFocus(View* currentFocus,
         }
         idx++;
     }
-
+    idx = 0;
     if (currentFocus == &_themeValueLabel)
     {
         if (direction == FocusMoveDirection::Left)
@@ -459,7 +457,7 @@ View* DisplaySettingsBottomSheetView::MoveFocus(View* currentFocus,
         if (direction == FocusMoveDirection::Down)
             return &_languageValueLabel;
     }
-
+    idx = 0;
     if (currentFocus == &_languageValueLabel)
     {
         if (direction == FocusMoveDirection::Left)
@@ -477,7 +475,11 @@ View* DisplaySettingsBottomSheetView::MoveFocus(View* currentFocus,
         if (direction == FocusMoveDirection::Up)
             return &_themeValueLabel;
         if (direction == FocusMoveDirection::Down)
-            return &_themeValueLabel;
+        {
+            if (idx >= (int)_layoutOptions.size())
+                idx = _layoutOptions.size() - 1;
+            return &_layoutOptions[idx];
+        }
     }
     return nullptr;
 }
