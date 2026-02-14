@@ -15,6 +15,10 @@ public:
 
     /// @brief Stops playback of the currently playing audio stream.
     virtual void StopPlayback() = 0;
+
+    /// @brief Consumes a playback restart notification (e.g. stream loop).
+    /// @return True if playback restarted since the last consume.
+    virtual bool ConsumePlaybackRestarted() const = 0;
 };
 
 inline IAudioStreamPlayer::~IAudioStreamPlayer() { }

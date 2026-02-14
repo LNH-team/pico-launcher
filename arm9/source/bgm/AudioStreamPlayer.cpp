@@ -134,6 +134,8 @@ void AudioStreamPlayer::FillRingBlock(u32 block)
     s16* blockPtrR = &_audioRingR[block][0];
 
     _audioStream->ReadSamples(blockPtrL, blockPtrR, AUDIO_STREAM_PLAYER_BLOCK_SAMPLES);
+    if (_audioStream->ConsumeLooped())
+        _playbackRestarted = true;
 
     DC_FlushRange(&blockPtrL, AUDIO_STREAM_PLAYER_BLOCK_SAMPLES * sizeof(s16));
     DC_FlushRange(&blockPtrR, AUDIO_STREAM_PLAYER_BLOCK_SAMPLES * sizeof(s16));

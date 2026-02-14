@@ -40,8 +40,15 @@ bool BgmService::StartBgm(const TCHAR* filePath)
         _currentBgmName = "";
         return false;
     }
+    if (!_audioStreamPlayer->StartPlayback(std::move(stream)))
+    {
+        _currentBgmName = "";
+        return false;
+    }
+
     SetDisplayNameFromPath(_currentBgmName, filePath);
-    return _audioStreamPlayer->StartPlayback(std::move(stream));
+    _bgmChangeId++;
+    return true;
 }
 
 void BgmService::StartBgmFromConfig(const char* themeName)
@@ -56,7 +63,6 @@ void BgmService::StartBgmFromConfig(const char* themeName)
         return;
     }
     u32 bgmToPlay = _randomGenerator.NextU32(bgmFolder->GetFileCount());
-    SetDisplayNameFromPath(_currentBgmName, bgmFolder->GetFiles()[bgmToPlay]->GetFileName());
     auto stream = std::make_unique<BcstmAudioStream>();
     if (!stream->Open(bgmFolder->GetFiles()[bgmToPlay]->GetFastFileRef()))
     {
@@ -64,11 +70,31 @@ void BgmService::StartBgmFromConfig(const char* themeName)
         return;
     }
 
-    _audioStreamPlayer->StartPlayback(std::move(stream));
+    if (!_audioStreamPlayer->StartPlayback(std::move(stream)))
+    {
+        StopBgm();
+        return;
+    }
+
+    SetDisplayNameFromPath(_currentBgmName, bgmFolder->GetFiles()[bgmToPlay]->GetFileName());
+    _bgmChangeId++;
 }
 
 void BgmService::StopBgm()
 {
     _audioStreamPlayer->StopPlayback();
     _currentBgmName = "";
+    _bgmChangeId++;
+}
+
+const char* BgmService::ConsumeBgmNameChange() const
+{
+    auto* self = const_cast<BgmService*>(this);
+    if (self->_audioStreamPlayer && self->_audioStreamPlayer->ConsumePlaybackRestarted())
+        self->_bgmChangeId++;
+    if (self->_bgmChangeId == self->_bgmLastNotifiedId)
+        return nullptr;
+
+    self->_bgmLastNotifiedId = self->_bgmChangeId;
+    return self->_currentBgmName.GetString();
 }

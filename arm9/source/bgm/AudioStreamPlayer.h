@@ -43,6 +43,15 @@ public:
         rtos_unlockMutex(&_mutex);
     }
 
+    bool ConsumePlaybackRestarted() const override
+    {
+        auto* self = const_cast<AudioStreamPlayer*>(this);
+        if (!self->_playbackRestarted)
+            return false;
+        self->_playbackRestarted = false;
+        return true;
+    }
+
 private:
     struct alignas(32) SoundStartCmdList
     {
@@ -93,6 +102,7 @@ private:
     rtos_thread_t _thread;
     rtos_event_t _event;
     volatile bool _isPlaying = false;
+    volatile bool _playbackRestarted = false;
     volatile u8 _readBlock;
     volatile u8 _writeBlock;
     std::unique_ptr<IAudioStream> _audioStream;

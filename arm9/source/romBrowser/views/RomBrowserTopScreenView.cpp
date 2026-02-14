@@ -1,5 +1,4 @@
 #include "common.h"
-#include <string.h>
 #include <libtwl/mem/memVram.h>
 #include <libtwl/gfx/gfx.h>
 #include <libtwl/gfx/gfxBackground.h>
@@ -51,14 +50,9 @@ void RomBrowserTopScreenView::Update()
 {
     if (_bgmService && _bgmNowPlayingView)
     {
-        const char* name = _bgmService->GetCurrentBgmName();
-        if (!name)
-            name = "";
-        if (strcmp(_lastBgmName.GetString(), name) != 0)
-        {
+        const char* name = _bgmService->ConsumeBgmNameChange();
+        if (name)
             _bgmNowPlayingView->SetBgmName(name);
-            _lastBgmName = name;
-        }
     }
 
     int selectedItem = _viewModel->GetSelectedItem();

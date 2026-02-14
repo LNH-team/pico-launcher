@@ -4,7 +4,6 @@
 #include "BannerView.h"
 #include "../FileType/FileIcon.h"
 #include "../DisplayMode/RomBrowserDisplayMode.h"
-#include "core/String.h"
 #include "BgmNowPlayingView.h"
 
 class RomBrowserViewModel;
@@ -45,5 +44,4 @@ private:
     bool _coverGraphicsUploaded = false;
     bool _showCover;
     const IBgmService* _bgmService;
-    String<char, 64> _lastBgmName;
 };

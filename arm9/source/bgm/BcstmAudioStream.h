@@ -36,6 +36,7 @@ public:
 
     void Close() override;
     void ReadSamples(s16* left, s16* right, u32 count) override;
+    bool ConsumeLooped() override;
 
     u32 GetSampleRate() const override
     {
@@ -57,6 +58,7 @@ private:
     u32 _loopBlockStartSample;
     u32 _loopEndBlockEndSample;
     DspAdpcmContext _dspAdpcmContexts[2];
+    bool _loopedSinceLastConsume = false;
 
     bool TryLoadBcstm();
     u32 GetTotalSamplesInCurrentBlock();
