@@ -211,7 +211,10 @@ int main(int argc, char* argv[])
 
     initRandomGenerator();
 
-    // todo: make sure _pico folder exists
+    FRESULT mkres = f_mkdir("/_pico/extras");
+    if (mkres != FR_OK && mkres != FR_EXIST) {
+        LOG_ERROR("Failed to create /_pico/extras: %d\n", mkres);
+    }
     // maybe warn if important files are missing as well?
 
     nft2_unpack((nft2_header_t*)NotoSansJP_Regular_10_nft2);
