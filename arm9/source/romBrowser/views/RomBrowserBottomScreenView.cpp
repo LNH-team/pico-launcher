@@ -96,7 +96,6 @@ bool RomBrowserBottomScreenView::HandleInput(const InputProvider& inputProvider,
     if (inputProvider.Triggered(InputKey::Select))
     {
             if (_viewModel->TryShowDisplaySettings()) {
-                _romBrowserAppBarView.Focus(focusManager, RomBrowserAppBarView::APP_BAR_BUTTON_DISPLAY_SETTINGS);
             return true;
         }
     }
