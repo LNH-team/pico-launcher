@@ -23,25 +23,8 @@ public:
         StopPlayback();
     }
 
-    bool StartPlayback(std::unique_ptr<IAudioStream> audioStream) override
-    {
-        bool result;
-        rtos_lockMutex(&_mutex);
-        {
-            result = StartPlaybackIntern(std::move(audioStream));
-        }
-        rtos_unlockMutex(&_mutex);
-        return result;
-    }
-
-    void StopPlayback() override
-    {
-        rtos_lockMutex(&_mutex);
-        {
-            StopPlaybackIntern();
-        }
-        rtos_unlockMutex(&_mutex);
-    }
+    bool StartPlayback(std::unique_ptr<IAudioStream> audioStream) override;
+    void StopPlayback() override;
 
     bool ConsumePlaybackRestarted() const override
     {

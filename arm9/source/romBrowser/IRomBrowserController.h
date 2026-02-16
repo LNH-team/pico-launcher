@@ -42,6 +42,8 @@ public:
 
     virtual void SetRomBrowserDisplaySettings(
         const RomBrowserDisplaySettings& romBrowserDisplaySettings) = 0;
+
+    virtual void MarkSettingsDirty() = 0;
 };
 
 inline IRomBrowserController::~IRomBrowserController() { }

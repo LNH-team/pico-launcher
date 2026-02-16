@@ -53,6 +53,8 @@ public:
 
     void SetRomBrowserDisplaySettings(const RomBrowserDisplaySettings& romBrowserDisplaySettings) override;
 
+    void MarkSettingsDirty() override { _saveSettingsPending = true; }
+
     const RomBrowserDisplaySettings& GetRomBrowserDisplaySettings() const override
     {
         return _appSettingsService->GetAppSettings().romBrowserDisplaySettings;

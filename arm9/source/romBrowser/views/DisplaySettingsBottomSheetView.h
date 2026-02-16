@@ -56,9 +56,14 @@ private:
     int _themeCount = 0;
     int _selectedThemeIdx = 0;
 
-    static constexpr int kLanguageCount = 6;
-    static constexpr const char* sLanguages[kLanguageCount] = {"english", "italian", "spanish", "french", "german", "portuguese"};
-    static constexpr const char16_t* sLanguageNames[kLanguageCount] = {u"English", u"Italiano", u"Español", u"Français", u"Deutsch", u"Português"};
+    static constexpr int kMaxLanguageCount = 16;
+    struct LanguageEntry
+    {
+        String<char, 64> fileName;      // e.g. "italian"
+        char16_t displayName[64];       // e.g. u"Italiano"
+    };
+    std::array<LanguageEntry, kMaxLanguageCount> _languageEntries;
+    int _languageCount = 0;
     int _selectedLanguageIdx = 0;
 
     IconButton2DView CreateLayoutOptionIconButton();
@@ -69,6 +74,8 @@ private:
     void LoadThemes();
     void UpdateThemeUI();
     void ChangeTheme(int newIdx);
+    void ApplyTheme();
+    void LoadLanguages();
     void UpdateLanguageUI();
     void ChangeLanguage(int newIdx);
     void SaveIfDirty();

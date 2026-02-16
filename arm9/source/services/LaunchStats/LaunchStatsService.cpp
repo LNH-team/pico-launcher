@@ -5,6 +5,16 @@
 
 #define JSON_RESERVED_SIZE 4096
 
+/// @brief Calculates a safe JSON buffer size based on entry count.
+/// Each entry is ~320 bytes in pretty-printed JSON (256-byte path + overhead).
+static u32 calcJsonBufferSize(u32 entryCount)
+{
+    u32 size = 512 + entryCount * 320;
+    if (size < JSON_RESERVED_SIZE)
+        size = JSON_RESERVED_SIZE;
+    return size;
+}
+
 LaunchStatsService& LaunchStatsService::Instance()
 {
     static LaunchStatsService instance;
@@ -40,7 +50,7 @@ void LaunchStatsService::Load()
     if (file->Read(fileDataPtr, fileSize, bytesRead) != FR_OK)
         return;
 
-    DynamicJsonDocument json(JSON_RESERVED_SIZE);
+    DynamicJsonDocument json(calcJsonBufferSize(fileSize / 20));
     if (deserializeJson(json, fileDataPtr, fileSize) != DeserializationError::Ok)
         return;
 
@@ -70,25 +80,41 @@ void LaunchStatsService::Load()
 
 void LaunchStatsService::Save() const
 {
-    DynamicJsonDocument json(JSON_RESERVED_SIZE);
+    DynamicJsonDocument json(calcJsonBufferSize(_count));
     auto arr = json.to<JsonArray>();
     for (u32 i = 0; i < _count; i++)
     {
         auto obj = arr.createNestedObject();
+        if (obj.isNull())
+        {
+            LOG_ERROR("Stats JSON buffer overflow at entry %d\n", i);
+            break;
+        }
         obj["path"] = _infos[i].path.GetString();
         obj["count"] = _infos[i].launchCount;
     }
     
     u32 outputSize = measureJsonPretty(json);
+    if (outputSize == 0)
+    {
+        LOG_ERROR("Failed to measure stats JSON output\n");
+        return;
+    }
     std::unique_ptr<u8[]> fileData(new(cache_align) u8[outputSize]);
     serializeJsonPretty(json, fileData.get(), outputSize);
 
     const auto file = std::make_unique<File>();
     if (file->Open(_filePath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK)
+    {
+        LOG_ERROR("Failed to open stats file for writing\n");
         return;
+    }
 
     u32 bytesWritten = 0;
-    file->Write(fileData.get(), outputSize, bytesWritten);
+    if (file->Write(fileData.get(), outputSize, bytesWritten) != FR_OK || bytesWritten != outputSize)
+    {
+        LOG_ERROR("Failed to write stats file\n");
+    }
 }
 
 void LaunchStatsService::Increment(const char* path)

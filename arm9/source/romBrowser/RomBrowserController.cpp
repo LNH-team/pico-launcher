@@ -516,9 +516,12 @@ void RomBrowserController::RemoveFavoritePath(const char* fullPath)
 
 void RomBrowserController::SaveSettingsAsync()
 {
-    _ioTaskQueue->Enqueue([this] (const vu8& cancelRequested)
+    u32 length = 0;
+    auto data = _appSettingsService->SerializeToBuffer(length);
+    auto shared = std::shared_ptr<u8[]>(std::move(data));
+    _ioTaskQueue->Enqueue([this, shared, len = length] (const vu8& cancelRequested)
     {
-        _appSettingsService->Save();
+        _appSettingsService->WriteToFile(shared.get(), len);
         return TaskResult<void>::Completed();
     });
 }

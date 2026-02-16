@@ -190,11 +190,13 @@ static std::unique_ptr<u8[]> writeJson(const AppSettings* appSettings, u32& leng
     return fileData;
 }
 
-void JsonAppSettingsSerializer::Serialize(const AppSettings* appSettings, const char* filePath) const
+std::unique_ptr<u8[]> JsonAppSettingsSerializer::SerializeToBuffer(const AppSettings* appSettings, u32& outLength) const
 {
-    u32 length = 0;
-    std::unique_ptr<u8[]> fileData = writeJson(appSettings, length);
+    return writeJson(appSettings, outLength);
+}
 
+void JsonAppSettingsSerializer::WriteBufferToFile(const u8* data, u32 length, const char* filePath) const
+{
     const auto file = std::make_unique<File>();
     if (file->Open(filePath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK)
     {
@@ -203,13 +205,20 @@ void JsonAppSettingsSerializer::Serialize(const AppSettings* appSettings, const 
     }
 
     u32 bytesWritten;
-    if (file->Write(fileData.get(), length, bytesWritten) != FR_OK || bytesWritten != length)
+    if (file->Write(data, length, bytesWritten) != FR_OK || bytesWritten != length)
     {
         LOG_ERROR("Error while writing settings file\n");
         return;
     }
 
     LOG_DEBUG("Settings file written\n");
+}
+
+void JsonAppSettingsSerializer::Serialize(const AppSettings* appSettings, const char* filePath) const
+{
+    u32 length = 0;
+    std::unique_ptr<u8[]> fileData = SerializeToBuffer(appSettings, length);
+    WriteBufferToFile(fileData.get(), length, filePath);
 }
 
 static void readJson(AppSettings* appSettings, const JsonDocument& json)

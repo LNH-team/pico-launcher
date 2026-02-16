@@ -1,7 +1,18 @@
-#include "common.h"
+﻿#include "common.h"
+#include <memory>
+#include "json/ArduinoJson.h"
+#include "fat/File.h"
+#include "core/mini-printf.h"
+#include "core/StringUtil.h"
 #include "Localization.h"
 
+#define TRANSLATION_JSON_SIZE 2048
+
 static char s_languageBuf[32] = "english";
+
+Localization::TranslationEntry Localization::s_entries[LOCALIZATION_MAX_KEYS];
+int Localization::s_entryCount = 0;
+bool Localization::s_loaded = false;
 
 void Localization::Initialize(const IAppSettingsService* appSettingsService)
 {
@@ -13,11 +24,138 @@ void Localization::Initialize(const IAppSettingsService* appSettingsService)
     if (!lang)
         return;
 
-    // store lowercase language into local buffer
+    // Store lowercase language into local buffer
     size_t i = 0;
     for (; i < sizeof(s_languageBuf) - 1 && lang[i]; i++)
         s_languageBuf[i] = (char)tolower((unsigned char)lang[i]);
     s_languageBuf[i] = '\0';
+
+    LoadFromJson(s_languageBuf);
+    s_loaded = true;
+}
+
+void Localization::AddEntry(const char* key, const char16_t* value)
+{
+    if (s_entryCount >= LOCALIZATION_MAX_KEYS)
+        return;
+    auto& entry = s_entries[s_entryCount];
+    StringUtil::Copy(entry.key, key, sizeof(entry.key));
+    u32 i = 0;
+    for (; i < 63 && value[i]; i++)
+        entry.value[i] = value[i];
+    entry.value[i] = 0;
+    s_entryCount++;
+}
+
+void Localization::LoadFallbackEnglish()
+{
+    s_entryCount = 0;
+    AddEntry("display_settings", u"Display Settings");
+    AddEntry("layout", u"Layout");
+    AddEntry("sorting", u"Sorting");
+    AddEntry("theme", u"Theme");
+    AddEntry("language", u"Language");
+    AddEntry("favorites", u"Favorites");
+    AddEntry("cheats", u"Cheats");
+    AddEntry("total_launches", u"Total Launches");
+}
+
+void Localization::LoadFromJson(const char* language)
+{
+    char path[128];
+    mini_snprintf(path, sizeof(path), "/_pico/extras/translations/%s.json", language);
+
+    auto file = std::make_unique<File>();
+    if (file->Open(path, FA_READ | FA_OPEN_EXISTING) != FR_OK)
+    {
+        LOG_DEBUG("Translation file not found: %s, using fallback\n", path);
+        LoadFallbackEnglish();
+        return;
+    }
+
+    u32 fileSize = file->GetSize();
+    if (fileSize == 0 || fileSize > TRANSLATION_JSON_SIZE)
+    {
+        LoadFallbackEnglish();
+        return;
+    }
+
+    std::unique_ptr<u8[]> fileData(new(cache_align) u8[fileSize]);
+    u32 bytesRead = 0;
+    if (file->Read(fileData.get(), fileSize, bytesRead) != FR_OK)
+    {
+        LoadFallbackEnglish();
+        return;
+    }
+
+    // Skip UTF-8 BOM if present
+    const u8* jsonData = fileData.get();
+    u32 jsonSize = fileSize;
+    if (jsonSize >= 3 && jsonData[0] == 0xEF && jsonData[1] == 0xBB && jsonData[2] == 0xBF)
+    {
+        jsonData += 3;
+        jsonSize -= 3;
+    }
+
+    DynamicJsonDocument json(TRANSLATION_JSON_SIZE);
+    if (deserializeJson(json, jsonData, jsonSize) != DeserializationError::Ok)
+    {
+        LoadFallbackEnglish();
+        return;
+    }
+
+    s_entryCount = 0;
+    for (JsonPairConst kv : json.as<JsonObjectConst>())
+    {
+        if (s_entryCount >= LOCALIZATION_MAX_KEYS)
+            break;
+
+        const char* key = kv.key().c_str();
+        const char* utf8Value = kv.value().as<const char*>();
+        if (!key || !utf8Value)
+            continue;
+
+        // Convert UTF-8 value to UTF-16
+        char16_t utf16Buf[64];
+        u32 i = 0, j = 0;
+        while (utf8Value[i] && j < 63)
+        {
+            u8 c = (u8)utf8Value[i];
+            u32 codepoint;
+            if (c < 0x80)
+            {
+                codepoint = c;
+                i++;
+            }
+            else if ((c & 0xE0) == 0xC0)
+            {
+                codepoint = (c & 0x1F) << 6;
+                codepoint |= ((u8)utf8Value[i + 1] & 0x3F);
+                i += 2;
+            }
+            else if ((c & 0xF0) == 0xE0)
+            {
+                codepoint = (c & 0x0F) << 12;
+                codepoint |= ((u8)utf8Value[i + 1] & 0x3F) << 6;
+                codepoint |= ((u8)utf8Value[i + 2] & 0x3F);
+                i += 3;
+            }
+            else
+            {
+                i += 4;
+                continue;
+            }
+
+            if (codepoint <= 0xFFFF)
+                utf16Buf[j++] = (char16_t)codepoint;
+        }
+        utf16Buf[j] = 0;
+
+        AddEntry(key, utf16Buf);
+    }
+
+    if (s_entryCount == 0)
+        LoadFallbackEnglish();
 }
 
 const char16_t* Localization::Translate(const char* key)
@@ -25,149 +163,11 @@ const char16_t* Localization::Translate(const char* key)
     if (!key)
         return u"";
 
-    // Italian
-    if (!strcasecmp(s_languageBuf, "italian") || !strcasecmp(s_languageBuf, "italiano"))
+    for (int i = 0; i < s_entryCount; i++)
     {
-        if (!strcasecmp(key, "display_settings"))
-            return u"Impostazioni schermo";
-        if (!strcasecmp(key, "layout"))
-            return u"Disposizione";
-        if (!strcasecmp(key, "sorting"))
-            return u"Ordinamento";
-        if (!strcasecmp(key, "theme"))
-            return u"Tema";
-        if (!strcasecmp(key, "language"))
-            return u"Lingua";
-        if (!strcasecmp(key, "favorites"))
-            return u"Preferiti";
-        if (!strcasecmp(key, "cheats"))
-            return u"Trucchi";
-        if (!strcasecmp(key, "total_launches"))
-            return u"Avvii totali";
+        if (!strcasecmp(s_entries[i].key, key))
+            return s_entries[i].value;
     }
-
-    // Spanish
-    if (!strcasecmp(s_languageBuf, "spanish") || !strcasecmp(s_languageBuf, "espanol"))
-    {
-        if (!strcasecmp(key, "display_settings"))
-            return u"Ajustes de pantalla";
-        if (!strcasecmp(key, "layout"))
-            return u"Diseño";
-        if (!strcasecmp(key, "sorting"))
-            return u"Clasificación";
-        if (!strcasecmp(key, "theme"))
-            return u"Tema";
-        if (!strcasecmp(key, "language"))
-            return u"Idioma";
-        if (!strcasecmp(key, "favorites"))
-            return u"Favoritos";
-        if (!strcasecmp(key, "cheats"))
-            return u"Trucos";
-        if (!strcasecmp(key, "total_launches"))
-            return u"Inicios totales";
-    }
-
-    // French
-    if (!strcasecmp(s_languageBuf, "french") || !strcasecmp(s_languageBuf, "francais"))
-    {
-        if (!strcasecmp(key, "display_settings"))
-            return u"Paramètres d’affichage";
-        if (!strcasecmp(key, "layout"))
-            return u"Disposition";
-        if (!strcasecmp(key, "sorting"))
-            return u"Tri";
-        if (!strcasecmp(key, "theme"))
-            return u"Thème";
-        if (!strcasecmp(key, "language"))
-            return u"Langue";
-        if (!strcasecmp(key, "favorites"))
-            return u"Favoris";
-        if (!strcasecmp(key, "cheats"))
-            return u"Triches";
-        if (!strcasecmp(key, "total_launches"))
-            return u"Lancements totaux";
-    }
-
-    // German
-    if (!strcasecmp(s_languageBuf, "german") || !strcasecmp(s_languageBuf, "deutsch"))
-    {
-        if (!strcasecmp(key, "display_settings"))
-            return u"Anzeigeeinstellungen";
-        if (!strcasecmp(key, "layout"))
-            return u"Layout";
-        if (!strcasecmp(key, "sorting"))
-            return u"Sortierung";
-        if (!strcasecmp(key, "theme"))
-            return u"Thema";
-        if (!strcasecmp(key, "language"))
-            return u"Sprache";
-        if (!strcasecmp(key, "favorites"))
-            return u"Favoriten";
-        if (!strcasecmp(key, "cheats"))
-            return u"Codes";
-        if (!strcasecmp(key, "total_launches"))
-            return u"Gesamtstarts";
-    }
-
-    // Portuguese
-    if (!strcasecmp(s_languageBuf, "portuguese") || !strcasecmp(s_languageBuf, "portugues"))
-    {
-        if (!strcasecmp(key, "display_settings"))
-            return u"Configurações de exibição";
-        if (!strcasecmp(key, "layout"))
-            return u"Layout";
-        if (!strcasecmp(key, "sorting"))
-            return u"Ordenação";
-        if (!strcasecmp(key, "theme"))
-            return u"Tema";
-        if (!strcasecmp(key, "language"))
-            return u"Idioma";
-        if (!strcasecmp(key, "favorites"))
-            return u"Favoritos";
-        if (!strcasecmp(key, "cheats"))
-            return u"Truques";
-        if (!strcasecmp(key, "total_launches"))
-            return u"Inícios totais";
-    }
-
-    // Dutch
-    if (!strcasecmp(s_languageBuf, "dutch") || !strcasecmp(s_languageBuf, "nederlands"))
-    {
-        if (!strcasecmp(key, "display_settings"))
-            return u"Weergave-instellingen";
-        if (!strcasecmp(key, "layout"))
-            return u"Indeling";
-        if (!strcasecmp(key, "sorting"))
-            return u"Sortering";
-        if (!strcasecmp(key, "theme"))
-            return u"Thema";
-        if (!strcasecmp(key, "language"))
-            return u"Taal";
-        if (!strcasecmp(key, "favorites"))
-            return u"Favorieten";
-        if (!strcasecmp(key, "cheats"))
-            return u"Cheats";
-        if (!strcasecmp(key, "total_launches"))
-            return u"Totaal aantal starts";
-    }
-
-    // Default: English
-    if (!strcasecmp(key, "display_settings"))
-        return u"Display Settings";
-    if (!strcasecmp(key, "layout"))
-        return u"Layout";
-    if (!strcasecmp(key, "sorting"))
-        return u"Sorting";
-    if (!strcasecmp(key, "theme"))
-        return u"Theme";
-    if (!strcasecmp(key, "language"))
-        return u"Language";
-    if (!strcasecmp(key, "favorites"))
-        return u"Favorites";
-    if (!strcasecmp(key, "cheats"))
-        return u"Cheats";
-    if (!strcasecmp(key, "total_launches"))
-        return u"Total Launches";
 
     return u"";
 }

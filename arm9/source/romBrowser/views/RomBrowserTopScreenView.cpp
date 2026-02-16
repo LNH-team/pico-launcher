@@ -22,12 +22,10 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
     : _viewModel(viewModel)
     , _themeFileIconFactory(themeFileIconFactory)
     , _fileInfoView(romBrowserViewFactory->CreateFileInfoView())
-    , _bgmNowPlayingView(std::make_unique<BgmNowPlayingView>(materialColorScheme, fontRepository))
     , _showCover(displayMode->ShowCoverOnTopScreen())
     , _bgmService(bgmService)
 {
     AddChildTail(_fileInfoView.get());
-    AddChildTail(_bgmNowPlayingView.get());
 }
 
 void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
@@ -48,13 +46,6 @@ void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
 
 void RomBrowserTopScreenView::Update()
 {
-    if (_bgmService && _bgmNowPlayingView)
-    {
-        const char* name = _bgmService->ConsumeBgmNameChange();
-        if (name)
-            _bgmNowPlayingView->SetBgmName(name);
-    }
-
     int selectedItem = _viewModel->GetSelectedItem();
     if (selectedItem != _lastSelectedItem)
     {

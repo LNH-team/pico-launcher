@@ -1,4 +1,5 @@
 #include "common.h"
+#include <memory>
 #include "gui/GraphicsContext.h"
 #include "gui/VramContext.h"
 #include "gui/IVramManager.h"
@@ -20,6 +21,10 @@
 #include "themes/material/MaterialColorScheme.h"
 #include "themes/IFontRepository.h"
 #include "fat/Directory.h"
+#include "fat/File.h"
+#include "json/ArduinoJson.h"
+#include "core/StringUtil.h"
+#include "core/mini-printf.h"
 #include "DisplaySettingsBottomSheetView.h"
 #include "services/localization/Localization.h"
 
@@ -74,10 +79,11 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     // , _filtersLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
 
 {
+    LoadLanguages();
     const char* currLang = _appSettingsService->GetAppSettings().language.GetString();
     _selectedLanguageIdx = 0;
-    for (int i = 0; i < kLanguageCount; ++i) {
-        if (strcasecmp(currLang, sLanguages[i]) == 0) {
+    for (int i = 0; i < _languageCount; ++i) {
+        if (strcasecmp(currLang, _languageEntries[i].fileName.GetString()) == 0) {
             _selectedLanguageIdx = i;
             break;
         }
@@ -135,7 +141,7 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
 void DisplaySettingsBottomSheetView::ChangeLanguage(int newIdx)
 {
     _selectedLanguageIdx = newIdx;
-    _appSettingsService->GetAppSettings().language = sLanguages[_selectedLanguageIdx];
+    _appSettingsService->GetAppSettings().language = _languageEntries[_selectedLanguageIdx].fileName.GetString();
     _settingsDirty = true;
     Localization::Initialize(_appSettingsService);
     UpdateLanguageUI();
@@ -144,7 +150,6 @@ void DisplaySettingsBottomSheetView::ChangeLanguage(int newIdx)
     _sortingLabel.SetText(Localization::Translate("sorting"));
     _themeLabel.SetText(Localization::Translate("theme"));
     _languageLabel.SetText(Localization::Translate("language"));
-    _languageValueLabel.SetText(sLanguageNames[_selectedLanguageIdx]);
 }
 
 void DisplaySettingsBottomSheetView::LoadThemes()
@@ -183,12 +188,120 @@ void DisplaySettingsBottomSheetView::LoadThemes()
     }
 }
 
+void DisplaySettingsBottomSheetView::LoadLanguages()
+{
+    _languageCount = 0;
+    Directory directory;
+    if (directory.Open("/_pico/extras/translations") != FR_OK)
+        return;
+
+    FILINFO fileInfo;
+    while (true)
+    {
+        if (directory.Read(&fileInfo) != FR_OK)
+            break;
+        if (fileInfo.fname[0] == 0)
+            break;
+        if (fileInfo.fname[0] == '.')
+            continue;
+        if (fileInfo.fattrib & AM_DIR)
+            continue;
+        if (_languageCount >= kMaxLanguageCount)
+            break;
+
+        // Check if the file ends in .json
+        const char* dot = strrchr(fileInfo.fname, '.');
+        if (!dot || strcasecmp(dot, ".json") != 0)
+            continue;
+
+        // Extract filename without extension
+        char baseName[64];
+        size_t len = dot - fileInfo.fname;
+        if (len >= sizeof(baseName))
+            len = sizeof(baseName) - 1;
+        memcpy(baseName, fileInfo.fname, len);
+        baseName[len] = '\0';
+
+        auto& entry = _languageEntries[_languageCount];
+        entry.fileName = baseName;
+
+        // Default display name: filename (ASCII to UTF-16)
+        for (size_t i = 0; i < len && i < 63; i++)
+            entry.displayName[i] = (char16_t)baseName[i];
+        entry.displayName[len < 63 ? len : 63] = 0;
+
+        // Try to read language_name from the JSON file
+        char path[128];
+        mini_snprintf(path, sizeof(path), "/_pico/extras/translations/%s", fileInfo.fname);
+        {
+            File file;
+            if (file.Open(path, FA_READ | FA_OPEN_EXISTING) == FR_OK)
+            {
+                u32 fileSize = file.GetSize();
+                if (fileSize > 0 && fileSize < 2048)
+                {
+                    auto buf = std::make_unique<u8[]>(fileSize);
+                    u32 bytesRead = 0;
+                    if (file.Read(buf.get(), fileSize, bytesRead) == FR_OK && bytesRead == fileSize)
+                    {
+                        // Skip UTF-8 BOM if present
+                        const u8* jsonData = buf.get();
+                        u32 jsonSize = fileSize;
+                        if (jsonSize >= 3 && jsonData[0] == 0xEF && jsonData[1] == 0xBB && jsonData[2] == 0xBF)
+                        {
+                            jsonData += 3;
+                            jsonSize -= 3;
+                        }
+
+                        DynamicJsonDocument json(2048);
+                        if (deserializeJson(json, jsonData, jsonSize) == DeserializationError::Ok)
+                        {
+                            const char* langName = json["language_name"] | (const char*)nullptr;
+                            if (langName && langName[0] != 0)
+                            {
+                                // Convert UTF-8 to UTF-16
+                                u32 si = 0, di = 0;
+                                while (langName[si] && di < 63)
+                                {
+                                    u8 c = (u8)langName[si];
+                                    u32 cp;
+                                    if (c < 0x80) { cp = c; si++; }
+                                    else if ((c & 0xE0) == 0xC0) { cp = (c & 0x1F) << 6; cp |= ((u8)langName[si+1] & 0x3F); si += 2; }
+                                    else if ((c & 0xF0) == 0xE0) { cp = (c & 0x0F) << 12; cp |= ((u8)langName[si+1] & 0x3F) << 6; cp |= ((u8)langName[si+2] & 0x3F); si += 3; }
+                                    else { si += 4; continue; }
+                                    if (cp <= 0xFFFF)
+                                        entry.displayName[di++] = (char16_t)cp;
+                                }
+                                entry.displayName[di] = 0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        _languageCount++;
+    }
+
+    // If no languages found, add a default English entry
+    if (_languageCount == 0)
+    {
+        _languageEntries[0].fileName = "english";
+        StringUtil::Copy(_languageEntries[0].displayName, u"English", 64);
+        _languageCount = 1;
+    }
+}
+
 void DisplaySettingsBottomSheetView::ChangeTheme(int newIdx)
 {
     _selectedThemeIdx = newIdx;
+    UpdateThemeUI();
+}
+
+void DisplaySettingsBottomSheetView::ApplyTheme()
+{
     _appSettingsService->GetAppSettings().theme = _themeNames[_selectedThemeIdx].GetString();
     _settingsDirty = true;
-    UpdateThemeUI();
 }
 
 void DisplaySettingsBottomSheetView::UpdateThemeUI()
@@ -202,7 +315,8 @@ void DisplaySettingsBottomSheetView::UpdateLanguageUI()
 {
     _languageLabel.SetPosition(LANGUAGE_LABEL_X, _position.y + LANGUAGE_LABEL_Y);
     _languageValueLabel.SetPosition(LANGUAGE_VALUE_X, _position.y + LANGUAGE_LABEL_Y);
-    _languageValueLabel.SetText(sLanguageNames[_selectedLanguageIdx]);
+    if (_languageCount > 0)
+        _languageValueLabel.SetText(_languageEntries[_selectedLanguageIdx].displayName);
 }
 
 IconButton2DView DisplaySettingsBottomSheetView::CreateLayoutOptionIconButton()
@@ -367,7 +481,7 @@ void DisplaySettingsBottomSheetView::SaveIfDirty()
 {
     if (_settingsDirty)
     {
-        _appSettingsService->Save();
+        _viewModel->MarkSettingsDirty();
         _settingsDirty = false;
     }
 }
@@ -377,6 +491,7 @@ bool DisplaySettingsBottomSheetView::HandleInput(
 {
     if (inputProvider.Triggered(InputKey::B))
     {
+        ApplyTheme();
         SaveIfDirty();
         _viewModel->Close();
         return true;
@@ -472,13 +587,13 @@ View* DisplaySettingsBottomSheetView::MoveFocus(View* currentFocus,
     {
         if (direction == FocusMoveDirection::Left)
         {
-            int newIdx = (_selectedLanguageIdx - 1 + kLanguageCount) % kLanguageCount;
+            int newIdx = (_selectedLanguageIdx - 1 + _languageCount) % _languageCount;
             ChangeLanguage(newIdx);
             return &_languageValueLabel;
         }
         if (direction == FocusMoveDirection::Right)
         {
-            int newIdx = (_selectedLanguageIdx + 1) % kLanguageCount;
+            int newIdx = (_selectedLanguageIdx + 1) % _languageCount;
             ChangeLanguage(newIdx);
             return &_languageValueLabel;
         }

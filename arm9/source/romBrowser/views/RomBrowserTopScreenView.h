@@ -4,8 +4,6 @@
 #include "BannerView.h"
 #include "../FileType/FileIcon.h"
 #include "../DisplayMode/RomBrowserDisplayMode.h"
-#include "BgmNowPlayingView.h"
-
 class RomBrowserViewModel;
 class IRomBrowserViewFactory;
 class IBgmService;
@@ -36,7 +34,6 @@ private:
     SharedPtr<RomBrowserViewModel> _viewModel;
     const IThemeFileIconFactory* _themeFileIconFactory;
     std::unique_ptr<BannerView> _fileInfoView;
-    std::unique_ptr<BgmNowPlayingView> _bgmNowPlayingView;
     std::unique_ptr<FileIcon> _selectedFileIcon;
     SharedPtr<FileCover> _selectedFileCover;
     int _lastSelectedItem = -1;

@@ -29,6 +29,7 @@
 #include "splashTop.h"
 #include "App.h"
 #include "fat/Directory.h"
+#include "services/localization/Localization.h"
 
 #define SPLASH_FRAMES       44
 
@@ -144,6 +145,93 @@ void App::LoadTheme()
         &_theme->GetMaterialColorScheme(), _theme->GetFontRepository());
 }
 
+void App::ApplyThemeColors()
+{
+    const auto& materialColorScheme = _theme->GetMaterialColorScheme();
+
+    auto scrimBlendColor = Rgb<8, 8, 8>(
+        materialColorScheme.inverseOnSurface.r + (materialColorScheme.scrim.r - materialColorScheme.inverseOnSurface.r) * 5 / 16,
+        materialColorScheme.inverseOnSurface.g + (materialColorScheme.scrim.g - materialColorScheme.inverseOnSurface.g) * 5 / 16,
+        materialColorScheme.inverseOnSurface.b + (materialColorScheme.scrim.b - materialColorScheme.inverseOnSurface.b) * 5 / 16);
+
+    RgbMixer::MakeGradientPalette((u16*)GFX_PLTT_BG_MAIN, scrimBlendColor, materialColorScheme.GetColor(md::sys::color::surfaceContainerLow));
+
+    GFX_PLTT_BG_MAIN[0] = ColorConverter::ToGBGR565(materialColorScheme.inverseOnSurface);
+    GFX_PLTT_BG_MAIN[31] = ColorConverter::ToGBGR565(materialColorScheme.scrim);
+    REG_DISPCNT = 0x211F1B;
+    REG_BG0HOFS = 0;
+    REG_BG0VOFS = 0;
+    REG_BG0CNT = 3;
+}
+
+void App::ReloadTheme()
+{
+    // Stop BGM synchronously before tearing down views/theme
+    _bgmService.StopBgm();
+
+    // Destroy all views that reference theme data
+    _romBrowserTopScreenView.reset();
+    _romBrowserBottomScreenView.reset();
+    _materialThemeFileIconFactory.reset();
+    _topBackground.reset();
+    _bottomBackground.reset();
+    _theme.reset();
+
+    // Restore VRAM to before theme was loaded
+    RestoreVramState(_vramStateBeforeThemeLoad);
+
+    // Reset sub display to a clean base state before loading new theme
+    // Mode 5, OBJ 1D mapping, OBJ display, display mode 1, BG ext palette
+    REG_DISPCNT_SUB = 0x40211015;
+
+    // Load the new theme
+    _effectiveThemeName = _appSettingsService.GetAppSettings().theme;
+    LoadTheme();
+    _previousThemeName = _effectiveThemeName;
+
+    // Recreate bottom screen view
+    StoreVramState(_vramStateBeforeMakeBottomScreenView);
+
+    auto displayMode = RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
+        _romBrowserController.GetRomBrowserDisplaySettings().layout);
+    _romBrowserBottomScreenView = std::make_unique<RomBrowserBottomScreenView>(
+        &_romBrowserBottomScreenViewModel,
+        displayMode,
+        _materialThemeFileIconFactory.get(),
+        _theme->GetRomBrowserViewFactory(),
+        &_vblankTextureLoader);
+    _romBrowserBottomScreenView->InitVram(_mainVramContext);
+
+    StoreVramState(_vramStateAfterMakeBottomScreenView);
+
+    // Recreate top screen view
+    _romBrowserTopScreenView = std::make_unique<RomBrowserTopScreenView>(
+        _romBrowserController.GetRomBrowserViewModel(),
+        displayMode,
+        _materialThemeFileIconFactory.get(),
+        _theme->GetRomBrowserViewFactory(),
+        &_theme->GetMaterialColorScheme(),
+        _theme->GetFontRepository(),
+        &_bgmService);
+    _romBrowserTopScreenView->InitVram(_subVramContext);
+
+    // Apply new color scheme
+    ApplyThemeColors();
+
+    // Reapply bottom screen view data
+    _romBrowserBottomScreenView->RomBrowserViewModelInvalidated(_mainVramContext);
+
+    // Restore focus
+    _romBrowserBottomScreenView->Focus(_focusManager);
+
+    // Restart BGM with new theme on IO thread
+    _ioTaskQueue.Enqueue([this] (const vu8& cancelRequested)
+    {
+        _bgmService.StartBgmFromConfig(_effectiveThemeName.GetString());
+        return TaskResult<void>::Completed();
+    });
+}
+
 void App::VCountIrq()
 {
     _mainObjPltt.VCount();
@@ -164,7 +252,11 @@ void App::Run()
 
     _dialogPresenter.InitVram();
 
+    Localization::Initialize(&_appSettingsService);
+
+    StoreVramState(_vramStateBeforeThemeLoad);
     LoadTheme();
+    _previousThemeName = _effectiveThemeName;
 
     _ioTaskQueue.StartThread(1, _ioTaskThreadStack, sizeof(_ioTaskThreadStack));
     _bgTaskQueue.StartThread(2, _bgTaskThreadStack, sizeof(_bgTaskThreadStack));
@@ -182,21 +274,7 @@ void App::Run()
 
     StoreVramState(_vramStateAfterMakeBottomScreenView);
 
-    const auto& materialColorScheme = _theme->GetMaterialColorScheme();
-
-    auto scrimBlendColor = Rgb<8, 8, 8>(
-        materialColorScheme.inverseOnSurface.r + (materialColorScheme.scrim.r - materialColorScheme.inverseOnSurface.r) * 5 / 16,
-        materialColorScheme.inverseOnSurface.g + (materialColorScheme.scrim.g - materialColorScheme.inverseOnSurface.g) * 5 / 16,
-        materialColorScheme.inverseOnSurface.b + (materialColorScheme.scrim.b - materialColorScheme.inverseOnSurface.b) * 5 / 16);
-
-    RgbMixer::MakeGradientPalette((u16*)GFX_PLTT_BG_MAIN, scrimBlendColor, materialColorScheme.GetColor(md::sys::color::surfaceContainerLow));
-
-    GFX_PLTT_BG_MAIN[0] = ColorConverter::ToGBGR565(materialColorScheme.inverseOnSurface);
-    GFX_PLTT_BG_MAIN[31] = ColorConverter::ToGBGR565(materialColorScheme.scrim);
-    REG_DISPCNT = 0x211F1B;
-    REG_BG0HOFS = 0;
-    REG_BG0VOFS = 0;
-    REG_BG0CNT = 3;
+    ApplyThemeColors();
 
     Gx::MtxMode(GX_MTX_MODE_PROJECTION);
     mtx43_t orthoMtx =
@@ -342,11 +420,29 @@ void App::HandleShowGameInfoTrigger()
 void App::HandleHideGameInfoTrigger()
 {
     _dialogPresenter.CloseDialog();
-    if (_romBrowserController.IsFavoritesViewActive()) {
+    if (_romBrowserController.IsFavoritesViewActive())
+    {
         _dialogPresenter.ClearOldFocus();
-        _romBrowserBottomScreenView->FocusAppBar(_focusManager, RomBrowserAppBarView::APP_BAR_BUTTON_FAVORITES);
+
+        // After game info dialog closes in favorites view, check if items remain
+        auto viewModel = _romBrowserController.GetRomBrowserViewModel();
+        bool hasItems = viewModel.IsValid()
+            && viewModel->GetFileInfoManager().GetItemCount() > 0;
+
+        if (hasItems)
+        {
+            // Focus the list — it will select the appropriate item
+            _romBrowserBottomScreenView->Focus(_focusManager);
+        }
+        else
+        {
+            // No items left in favorites, focus the favorites button
+            _romBrowserBottomScreenView->FocusAppBar(
+                _focusManager, RomBrowserAppBarView::APP_BAR_BUTTON_FAVORITES);
+        }
     }
-    else if (!_dialogPresenter.GetOldFocus()) {
+    else if (!_dialogPresenter.GetOldFocus())
+    {
         _romBrowserBottomScreenView->Focus(_focusManager);
     }
 }
@@ -362,6 +458,15 @@ void App::HandleShowDisplaySettingsTrigger()
 void App::HandleHideDisplaySettingsTrigger()
 {
     _dialogPresenter.CloseDialog();
+
+    // Check if theme was changed and needs reload after dialog closes
+    const char* newTheme = _appSettingsService.GetAppSettings().theme.GetString();
+    if (strcmp(newTheme, _previousThemeName.GetString()) != 0
+        && strcmp(newTheme, "RANDOM") != 0)
+    {
+        _pendingThemeReload = true;
+    }
+
     if (!_dialogPresenter.GetOldFocus())
         _romBrowserBottomScreenView->Focus(_focusManager);
 }
@@ -408,8 +513,23 @@ void App::HandleRomBrowserViewModelInvalidated()
         &_bgmService);
     _romBrowserTopScreenView->InitVram(_subVramContext);
     _romBrowserBottomScreenView->RomBrowserViewModelInvalidated(_mainVramContext);
-    if (!_focusManager.GetCurrentFocus())
+
+    if (_romBrowserController.IsFavoritesViewActive())
+    {
+        auto viewModel = _romBrowserController.GetRomBrowserViewModel();
+        bool hasItems = viewModel.IsValid()
+            && viewModel->GetFileInfoManager().GetItemCount() > 0;
+
+        if (hasItems)
+            _romBrowserBottomScreenView->Focus(_focusManager);
+        else
+            _romBrowserBottomScreenView->FocusAppBar(
+                _focusManager, RomBrowserAppBarView::APP_BAR_BUTTON_FAVORITES);
+    }
+    else if (!_focusManager.GetCurrentFocus())
+    {
         _romBrowserBottomScreenView->Focus(_focusManager);
+    }
 }
 
 void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)
@@ -481,6 +601,13 @@ void App::Update()
         _bottomBackground->Update();
 
     _dialogPresenter.Update();
+
+    // Reload theme after dialog close animation finishes
+    if (_pendingThemeReload && _dialogPresenter.IsIdle())
+    {
+        _pendingThemeReload = false;
+        ReloadTheme();
+    }
 
     _romBrowserBottomScreenView->Update();
     if (isRomBrowserVisible)

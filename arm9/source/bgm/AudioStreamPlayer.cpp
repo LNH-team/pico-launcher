@@ -28,9 +28,6 @@ AudioStreamPlayer::AudioStreamPlayer()
 
 bool AudioStreamPlayer::StartPlaybackIntern(std::unique_ptr<IAudioStream> audioStream)
 {
-    if (_isPlaying)
-        StopPlaybackIntern();
-
     _audioStream = std::move(audioStream);
     
     // fill buffer
@@ -75,6 +72,44 @@ bool AudioStreamPlayer::StartPlaybackIntern(std::unique_ptr<IAudioStream> audioS
     ipc_sendFifoMessage(IPC_CHANNEL_SOUND, (u32)&_soundStartCmdList);
 
     return true;
+}
+
+bool AudioStreamPlayer::StartPlayback(std::unique_ptr<IAudioStream> audioStream)
+{
+    // Stop first without holding mutex to avoid deadlock with streaming thread
+    StopPlayback();
+    bool result;
+    rtos_lockMutex(&_mutex);
+    {
+        result = StartPlaybackIntern(std::move(audioStream));
+    }
+    rtos_unlockMutex(&_mutex);
+    return result;
+}
+
+void AudioStreamPlayer::StopPlayback()
+{
+    bool wasPlaying;
+    rtos_lockMutex(&_mutex);
+    {
+        wasPlaying = _isPlaying;
+        if (wasPlaying)
+        {
+            _isPlaying = false;
+            rtos_wakeupThread(&_thread);
+            ipc_sendFifoMessage(IPC_CHANNEL_SOUND, (u32)&_soundStopCmdList);
+            tmr_stop(AUDIO_STREAM_PLAYER_TIMER);
+            rtos_disableIrqMask(RTOS_IRQ_TIMER(AUDIO_STREAM_PLAYER_TIMER));
+        }
+    }
+    rtos_unlockMutex(&_mutex);
+    // Join thread AFTER releasing mutex so the streaming thread can exit cleanly
+    if (wasPlaying)
+    {
+        rtos_joinThread(&_thread);
+        sCurrentPlayer = nullptr;
+        _audioStream.reset();
+    }
 }
 
 void AudioStreamPlayer::StopPlaybackIntern()
@@ -137,6 +172,6 @@ void AudioStreamPlayer::FillRingBlock(u32 block)
     if (_audioStream->ConsumeLooped())
         _playbackRestarted = true;
 
-    DC_FlushRange(&blockPtrL, AUDIO_STREAM_PLAYER_BLOCK_SAMPLES * sizeof(s16));
-    DC_FlushRange(&blockPtrR, AUDIO_STREAM_PLAYER_BLOCK_SAMPLES * sizeof(s16));
+    DC_FlushRange(blockPtrL, AUDIO_STREAM_PLAYER_BLOCK_SAMPLES * sizeof(s16));
+    DC_FlushRange(blockPtrR, AUDIO_STREAM_PLAYER_BLOCK_SAMPLES * sizeof(s16));
 }
