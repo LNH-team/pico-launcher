@@ -21,7 +21,6 @@ bool BgmService::StartBgm(const TCHAR* filePath)
         return false;
     }
 
-    // ...existing code...
     return true;
 }
 
@@ -49,8 +48,6 @@ void BgmService::StartBgmFromConfig(const char* themeName)
         StopBgm();
         return;
     }
-    
-    // ...existing code...
 }
 
 void BgmService::StopBgm()
