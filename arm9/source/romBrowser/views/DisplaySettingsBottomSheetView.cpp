@@ -489,10 +489,19 @@ void DisplaySettingsBottomSheetView::SaveIfDirty()
 bool DisplaySettingsBottomSheetView::HandleInput(
     const InputProvider& inputProvider, FocusManager& focusManager)
 {
+    if (_themeValueLabel.IsFocused() && inputProvider.Triggered(InputKey::A))
+    {
+        const char* selectedTheme = _themeNames[_selectedThemeIdx].GetString();
+        if (strcasecmp(selectedTheme, "RANDOM") != 0)
+        {
+            ApplyTheme();
+            SaveIfDirty();
+            _viewModel->Close();
+        }
+        return true;
+    }
     if (inputProvider.Triggered(InputKey::B))
     {
-        ApplyTheme();
-        SaveIfDirty();
         _viewModel->Close();
         return true;
     }
