@@ -55,6 +55,15 @@ public:
 
     void MarkSettingsDirty() override { _saveSettingsPending = true; }
 
+    void RequestThemeReload() override { _themeReloadRequested = true; }
+
+    bool ConsumeThemeReloadRequest()
+    {
+        const bool requested = _themeReloadRequested;
+        _themeReloadRequested = false;
+        return requested;
+    }
+
     const RomBrowserDisplaySettings& GetRomBrowserDisplaySettings() const override
     {
         return _appSettingsService->GetAppSettings().romBrowserDisplaySettings;
@@ -80,6 +89,7 @@ private:
     bool _favoritesLoadPending = false;
     bool _saveSettingsPending = false;
     bool _viewModelInvalidated = false;
+    bool _themeReloadRequested = false;
     std::unique_ptr<CoverRepository> _coverRepository;
     ExtensionFileTypeProvider _fileTypeProvider;
 

@@ -459,12 +459,14 @@ void App::HandleHideDisplaySettingsTrigger()
 {
     _dialogPresenter.CloseDialog();
 
-    // Check if theme was changed and needs reload after dialog closes
-    const char* newTheme = _appSettingsService.GetAppSettings().theme.GetString();
-    if (strcmp(newTheme, _previousThemeName.GetString()) != 0
-        && strcmp(newTheme, "RANDOM") != 0)
+    // Check if theme reload was explicitly requested with A button
+    if (_romBrowserController.ConsumeThemeReloadRequest())
     {
-        _pendingThemeReload = true;
+        const char* newTheme = _appSettingsService.GetAppSettings().theme.GetString();
+        if (strcmp(newTheme, "RANDOM") != 0)
+        {
+            _pendingThemeReload = true;
+        }
     }
 
     if (!_dialogPresenter.GetOldFocus())

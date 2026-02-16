@@ -100,6 +100,7 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
             break;
         }
     }
+    _originalThemeIdx = _selectedThemeIdx;
 
     Localization::Initialize(_appSettingsService);
     _titleLabel.SetText(Localization::Translate("display_settings"));
@@ -302,6 +303,9 @@ void DisplaySettingsBottomSheetView::ApplyTheme()
 {
     _appSettingsService->GetAppSettings().theme = _themeNames[_selectedThemeIdx].GetString();
     _settingsDirty = true;
+    SaveIfDirty();
+    _viewModel->RequestThemeReload();
+    _viewModel->Close();
 }
 
 void DisplaySettingsBottomSheetView::UpdateThemeUI()
@@ -495,13 +499,17 @@ bool DisplaySettingsBottomSheetView::HandleInput(
         if (strcasecmp(selectedTheme, "RANDOM") != 0)
         {
             ApplyTheme();
-            SaveIfDirty();
-            _viewModel->Close();
         }
         return true;
     }
     if (inputProvider.Triggered(InputKey::B))
     {
+        if (_selectedThemeIdx != _originalThemeIdx)
+        {
+            _appSettingsService->GetAppSettings().theme = _themeNames[_selectedThemeIdx].GetString();
+            _settingsDirty = true;
+            SaveIfDirty();
+        }
         _viewModel->Close();
         return true;
     }

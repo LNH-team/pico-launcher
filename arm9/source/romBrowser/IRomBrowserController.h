@@ -44,6 +44,8 @@ public:
         const RomBrowserDisplaySettings& romBrowserDisplaySettings) = 0;
 
     virtual void MarkSettingsDirty() = 0;
+
+    virtual void RequestThemeReload() = 0;
 };
 
 inline IRomBrowserController::~IRomBrowserController() { }

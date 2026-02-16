@@ -55,6 +55,7 @@ private:
     std::array<String<char, 64>, kMaxThemeCount> _themeNames;
     int _themeCount = 0;
     int _selectedThemeIdx = 0;
+    int _originalThemeIdx = 0;
 
     static constexpr int kMaxLanguageCount = 16;
     struct LanguageEntry

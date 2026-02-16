@@ -48,6 +48,11 @@ public:
         _romBrowserController->MarkSettingsDirty();
     }
 
+    void RequestThemeReload()
+    {
+        _romBrowserController->RequestThemeReload();
+    }
+
 private:
     IRomBrowserController* _romBrowserController;
     RomBrowserDisplaySettings _romBrowserDisplaySettings;
