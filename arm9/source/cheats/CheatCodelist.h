@@ -210,23 +210,6 @@ struct IntArray
 class CheatCodelist
 {
 public:
-    /// @brief Debug info for cheat parsing.
-    struct CheatDebugInfo
-    {
-        bool romReadOk = false;
-        bool datOpened = false;
-        bool indexFound = false;
-        bool gamecodeMatchFound = false;
-        bool crcMatchFound = false;
-        bool crcSwapMatchFound = false;
-        u32 gamecode = 0;
-        u32 crc32 = 0;
-        u32 itemCount = 0;
-        u32 firstIndexGamecode = 0;
-        u32 firstIndexCrc32 = 0;
-        u8 rawIndexBytes[24] = {0};
-    };
-
     /// @brief Parses the usrcheat.dat file for cheats matching the given ROM.
     /// @param romFastFileRef The fast file ref to the NDS ROM file.
     /// @return CheatParseResult indicating success or reason of failure.
