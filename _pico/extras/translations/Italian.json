@@ -6,6 +6,11 @@
     "theme": "Tema",
     "language": "Lingua",
     "favorites": "Preferiti",
+    "total_launches": "Avvii totali",
     "cheats": "Trucchi",
-    "total_launches": "Avvii totali"
+    "cheats_not_found": "Nessun trucco trovato per questo gioco",
+    "cheats_dat_missing": "usrcheat.dat non trovato",
+    "game_details": "Dettagli Gioco",
+    "description_not_found": "Nessuna descrizione trovata per questo trucco."
+
 }

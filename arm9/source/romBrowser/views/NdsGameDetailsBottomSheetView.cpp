@@ -13,17 +13,42 @@
 #include "../viewModels/RomBrowserViewModel.h"
 #include "services/localization/Localization.h"
 #include "services/launchStats/LaunchStatsService.h"
+#include "../FileType/Nds/NdsFileType.h"
+#include "../FileType/Nds/NdsInternalFileInfo.h"
+#include "core/mini-printf.h"
+#include "cheats/CheatCodelist.h"
+#include "fat/File.h"
 
 NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     IRomBrowserController* romBrowserController,
     const MaterialColorScheme* materialColorScheme,
     const IFontRepository* fontRepository)
-    : _romBrowserController(romBrowserController)
+    : _titleLabel(128, 16, 25, fontRepository->GetFont(FontType::Medium11))
+    , _gameCodeLabel(40, 14, 20, fontRepository->GetFont(FontType::Medium7_5))
+    , _crcLabel(60, 14, 20, fontRepository->GetFont(FontType::Medium7_5))
+    , _romBrowserController(romBrowserController)
     , _cheatsChip(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository)
     , _favoriteChip(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository)
     , _countLaunchLabel(80, 16, 20, fontRepository->GetFont(FontType::Regular10))
     , _countLaunchValueLabel(30, 16, 20, fontRepository->GetFont(FontType::Regular10))
 {
+    _titleLabel.SetText((const char16_t*)L"Game Details"); 
+    const char16_t* localizedTitle = Localization::Translate("game_details");
+    if (localizedTitle && localizedTitle[0] != 0)
+        _titleLabel.SetText(localizedTitle);
+        
+    _titleLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+    _titleLabel.SetForegroundColor(materialColorScheme->GetColor(md::sys::color::onSurface));
+    AddChildTail(&_titleLabel);
+
+    _gameCodeLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+    _gameCodeLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+    AddChildTail(&_gameCodeLabel);
+
+    _crcLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+    _crcLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+    AddChildTail(&_crcLabel);
+
     bool isNds = false;
 
     if (_romBrowserController) {
@@ -32,8 +57,8 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
             int selected = viewModel->GetSelectedItem();
             if (selected >= 0) {
                 const auto& fileInfo = viewModel->GetFileInfoManager().GetItem(selected);
+                
                 if (fileInfo.GetFileType() == &NdsFileType::sInstance) {
-                    // Check extension for .nds, .dsi, .srl
                     const TCHAR* name = fileInfo.GetFileName();
                     const char* ext = strrchr(name, '.');
                     if (ext) {
@@ -42,10 +67,53 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                             isNds = true;
                         }
                     }
+
+                    if (isNds) {
+                        std::unique_ptr<InternalFileInfo> internalInfo(fileInfo.CreateInternalFileInfo());
+                        const char* gameCode = nullptr;
+                        u32 crcVal = 0;
+                        if (internalInfo) {
+                            gameCode = internalInfo->GetGameCode();
+                        }
+                        u32 crc32 = 0;
+                        {
+                            File romFile;
+                            romFile.Open(fileInfo.GetFastFileRef(), FA_READ);
+                            if (romFile.GetSize() >= 512) {
+                                u8 header[512];
+                                u32 bytesRead = 0;
+                                if (romFile.ReadExact(header, sizeof(header))) {
+                                    crc32 = CheatCodelist::ComputeCrc32(header, sizeof(header));
+                                }
+                            }
+                        }
+                        if (gameCode) {
+                            strncpy(_gameCode, gameCode, 4);
+                            _gameCode[4] = 0;
+                        } else {
+                            _gameCode[0] = 0;
+                        }
+                        _crc = crc32;
+
+                        char16_t wc[16];
+                        int i = 0;
+                        if (gameCode) {
+                            for (; gameCode[i] && i < 4; ++i) wc[i] = (char16_t)(unsigned char)gameCode[i];
+                        }
+                        wc[i] = 0;
+                        _gameCodeLabel.SetText(wc);
+
+                        char buf[16];
+                        mini_snprintf(buf, sizeof(buf), "%08X", _crc);
+                        for (i = 0; buf[i]; ++i) wc[i] = (char16_t)(unsigned char)buf[i];
+                        wc[i] = 0;
+                        _crcLabel.SetText(wc);
+                    }
                 }
             }
         }
     }
+
     if (isNds) {
         _cheatsChip.SetText(Localization::Translate("cheats"));
         _cheatsChip.SetSelected(false);
@@ -79,14 +147,24 @@ void NdsGameDetailsBottomSheetView::InitVram(const VramContext& vramContext)
 void NdsGameDetailsBottomSheetView::Update()
 {
     BottomSheetView::Update();
+    
+    _titleLabel.SetPosition(12, _position.y + 12);
+
+    constexpr int codeX = 140;
+    constexpr int kTitleY = 5; 
+    int codeY = _position.y + kTitleY + 2;
+    _gameCodeLabel.SetPosition(codeX, codeY);
+    int codeW = _gameCodeLabel.GetStringWidth();
+    _crcLabel.SetPosition(codeX + codeW + 8, codeY);
+
     if (_hasCheatsChip) {
-        _cheatsChip.SetPosition(92, _position.y + 21);
-        _favoriteChip.SetPosition(162, _position.y + 21);
+        _cheatsChip.SetPosition(92, _position.y + 35); 
+        _favoriteChip.SetPosition(162, _position.y + 35);
     } else {
-        _favoriteChip.SetPosition(92, _position.y + 21);
+        _favoriteChip.SetPosition(92, _position.y + 35);
     }
-    _countLaunchLabel.SetPosition(10, _position.y + 25); 
-    _countLaunchValueLabel.SetPosition(20, _position.y + 40);
+    _countLaunchLabel.SetPosition(10, _position.y + 40);
+    _countLaunchValueLabel.SetPosition(20, _position.y + 55);
 }
 
 void NdsGameDetailsBottomSheetView::Draw(GraphicsContext& graphicsContext)
@@ -130,7 +208,7 @@ bool NdsGameDetailsBottomSheetView::HandleInput(const InputProvider& inputProvid
             return true;
         }
         if (_hasCheatsChip && focusManager.GetCurrentFocus() == &_cheatsChip) {
-            // Handle cheats chip action
+            _romBrowserController->ShowCheats();
             return true;
         }
     }

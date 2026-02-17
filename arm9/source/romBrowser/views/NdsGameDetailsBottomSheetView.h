@@ -11,8 +11,13 @@
 class IRomBrowserController;
 class IFontRepository;
 
-class NdsGameDetailsBottomSheetView : public BottomSheetView
-{
+class NdsGameDetailsBottomSheetView : public BottomSheetView {
+public:
+    static constexpr int DialogTypeId = 0x4E444744;
+    int GetDialogTypeId() const override { return DialogTypeId; }
+public:
+    const char* GetGameCode() const { return _gameCode; }
+    u32 GetCrc() const { return _crc; }
 public:
     NdsGameDetailsBottomSheetView(
         IRomBrowserController* romBrowserController,
@@ -44,6 +49,9 @@ public:
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
 
 private:
+    Label2DView _titleLabel;
+    Label2DView _gameCodeLabel;
+    Label2DView _crcLabel;
     bool _hasCheatsChip = false;
     IRomBrowserController* _romBrowserController;
     u32 _smallHeartIconVramOffset;
@@ -62,5 +70,8 @@ private:
     void InitLaunchCountLabel(const MaterialColorScheme* materialColorScheme);
     Label2DView _countLaunchLabel;
     Label2DView _countLaunchValueLabel;
+
+    char _gameCode[5] = {0};
+    u32 _crc = 0;
 
 };

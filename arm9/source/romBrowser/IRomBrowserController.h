@@ -46,6 +46,9 @@ public:
     virtual void MarkSettingsDirty() = 0;
 
     virtual void RequestThemeReload() = 0;
+
+    virtual void ShowCheats() = 0;
+    virtual void HideCheats() = 0;
 };
 
 inline IRomBrowserController::~IRomBrowserController() { }

@@ -22,6 +22,8 @@ public:
     void LaunchFile(const FileInfo& fileInfo) override;
     void ShowGameInfo() override;
     void HideGameInfo() override;
+    void ShowCheats() override;
+    void HideCheats() override;
     void ShowDisplaySettings() override;
     void HideDisplaySettings() override;
     void ToggleFavoritesView() override;

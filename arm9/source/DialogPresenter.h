@@ -10,6 +10,9 @@ class FocusManager;
 class DialogPresenter
 {
 public:
+    /// @brief Returns a pointer to the currently active dialog (may be nullptr).
+    DialogView* GetCurrentDialog() const { return _currentDialog.get(); }
+public:
     DialogPresenter(FocusManager* focusManager, StackVramManager* vramManager);
 
     /// @brief Requests to show the given dialog.

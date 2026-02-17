@@ -23,11 +23,9 @@ public:
         return new NdsInternalFileInfo(fastFileRef);
     }
 
-    bool TrySetLaunchParameters(pload_params_t* launchParameters, const char* filePath) const override
-    {
-        StringUtil::Copy(launchParameters->romPath, filePath, sizeof(launchParameters->romPath));
-        return true;
-    }
+    bool TrySetLaunchParameters(pload_params_t* launchParameters, const char* filePath) const override;
+
+    void TryAddCheatFile(pload_params_t* launchParameters, const char* filePath) const;
 
 private:
     constexpr NdsFileType()

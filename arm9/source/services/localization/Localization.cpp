@@ -56,8 +56,11 @@ void Localization::LoadFallbackEnglish()
     AddEntry("theme", u"Theme");
     AddEntry("language", u"Language");
     AddEntry("favorites", u"Favorites");
-    AddEntry("cheats", u"Cheats");
     AddEntry("total_launches", u"Total Launches");
+    AddEntry("cheats", u"Cheats");
+    AddEntry("cheats_not_found", u"No cheats found for this game");
+    AddEntry("cheats_dat_missing", u"usrcheat.dat not found");
+    AddEntry("game_details", u"Game Details");
 }
 
 void Localization::LoadFromJson(const char* language)

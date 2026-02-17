@@ -21,6 +21,7 @@
 #include "romBrowser/Theme/Material/MaterialThemeFileIconFactory.h"
 #include "romBrowser/views/NdsGameDetailsBottomSheetView.h"
 #include "romBrowser/views/DisplaySettingsBottomSheetView.h"
+#include "romBrowser/views/CheatsBottomSheetView.h"
 #include "bgm/AudioStreamPlayer.h"
 #include "bgm/BgmService.h"
 #include "themes/ThemeInfoFactory.h"
@@ -391,6 +392,16 @@ void App::HandleTrigger(RomBrowserStateTrigger trigger, RomBrowserState newState
             HandleHideDisplaySettingsTrigger();
             break;
         }
+        case RomBrowserStateTrigger::ShowCheats:
+        {
+            HandleShowCheatsTrigger();
+            break;
+        }
+        case RomBrowserStateTrigger::HideCheats:
+        {
+            HandleHideCheatsTrigger();
+            break;
+        }
         case RomBrowserStateTrigger::Navigate:
         {
             HandleNavigateTrigger();
@@ -445,6 +456,34 @@ void App::HandleHideGameInfoTrigger()
     {
         _romBrowserBottomScreenView->Focus(_focusManager);
     }
+}
+
+void App::HandleShowCheatsTrigger()
+{
+    _dialogPresenter.CloseDialog();
+
+    const DialogView* currentDialog = _dialogPresenter.GetCurrentDialog();
+    const char* gameCode = nullptr;
+    u32 crc = 0;
+
+    if (currentDialog && currentDialog->GetDialogTypeId() == NdsGameDetailsBottomSheetView::DialogTypeId) {
+        const NdsGameDetailsBottomSheetView* gameInfoDialog = static_cast<const NdsGameDetailsBottomSheetView*>(currentDialog);
+        gameCode = gameInfoDialog->GetGameCode();
+        crc = gameInfoDialog->GetCrc();
+    }
+    auto cheatsDialog = std::make_unique<CheatsBottomSheetView>(
+        &_romBrowserController, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository(), gameCode, crc);
+    _dialogPresenter.ShowDialog(std::move(cheatsDialog));
+}
+
+void App::HandleHideCheatsTrigger()
+{
+    _dialogPresenter.CloseDialog();
+
+    auto gameInfoDialog = std::make_unique<NdsGameDetailsBottomSheetView>(
+        &_romBrowserController, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository());
+    gameInfoDialog->SetGraphics(_chipViewVram);
+    _dialogPresenter.ShowDialog(std::move(gameInfoDialog));
 }
 
 void App::HandleShowDisplaySettingsTrigger()
@@ -568,6 +607,7 @@ bool App::IsRomBrowserVisible() const
     auto curState = stateMachine.GetCurrentState();
     return curState == RomBrowserState::Browser
         || curState == RomBrowserState::GameInfo
+        || curState == RomBrowserState::Cheats
         || curState == RomBrowserState::DisplaySettings
         || curState == RomBrowserState::Launching;
 }

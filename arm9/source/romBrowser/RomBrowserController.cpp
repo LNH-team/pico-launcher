@@ -59,6 +59,16 @@ void RomBrowserController::HideGameInfo()
     _stateMachine.Fire(RomBrowserStateTrigger::HideGameInfo);
 }
 
+void RomBrowserController::ShowCheats()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::ShowCheats);
+}
+
+void RomBrowserController::HideCheats()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::HideCheats);
+}
+
 void RomBrowserController::ShowDisplaySettings()
 {
     _stateMachine.Fire(RomBrowserStateTrigger::ShowDisplaySettings);

@@ -115,6 +115,8 @@ private:
     void HandleTrigger(RomBrowserStateTrigger trigger, RomBrowserState newState);
     void HandleShowGameInfoTrigger();
     void HandleHideGameInfoTrigger();
+    void HandleShowCheatsTrigger();
+    void HandleHideCheatsTrigger();
     void HandleShowDisplaySettingsTrigger();
     void HandleHideDisplaySettingsTrigger();
     void HandleNavigateTrigger();
