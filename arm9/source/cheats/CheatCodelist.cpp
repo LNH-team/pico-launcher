@@ -210,6 +210,7 @@ CheatParseResult CheatCodelist::Parse(const FastFileRef& romFastFileRef)
 
     memcpy(_gameCode, &gamecodeVal, 4);
     _gameCode[4] = 0;
+    _crc32 = crc32Val;
 
     auto datFile = std::make_unique<File>();
     if (datFile->Open("/_pico/extras/usrcheat.dat", FA_READ) != FR_OK) {

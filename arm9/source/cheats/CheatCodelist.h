@@ -247,7 +247,7 @@ public:
     const char* GetGameCode() const { return _gameCode; }
 
     /// @brief Gets the CRC32 as u32.
-    u32 GetCRC32() const { return _debugInfo.crc32; }
+    u32 GetCRC32() const { return _crc32; }
 
     /// @brief Return true if current view is inside a folder (folder items visible).
     bool IsInsideFolder(int visibleIndex) const;
@@ -269,9 +269,6 @@ public:
     /// @brief Returns whether the visible list is currently in enabled-only mode.
     bool IsEnabledListMode() const { return _isEnabledListMode; }
 
-    /// @brief Returns debug info for the last parse.
-    const CheatDebugInfo& GetDebugInfo() const { return _debugInfo; }
-
 public:
     struct DatIndex
     {
@@ -283,7 +280,7 @@ public:
     CheatItemArray _items;
     IntArray _visibleIndices;
     char _gameCode[5] = {};
-    CheatDebugInfo _debugInfo;
+    u32 _crc32 = 0;
     bool _isEnabledListMode = false;
 
     static u32 ComputeCrc32(const u8* data, u32 length);

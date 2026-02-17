@@ -126,15 +126,6 @@ CheatsBottomSheetView::CheatsBottomSheetView(
         Label2DView(kItemWidth, kItemHeight, 50, fontRepository->GetFont(FontType::Regular10)),
         Label2DView(kItemWidth, kItemHeight, 50, fontRepository->GetFont(FontType::Regular10))
     }
-    , _debugLabels{
-        Label2DView(kItemWidth, kItemHeight, 48, fontRepository->GetFont(FontType::Regular10)),
-        Label2DView(kItemWidth, kItemHeight, 48, fontRepository->GetFont(FontType::Regular10)),
-        Label2DView(kItemWidth, kItemHeight, 48, fontRepository->GetFont(FontType::Regular10)),
-        Label2DView(kItemWidth, kItemHeight, 48, fontRepository->GetFont(FontType::Regular10)),
-        Label2DView(kItemWidth, kItemHeight, 48, fontRepository->GetFont(FontType::Regular10)),
-        Label2DView(kItemWidth, kItemHeight, 48, fontRepository->GetFont(FontType::Regular10)),
-        Label2DView(kItemWidth, kItemHeight, 48, fontRepository->GetFont(FontType::Regular10))
-    }
 
     , _descriptionIndex(-1)
     , _crc(crc)
@@ -164,7 +155,7 @@ CheatsBottomSheetView::CheatsBottomSheetView(
                 _parseResult = _cheatList.Parse(fileInfo.GetFastFileRef());
                 _hasCheats = (_parseResult == CheatParseResult::Success);
 
-                // Usa gameCode e crc passati se forniti
+                // Use the provided gameCode and crc if available
                 if (gameCode && gameCode[0]) {
                     memcpy(_gameCode, gameCode, 4);
                     _gameCode[4] = 0;
@@ -172,9 +163,6 @@ CheatsBottomSheetView::CheatsBottomSheetView(
                     memcpy(_gameCode, _cheatList.GetGameCode(), 4);
                     _gameCode[4] = 0;
                 }
-
-                // Se serve, puoi salvare anche il CRC passato in una variabile membro
-
                 if (_hasCheats)
                 {
                     CheatSaveManager::LoadSelections(_cheatList, _gameCode, _romFileName);
@@ -182,8 +170,6 @@ CheatsBottomSheetView::CheatsBottomSheetView(
             }
         }
     }
-
-    _showDebug = !_hasCheats;
 
     _titleLabel.SetText((const char16_t*)L"Cheats");
     const char16_t* localizedTitle = Localization::Translate("cheats");
@@ -244,15 +230,6 @@ void CheatsBottomSheetView::VBlank()
 {
     BottomSheetView::VBlank();
 }
-
-void CheatsBottomSheetView::SetGraphics(const ChipView::VramToken& chipVramToken)
-{
-    // Reserved for future use (e.g., checkbox icons)
-}
-
-
-
-
 
 void CheatsBottomSheetView::Update()
 {
@@ -390,17 +367,17 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
         return false;
     }
 
-    // Gestione descrizione inline
+    // Description
     if (inputProvider.Triggered(InputKey::Y)) {
         int visIdx = GetSelectedCursorVisibleIndex();
         if (visIdx >= 0 && visIdx < _cheatList.GetVisibleCount()) {
             if (_descriptionIndex == visIdx) {
-                // Se gia visibile, la nascondo
+                // if already showing description, hide it
                 _descriptionIndex = -1;
             } else {
                 _descriptionIndex = visIdx;
 
-                // Se il cursore e sull'ultima riga visibile, crea spazio per la descrizione
+                // If the cursor is on the last visible row, create space for the description
                 if (_cursor_index >= CHEATS_VIEW_VISIBLE_ITEMS - 1
                     && _scroll_offset + _cursor_index + 1 < _cheatList.GetVisibleCount()) {
                     _scroll_offset++;
@@ -426,7 +403,7 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
                 int realIdx = _cheatList.GetVisibleIndices()[visIdx];
                 _currentFolderIndex = realIdx;
 
-                // Salva l'indice della cartella per il focus al ritorno (indice relativo alla vista corrente)
+                // Save the folder index for focus when returning (index relative to the current view)
                 _lastFocusedFolderIndex = _cursor_index;
 
                 // Save state before entering
@@ -441,7 +418,7 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
                 _cursor_index = 0;
                 _focusedVisibleIndex = 0;
                 
-                // IMPORTANTE: Resetta il focus del FocusManager sul primo elemento
+                // IMPORTANT: Reset the focus of the FocusManager to the first element
                 focusManager.Focus(&_itemLabels[0]);
 
                 EnsureCursorVisible();
@@ -450,11 +427,11 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
             }
             else
             {
-                // Se il cheat è di tipo EOne (selezione singola), deseleziona tutti gli altri e toggla questo
+                // If the cheat is of type EOne (single selection), deselect all others and toggle this one
                 if (item.flags & CheatItem::EOne) {
                     auto& items = _cheatList.GetItems();
                     int realIdx = _cheatList.GetVisibleIndices()[visIdx];
-                    // Trova la cartella che contiene questo cheat
+                    // Find the folder that contains this cheat
                     int folderStart = realIdx - 1;
                     while (folderStart >= 0 && !(items[folderStart].flags & CheatItem::EFolder))
                         folderStart--;
@@ -464,7 +441,7 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
                             if (&items[i] != &item) items[i].SetSelected(false);
                         }
                     }
-                    // Toggle anche se già selezionato (così puoi deselezionare tutto)
+                    // Toggle even if already selected 
                     item.ToggleSelected();
                 } else {
                     item.ToggleSelected();
@@ -513,7 +490,6 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
             focusManager.Focus(&_statusLabel);
         UpdateLabels();
         UpdateStatusLabel(); 
-        // We are "reusing" the main list UI but with a filtered backend list.
         return true;
     }
 
@@ -546,13 +522,13 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
             _cursor_index = _savedRootCursorIndex;
             _descriptionIndex = -1;
 
-            // Ripristina il focus sulla cartella da cui si è usciti
+            // Restore focus to the folder that was previously exited
             if (restoreCursorIdx >= 0 && restoreCursorIdx < CHEATS_VIEW_VISIBLE_ITEMS)
             {
                 _cursor_index = restoreCursorIdx;
                 _focusedVisibleIndex = restoreCursorIdx;
                 
-                // Resetta il focus del FocusManager sull'elemento che era selezionato
+                // Reset the focus of the FocusManager to the previously selected element
                 focusManager.Focus(&_itemLabels[_cursor_index]);
             }
 
@@ -648,6 +624,7 @@ void CheatsBottomSheetView::UpdateLabels()
         if (showDesc && i + 1 < CHEATS_VIEW_VISIBLE_ITEMS)
         {
             const char* note = item.note;
+            // add multi lang 
             const char* descText = (note && note[0]) ? note : "No description available.";
             const nft2_header_t* font = _fontRepository->GetFont(FontType::Regular10);
             const char* p = descText;
@@ -716,7 +693,6 @@ void CheatsBottomSheetView::UpdateStatusLabel()
         const auto& items = _cheatList.GetItems();
         if (_currentFolderIndex >= 0 && _currentFolderIndex < items.size())
         {
-            // Just show folder name as request #7
             const char* name = items[_currentFolderIndex].name;
             mini_snprintf(buf, sizeof(buf), "[%s]", name);
             

@@ -55,7 +55,6 @@ private:
     static constexpr int kStatusX = 12;
     static constexpr int kItemWidth = 230;
     static constexpr int kItemHeight = 16;
-    static constexpr int kDebugLabelCount = 7;
 
     IRomBrowserController* _romBrowserController;
     const MaterialColorScheme* _materialColorScheme;
@@ -66,13 +65,11 @@ private:
     Label2DView _crcLabel;
     Label2DView _statusLabel;
     std::array<Label2DView, CHEATS_VIEW_VISIBLE_ITEMS> _itemLabels;
-    std::array<Label2DView, kDebugLabelCount> _debugLabels;
 
 
     CheatCodelist _cheatList;
     CheatParseResult _parseResult = CheatParseResult::NoCheatsFound;
     bool _hasCheats = false;
-    bool _showDebug = false;
     bool _selection_dirty = false;
 
     char _gameCode[5] = {0};
