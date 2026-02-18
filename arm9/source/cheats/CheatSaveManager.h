@@ -23,8 +23,6 @@ public:
     /// @param cheatList The cheat codelist to apply selections to.
     /// @param gameCode  The 4-character game code.
     /// @param romFileName The ROM file name (without path).
-    /// @return True if selections were loaded.
-    static bool LoadSelections(CheatCodelist& cheatList, const char* gameCode, const char* romFileName);
 
     /// @brief Writes selected cheat codes to a file for use by the loader.
     /// @param cheatList The cheat codelist with selections.

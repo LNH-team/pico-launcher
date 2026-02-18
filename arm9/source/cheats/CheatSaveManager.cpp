@@ -118,62 +118,6 @@ bool CheatSaveManager::SaveSelections(const CheatCodelist& cheatList, const char
     return true;
 }
 
-bool CheatSaveManager::LoadSelections(CheatCodelist& cheatList, const char* gameCode, const char* romFileName)
-{
-    if (!gameCode || !romFileName)
-        return false;
-
-    char path[256];
-    BuildSavePath(gameCode, romFileName, path, sizeof(path));
-
-    File file;
-    if (file.Open(path, FA_READ) != FR_OK)
-        return false;
-
-    u32 bytesRead;
-
-    // Check magic
-    u32 magic;
-    if (file.Read(&magic, 4, bytesRead) != FR_OK || magic != CHEATS_SAVE_MAGIC)
-        return false;
-
-    // Read item count
-    u32 count;
-    if (file.Read(&count, 4, bytesRead) != FR_OK)
-        return false;
-
-    auto& items = cheatList.GetItems();
-    if (count != (u32)items.size())
-    {
-        return false;
-    }
-
-    // Read selection flags
-    for (u32 i = 0; i < count; ++i)
-    {
-        u8 selected;
-        if (file.Read(&selected, 1, bytesRead) != FR_OK)
-            return false;
-        items[i].SetSelected(selected != 0);
-    }
-
-    // Read open/close state for folders
-    for (u32 i = 0; i < count; ++i)
-    {
-        u8 open;
-        if (file.Read(&open, 1, bytesRead) != FR_OK)
-            break; 
-        if (items[i].IsFolder())
-        {
-            if (open) items[i].flags |= CheatItem::EOpen;
-            else items[i].flags &= ~CheatItem::EOpen;
-        }
-    }
-
-    cheatList.BuildVisibleList();
-    return true;
-}
-
 bool CheatSaveManager::WriteCheatsToFile(const CheatCodelist& cheatList, const char* outputPath)
 {
     u32 codeCount = cheatList.GetSelectedCheatCodeCount();

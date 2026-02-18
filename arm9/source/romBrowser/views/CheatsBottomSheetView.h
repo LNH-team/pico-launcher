@@ -73,7 +73,7 @@ private:
     bool _selection_dirty = false;
 
     char _gameCode[5] = {0};
-    char _romFileName[256] = {0};  // ASCII filename for save manager
+    char _romFileName[256] = {0};
 
     int _currentFolderIndex = -1;
     int _scroll_offset = 0;

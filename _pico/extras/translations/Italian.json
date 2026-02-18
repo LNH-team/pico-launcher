@@ -11,6 +11,5 @@
     "cheats_not_found": "Nessun trucco trovato per questo gioco",
     "cheats_dat_missing": "usrcheat.dat non trovato",
     "game_details": "Dettagli Gioco",
-    "description_not_found": "Nessuna descrizione trovata per questo trucco."
-
+    "cheats_no_description_available": "Nessuna descrizione disponibile per questo trucco."
 }

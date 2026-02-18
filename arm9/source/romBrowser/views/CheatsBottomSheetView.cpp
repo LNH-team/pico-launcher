@@ -1,8 +1,3 @@
-/*
-    CheatsBottomSheetView.cpp
-    Bottom sheet dialog for displaying and selecting cheats.
-*/
-
 #include "common.h"
 #include "gui/GraphicsContext.h"
 #include "gui/VramContext.h"
@@ -20,91 +15,91 @@
 
 namespace
 {
-const char* SkipSpaces(const char* text)
-{
-    while (text && *text == ' ')
-        ++text;
-    return text;
-}
-
-const char* WrapNextLine(const nft2_header_t* font, const char* text, u32 maxWidth,
-    char16_t* out, int outMax)
-{
-    const char* p = SkipSpaces(text);
-    if (!p || !*p)
+    const char* SkipSpaces(const char* text)
     {
-        out[0] = 0;
-        return p;
+        while (text && *text == ' ')
+            ++text;
+        return text;
     }
 
-    int lineLen = 0;
-    int lastFitLen = 0;
-    const char* lastFitPtr = p;
-    bool anyFit = false;
-
-    while (*p)
+    const char* WrapNextLine(const nft2_header_t* font, const char* text, u32 maxWidth,
+        char16_t* out, int outMax)
     {
-        const char* wordStart = p;
-        while (*p && *p != ' ')
-            ++p;
-        int wordLen = (int)(p - wordStart);
-
-        int prevLen = lineLen;
-        if (lineLen > 0 && lineLen < outMax - 1)
-            out[lineLen++] = u' ';
-        for (int i = 0; i < wordLen && lineLen < outMax - 1; ++i)
-            out[lineLen++] = (char16_t)(unsigned char)wordStart[i];
-        out[lineLen] = 0;
-
-        u32 width = 0, height = 0;
-        nft2_measureString(font, out, width, height);
-
-        if (width <= maxWidth)
+        const char* p = SkipSpaces(text);
+        if (!p || !*p)
         {
-            lastFitLen = lineLen;
-            lastFitPtr = p;
-            anyFit = true;
+            out[0] = 0;
+            return p;
         }
-        else
+
+        int lineLen = 0;
+        int lastFitLen = 0;
+        const char* lastFitPtr = p;
+        bool anyFit = false;
+
+        while (*p)
         {
-            lineLen = prevLen;
-            if (!anyFit)
+            const char* wordStart = p;
+            while (*p && *p != ' ')
+                ++p;
+            int wordLen = (int)(p - wordStart);
+
+            int prevLen = lineLen;
+            if (lineLen > 0 && lineLen < outMax - 1)
+                out[lineLen++] = u' ';
+            for (int i = 0; i < wordLen && lineLen < outMax - 1; ++i)
+                out[lineLen++] = (char16_t)(unsigned char)wordStart[i];
+            out[lineLen] = 0;
+
+            u32 width = 0, height = 0;
+            nft2_measureString(font, out, width, height);
+
+            if (width <= maxWidth)
             {
-                // Fallback: split inside the word
-                const char* cp = wordStart;
-                lineLen = 0;
-                while (*cp && lineLen < outMax - 1)
-                {
-                    out[lineLen++] = (char16_t)(unsigned char)*cp;
-                    out[lineLen] = 0;
-                    nft2_measureString(font, out, width, height);
-                    if (width > maxWidth)
-                    {
-                        lineLen--;
-                        out[lineLen] = 0;
-                        break;
-                    }
-                    ++cp;
-                }
                 lastFitLen = lineLen;
-                lastFitPtr = cp;
+                lastFitPtr = p;
+                anyFit = true;
             }
-            break;
+            else
+            {
+                lineLen = prevLen;
+                if (!anyFit)
+                {
+                    // Fallback: split inside the word
+                    const char* cp = wordStart;
+                    lineLen = 0;
+                    while (*cp && lineLen < outMax - 1)
+                    {
+                        out[lineLen++] = (char16_t)(unsigned char)*cp;
+                        out[lineLen] = 0;
+                        nft2_measureString(font, out, width, height);
+                        if (width > maxWidth)
+                        {
+                            lineLen--;
+                            out[lineLen] = 0;
+                            break;
+                        }
+                        ++cp;
+                    }
+                    lastFitLen = lineLen;
+                    lastFitPtr = cp;
+                }
+                break;
+            }
+
+            p = SkipSpaces(p);
+            if (!*p)
+            {
+                lastFitLen = lineLen;
+                lastFitPtr = p;
+                break;
+            }
         }
 
-        p = SkipSpaces(p);
-        if (!*p)
-        {
-            lastFitLen = lineLen;
-            lastFitPtr = p;
-            break;
-        }
+        out[lastFitLen] = 0;
+        return SkipSpaces(lastFitPtr);
     }
-
-    out[lastFitLen] = 0;
-    return SkipSpaces(lastFitPtr);
 }
-} // namespace
 
 CheatsBottomSheetView::CheatsBottomSheetView(
     IRomBrowserController* romBrowserController,
@@ -163,15 +158,10 @@ CheatsBottomSheetView::CheatsBottomSheetView(
                     memcpy(_gameCode, _cheatList.GetGameCode(), 4);
                     _gameCode[4] = 0;
                 }
-                if (_hasCheats)
-                {
-                    CheatSaveManager::LoadSelections(_cheatList, _gameCode, _romFileName);
-                }
             }
         }
     }
 
-    _titleLabel.SetText((const char16_t*)L"Cheats");
     const char16_t* localizedTitle = Localization::Translate("cheats");
     if (localizedTitle && localizedTitle[0] != 0)
         _titleLabel.SetText(localizedTitle);
@@ -274,8 +264,6 @@ void CheatsBottomSheetView::Draw(GraphicsContext& graphicsContext)
     graphicsContext.ResetClipArea();
 }
 
-
-
 void CheatsBottomSheetView::Focus(FocusManager& focusManager)
 {
     if (_hasCheats && _cheatList.GetVisibleCount() > 0)
@@ -358,7 +346,7 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
 {
     if (!_hasCheats)
     {
-        // No cheats - only allow closing
+        // No cheats
         if (inputProvider.Triggered(InputKey::B))
         {
             _romBrowserController->HideCheats();
@@ -413,7 +401,7 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
                 // When entering folder, we must rebuild the visible list to show ONLY folder contents
                 _cheatList.BuildVisibleListForFolder(_currentFolderIndex);
 
-                // Focus sempre sul primo elemento della cartella
+                // Focus the first item in the folder
                 _scroll_offset = 0;
                 _cursor_index = 0;
                 _focusedVisibleIndex = 0;
@@ -538,7 +526,9 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
         }
         else
         {
-            SaveSelectionsAndClose();
+            // SaveSelectionsAndClose(); Va rivista perchè è rotta
+            _romBrowserController->HideCheats();
+            return true;
         }
         return true;
     }
@@ -624,20 +614,28 @@ void CheatsBottomSheetView::UpdateLabels()
         if (showDesc && i + 1 < CHEATS_VIEW_VISIBLE_ITEMS)
         {
             const char* note = item.note;
-            // add multi lang 
-            const char* descText = (note && note[0]) ? note : "No description available.";
-            const nft2_header_t* font = _fontRepository->GetFont(FontType::Regular10);
-            const char* p = descText;
-            while (p && *p && i + 1 < CHEATS_VIEW_VISIBLE_ITEMS)
-            {
-                ++i;
-                char16_t desc[128];
-                p = WrapNextLine(font, p, kItemWidth, desc, (int)(sizeof(desc) / sizeof(desc[0])));
-                if (desc[0] == 0)
-                    break;
-                _itemLabels[i].SetText(desc);
-                _itemLabels[i].SetForegroundColor(_materialColorScheme->onSurfaceVariant);
-                _itemLabels[i].SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerHighest));
+            if (note && note[0]) {
+                const nft2_header_t* font = _fontRepository->GetFont(FontType::Regular10);
+                const char* p = note;
+                while (p && *p && i + 1 < CHEATS_VIEW_VISIBLE_ITEMS)
+                {
+                    ++i;
+                    char16_t desc[128];
+                    p = WrapNextLine(font, p, kItemWidth, desc, (int)(sizeof(desc) / sizeof(desc[0])));
+                    if (desc[0] == 0)
+                        break;
+                    _itemLabels[i].SetText(desc);
+                    _itemLabels[i].SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+                    _itemLabels[i].SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerHighest));
+                }
+            } else {
+                const char16_t* localized = Localization::Translate("cheats_no_description_available");
+                if (i + 1 < CHEATS_VIEW_VISIBLE_ITEMS) {
+                    ++i;
+                    _itemLabels[i].SetText(localized);
+                    _itemLabels[i].SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+                    _itemLabels[i].SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerHighest));
+                }
             }
         }
     }
@@ -704,7 +702,6 @@ void CheatsBottomSheetView::UpdateStatusLabel()
         }
     }
 }
-
 
 void CheatsBottomSheetView::ScrollDown()
 {
@@ -807,4 +804,3 @@ void CheatsBottomSheetView::SaveSelectionsAndClose()
     }
     _romBrowserController->HideCheats();
 }
-

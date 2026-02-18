@@ -71,7 +71,6 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                     if (isNds) {
                         std::unique_ptr<InternalFileInfo> internalInfo(fileInfo.CreateInternalFileInfo());
                         const char* gameCode = nullptr;
-                        u32 crcVal = 0;
                         if (internalInfo) {
                             gameCode = internalInfo->GetGameCode();
                         }
@@ -81,7 +80,6 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                             romFile.Open(fileInfo.GetFastFileRef(), FA_READ);
                             if (romFile.GetSize() >= 512) {
                                 u8 header[512];
-                                u32 bytesRead = 0;
                                 if (romFile.ReadExact(header, sizeof(header))) {
                                     crc32 = CheatCodelist::ComputeCrc32(header, sizeof(header));
                                 }

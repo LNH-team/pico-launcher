@@ -171,25 +171,22 @@ bool CheatCodelist::ParseCheatData(File& datFile, u32 gamecode, u32 crc32)
             ccode = (u32*)(((u32)folderName + strlen(folderName) + 1 + strlen(folderNote) + 1 + 3) & ~3);
         }
 
-        u32 selectValue = CheatItem::ESelected;
         for (u32 ii = 0; ii < folderCount; ++ii) {
             char* cheatName = (char*)((u32)ccode + 4);
             char* cheatNote = (char*)((u32)cheatName + strlen(cheatName) + 1);
             // Cheat data length reading derived from TWiLightMenu format
             u32* cheatData = (u32*)(((u32)cheatNote + strlen(cheatNote) + 1 + 3) & ~3); 
-
             u32 cheatDataLen = *cheatData++;
 
             if (cheatDataLen) {
-                u32 flags = flagItem | ((*ccode & 0xFF000000) ? selectValue : 0);
+                u32 isActive = (*ccode & 0xFF000000);
+                u32 flags = flagItem;
+                if (isActive) flags |= CheatItem::ESelected;
                 long cheatOffset = dataPos + (long)(((char*)ccode + 3) - buffer);
 
                 CheatItem item(cheatName, cheatNote, flags, cheatOffset);
                 item.SetCheatCodes(cheatData, cheatDataLen);
                 _items.Push(static_cast<CheatItem&&>(item));
-
-                if ((*ccode & 0xFF000000) && (flagItem & CheatItem::EOne))
-                    selectValue = 0;
             }
             cc++;
             ccode = (u32*)((u32)ccode + (((*ccode & 0x00FFFFFF) + 1) * 4));
