@@ -11,5 +11,6 @@
     "cheats_not_found": "No cheats found for this game",
     "cheats_dat_missing": "usrcheat.dat not found",
     "game_details": "Game Details",
-    "cheats_no_description_available": "No description available."
+    "cheats_no_description_available": "No description available.",
+    "selected_cheats": "Selected Cheats"
 }

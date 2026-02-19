@@ -787,7 +787,7 @@ void CheatsBottomSheetView::UpdateStatusLabel()
     if (_cheatList.IsEnabledListMode()) {
         SetAsciiLabelText(_folderTitleLine1Label, "");
         SetAsciiLabelText(_folderTitleLine2Label, "");
-        SetAsciiLabelText(_folderTitleLine1Label, "Selected Cheats");
+        _folderTitleLine1Label.SetText(Localization::Translate("selected_cheats"));        
         return;
     }
 
