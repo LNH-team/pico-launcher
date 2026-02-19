@@ -43,8 +43,6 @@ public:
         return Rectangle(_position, _width, _height);
     }
 
-    void SetEllipsis(bool ellipsis) { _ellipsis = ellipsis; }
-
 protected:
     u32 _width;
     u32 _height;

@@ -14,7 +14,6 @@ CustomFileInfoView::CustomFileInfoView(const IFontRepository* fontRepository)
     AddChildTail(&_firstLine);
     AddChildTail(&_secondLine);
     AddChildTail(&_thirdLine);
-    _filenameLabelView.SetEllipsis(true);
     AddChildTail(&_filenameLabelView);
 }
 

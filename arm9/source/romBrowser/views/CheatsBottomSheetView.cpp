@@ -213,7 +213,6 @@ CheatsBottomSheetView::CheatsBottomSheetView(
         {
             _itemLabels[i].SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
             _itemLabels[i].SetForegroundColor(materialColorScheme->onSurfaceVariant);
-            _itemLabels[i].SetEllipsis(true);
             AddChildTail(&_itemLabels[i]);
         }
     }
@@ -238,7 +237,7 @@ void CheatsBottomSheetView::Update()
     _frameCounter++;
 
     int baseY = _position.y;
-    bool showHeader = (_currentFolderIndex != -1) || _cheatList.IsEnabledListMode();
+    bool showHeader = (_currentFolderIndex != -1);
     int itemStartY = kItemStartY + (showHeader ? kFolderTitleExtraHeight : 0);
 
     _titleLabel.SetPosition(12, _position.y + 12);
@@ -264,7 +263,7 @@ void CheatsBottomSheetView::Update()
         int statusY = baseY + itemStartY + CHEATS_VIEW_VISIBLE_ITEMS * kItemSpacing + 4;
         _statusLabel.SetPosition(kStatusX, statusY + 10);
 
-        if ((_frameCounter % 6) == 0 && _marqueeActive)
+        if ((_frameCounter % 12) == 0 && _marqueeActive)
         {
             _marqueeStep++;
             UpdateLabels();
@@ -317,18 +316,12 @@ void CheatsBottomSheetView::SetInitialFocusState(int scrollOffset, int cursorInd
         _savedRootScrollOffset = rootScrollOffset;
         _savedRootCursorIndex = rootCursorIndex;
         _lastFocusedFolderIndex = rootCursorIndex;
-        if (enabledOnlyMode)
-            _cheatList.BuildVisibleListEnabledOnly();
-        else
-            _cheatList.BuildVisibleListForFolder(_currentFolderIndex);
+        _cheatList.BuildVisibleListForFolder(_currentFolderIndex);
     }
     else
     {
         _currentFolderIndex = -1;
-        if (enabledOnlyMode)
-            _cheatList.BuildVisibleListEnabledOnly();
-        else
-            _cheatList.BuildVisibleListForFolder(-1);
+        _cheatList.BuildVisibleListForFolder(-1);
     }
 
     int visibleCount = _cheatList.GetVisibleCount();
@@ -632,7 +625,8 @@ void CheatsBottomSheetView::UpdateLabels()
             displayText[pos++] = u' ';
             displayText[pos++] = u' ';
         }
-        if (item.IsFolder())
+        bool isFolder = item.IsFolder();
+        if (isFolder) 
         {
             displayText[pos++] = u'[';
         }
@@ -653,34 +647,68 @@ void CheatsBottomSheetView::UpdateLabels()
                 displayText[pos++] = u' ';
             }
         }
+
         const char* name = item.name;
-        int maxNameChars = 58 - pos;
+        int maxNameChars = 40 - pos;
         int nameLen = (int)strlen(name);
+
         if (isFocused && nameLen > maxNameChars)
         {
             _marqueeActive = true;
-            const int gap = 3;
-            int period = nameLen + gap;
-            int offset = (period > 0) ? (_marqueeStep % period) : 0;
+
+            const int holdFrames = 30;   
+            const int gap = 5;          
+            const int speed = 1;         
+
+            int totalScroll = nameLen + gap;  
+            int totalCycle = holdFrames + totalScroll + holdFrames;
+
+            int step = (_marqueeStep * speed) % totalCycle;
+            int offset = 0;
+
+            if (step < holdFrames)
+            {
+                offset = 0;
+            }
+            else if (step < holdFrames + totalScroll)
+            {
+                offset = step - holdFrames;
+            }
+            else
+            {
+                offset = 0;
+            }
+
             for (int c = 0; c < maxNameChars; ++c)
             {
                 int src = offset + c;
+
                 char ch = ' ';
+
                 if (src < nameLen)
+                {
                     ch = name[src];
-                else if (src >= nameLen + gap)
+                }
+                else if (src >= nameLen && src < nameLen + gap)
+                {
+                    ch = ' ';
+                }
+                else
+                {
                     ch = name[src - (nameLen + gap)];
+                }
+
                 displayText[pos++] = (char16_t)(unsigned char)ch;
             }
         }
         else
         {
-            while (*name && pos < 58)
+            while (*name && pos < 40)
             {
                 displayText[pos++] = (char16_t)(unsigned char)*name++;
             }
         }
-        if (item.IsFolder())
+        if (isFolder)
         {
             displayText[pos++] = u']';
         }
@@ -756,9 +784,11 @@ void CheatsBottomSheetView::UpdateStatusLabel()
 
     int folderInfoIndex = _cheatList.IsEnabledListMode() ? _savedViewFolderIndex : _currentFolderIndex;
 
-    if (_cheatList.IsEnabledListMode())
-    {
+    if (_cheatList.IsEnabledListMode()) {
+        SetAsciiLabelText(_folderTitleLine1Label, "");
+        SetAsciiLabelText(_folderTitleLine2Label, "");
         SetAsciiLabelText(_folderTitleLine1Label, "Selected Cheats");
+        return;
     }
 
     if (folderInfoIndex != -1)
@@ -785,18 +815,11 @@ void CheatsBottomSheetView::UpdateStatusLabel()
             char16_t line2[96];
             BuildFolderNameLines(name, line1, (int)(sizeof(line1) / sizeof(line1[0])),
                 line2, (int)(sizeof(line2) / sizeof(line2[0])));
-            if (_cheatList.IsEnabledListMode())
-            {
-                _folderTitleLine2Label.SetText(line1);
-            }
-            else
-            {
-                _folderTitleLine1Label.SetText(line1);
-                _folderTitleLine2Label.SetText(line2);
-            }
+            _folderTitleLine1Label.SetText(line1);
+            _folderTitleLine2Label.SetText(line2);
 
             mini_snprintf(buf, sizeof(buf), "%u/%u  %u/%u", selected, total, folderSelected, folderTotal);
-            
+
             len = 0;
             for (; buf[len]; ++len)
                 u16buf[len] = (char16_t)(unsigned char)buf[len];
