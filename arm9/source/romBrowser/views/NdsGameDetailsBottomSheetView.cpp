@@ -148,9 +148,8 @@ void NdsGameDetailsBottomSheetView::Update()
     
     _titleLabel.SetPosition(12, _position.y + 12);
 
-    constexpr int codeX = 140;
-    constexpr int kTitleY = 5; 
-    int codeY = _position.y + kTitleY + 2;
+    int codeX = 180;
+    int codeY = _position.y + 8; // match cheats menu, move higher
     _gameCodeLabel.SetPosition(codeX, codeY);
     int codeW = _gameCodeLabel.GetStringWidth();
     _crcLabel.SetPosition(codeX + codeW + 8, codeY);

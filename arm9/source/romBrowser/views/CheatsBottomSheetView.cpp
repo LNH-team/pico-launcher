@@ -113,8 +113,8 @@ CheatsBottomSheetView::CheatsBottomSheetView(
     , _titleLabel(128, 16, 25, fontRepository->GetFont(FontType::Medium11))
     , _gameCodeLabel(40, 14, 20, fontRepository->GetFont(FontType::Medium7_5))
     , _crcLabel(60, 14, 20, fontRepository->GetFont(FontType::Medium7_5))
-    , _folderTitleLine1Label(230, 14, 100, fontRepository->GetFont(FontType::Medium7_5))
-    , _folderTitleLine2Label(230, 14, 100, fontRepository->GetFont(FontType::Medium7_5))
+    , _folderTitleLine1Label(230, 16, 100, fontRepository->GetFont(FontType::Medium10))
+    , _folderTitleLine2Label(230, 16, 100, fontRepository->GetFont(FontType::Medium10))
     , _statusLabel(200, 16, 48, fontRepository->GetFont(FontType::Regular10))
     , _itemLabels{
         Label2DView(kItemWidth, kItemHeight, 50, fontRepository->GetFont(FontType::Regular10)),
@@ -249,10 +249,11 @@ void CheatsBottomSheetView::Update()
     _titleLabel.SetPosition(12, _position.y + 12);
     
     // Position code & crc
-    int codeX = 140; 
-    _gameCodeLabel.SetPosition(codeX, baseY + kTitleY + 2);
+    int codeX = 180;
+    int codeY = baseY + kTitleY - 4;
+    _gameCodeLabel.SetPosition(codeX, codeY);
     int codeW = _gameCodeLabel.GetStringWidth();
-    _crcLabel.SetPosition(codeX + codeW + 8, baseY + kTitleY + 2);
+    _crcLabel.SetPosition(codeX + codeW + 8, codeY);
 
     _folderTitleLine1Label.SetPosition(kItemX, baseY + kTitleY + 14);
     _folderTitleLine2Label.SetPosition(kItemX, baseY + kTitleY + 26);
@@ -322,7 +323,6 @@ void CheatsBottomSheetView::Focus(FocusManager& focusManager)
     }
     else
     {
-        // Focus the status label so HandleInput still receives B presses
         focusManager.Focus(&_statusLabel);
     }
 }
@@ -334,12 +334,18 @@ void CheatsBottomSheetView::SetInitialFocusState(int scrollOffset, int cursorInd
     _savedViewScrollOffset = savedViewScrollOffset;
     _savedViewCursorIndex = savedViewCursorIndex;
     _savedViewFolderIndex = savedViewFolderIndex;
+    
+    _savedRootScrollOffset = rootScrollOffset;
+    _savedRootCursorIndex = rootCursorIndex;
 
-    if (folderIndex >= 0)
+    if (enabledOnlyMode)
+    {
+        _currentFolderIndex = savedViewFolderIndex;
+        _cheatList.BuildVisibleListEnabledOnly();
+    }
+    else if (folderIndex >= 0)
     {
         _currentFolderIndex = folderIndex;
-        _savedRootScrollOffset = rootScrollOffset;
-        _savedRootCursorIndex = rootCursorIndex;
         _lastFocusedFolderIndex = rootCursorIndex;
         _cheatList.BuildVisibleListForFolder(_currentFolderIndex);
     }
@@ -361,13 +367,13 @@ void CheatsBottomSheetView::SetInitialFocusState(int scrollOffset, int cursorInd
     int maxScroll = visibleCount - CHEATS_VIEW_VISIBLE_ITEMS;
     if (maxScroll < 0)
         maxScroll = 0;
-
     if (scrollOffset > maxScroll)
         scrollOffset = maxScroll;
 
     _scroll_offset = scrollOffset;
     _cursor_index = cursorIndex;
 
+    _marqueeStep = 0;
     EnsureCursorVisible();
     UpdateLabels();
     UpdateStatusLabel();
@@ -492,7 +498,8 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
                 _scroll_offset = 0;
                 _cursor_index = 0;
                 _focusedVisibleIndex = 0;
-                
+                _marqueeStep = 0;
+
                 // IMPORTANT: Reset the focus of the FocusManager to the first element
                 focusManager.Focus(&_itemLabels[0]);
 
@@ -559,6 +566,7 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
         _scroll_offset = 0;
         _cursor_index = 0;
         _focusedVisibleIndex = 0;
+        _marqueeStep = 0;
         if (_cheatList.GetVisibleCount() > 0)
             focusManager.Focus(&_itemLabels[0]);
         else
@@ -578,6 +586,7 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
             _cheatList.BuildVisibleListForFolder(_currentFolderIndex);
             _scroll_offset = _savedViewScrollOffset;
             _cursor_index = _savedViewCursorIndex;
+            _marqueeStep = 0;
             EnsureCursorVisible();
             UpdateLabels();
             UpdateStatusLabel();
@@ -597,13 +606,13 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
             _scroll_offset = _savedRootScrollOffset;
             _cursor_index = _savedRootCursorIndex;
             _descriptionIndex = -1;
+            _marqueeStep = 0;
 
             // Restore focus to the folder that was previously exited
             if (restoreCursorIdx >= 0 && restoreCursorIdx < CHEATS_VIEW_VISIBLE_ITEMS)
             {
                 _cursor_index = restoreCursorIdx;
                 _focusedVisibleIndex = restoreCursorIdx;
-                
                 // Reset the focus of the FocusManager to the previously selected element
                 focusManager.Focus(&_itemLabels[_cursor_index]);
             }
@@ -682,7 +691,7 @@ void CheatsBottomSheetView::UpdateLabels()
         {
             _marqueeActive = true;
 
-            const int holdFrames = 30;
+            const int holdFrames = 10;
             const int gap = 5;
             const int speed = 1;
 
@@ -833,7 +842,7 @@ void CheatsBottomSheetView::UpdateStatusLabel()
             _folderTitleLine1Label.SetText(line1);
             _folderTitleLine2Label.SetText(line2);
 
-            mini_snprintf(buf, sizeof(buf), "%u/%u  %u/%u", selected, total, folderSelected, folderTotal);
+            mini_snprintf(buf, sizeof(buf), "%u/%u                  %u/%u", selected, total, folderSelected, folderTotal);
 
             len = 0;
             for (; buf[len]; ++len)
@@ -930,6 +939,17 @@ void CheatsBottomSheetView::EnsureCursorVisible()
         _scroll_offset = totalVisIdx - CHEATS_VIEW_VISIBLE_ITEMS + 1;
         if (_scroll_offset < 0) _scroll_offset = 0;
         _cursor_index = totalVisIdx - _scroll_offset;
+    }
+    
+    if (_cursor_index >= CHEATS_VIEW_VISIBLE_ITEMS)
+    {
+        _scroll_offset += (_cursor_index - (CHEATS_VIEW_VISIBLE_ITEMS - 1));
+        _cursor_index = CHEATS_VIEW_VISIBLE_ITEMS - 1;
+        
+        int maxScroll = visibleCount - CHEATS_VIEW_VISIBLE_ITEMS;
+        if (maxScroll < 0) maxScroll = 0;
+        if (_scroll_offset > maxScroll)
+            _scroll_offset = maxScroll;
     }
 }
 

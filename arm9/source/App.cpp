@@ -523,10 +523,19 @@ void App::HandleHideCheatDescriptionTrigger()
 
     _dialogPresenter.CloseDialog();
 
-    // Recreate the cheats bottom sheet view
+    // Recreate the cheats bottom sheet view with saved focus state
     auto cheatsDialog = std::make_unique<CheatsBottomSheetView>(
         &_romBrowserController, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository(), gameCode, crc);
-    cheatsDialog->SetInitialFocusState(0, 0, -1, 0, 0, false, 0, 0, -1);
+    cheatsDialog->SetInitialFocusState(
+        _romBrowserController.GetCheatFocusScrollOffset(),
+        _romBrowserController.GetCheatFocusCursorIndex(),
+        _romBrowserController.GetCheatFocusFolderIndex(),
+        _romBrowserController.GetCheatFocusRootScrollOffset(),
+        _romBrowserController.GetCheatFocusRootCursorIndex(),
+        _romBrowserController.GetCheatFocusEnabledOnlyMode(),
+        _romBrowserController.GetCheatFocusSavedViewScrollOffset(),
+        _romBrowserController.GetCheatFocusSavedViewCursorIndex(),
+        _romBrowserController.GetCheatFocusSavedViewFolderIndex());
     _dialogPresenter.ShowDialog(std::move(cheatsDialog));
 }
 
