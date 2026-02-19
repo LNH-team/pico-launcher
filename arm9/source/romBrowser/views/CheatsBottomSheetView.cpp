@@ -520,7 +520,11 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
                     if (folderStart >= 0) {
                         for (int i = folderStart + 1; i < items.size(); ++i) {
                             if (!(items[i].flags & CheatItem::EInFolder)) break;
-                            if (&items[i] != &item) items[i].SetSelected(false);
+                            if (&items[i] != &item) {
+                                items[i].SetSelected(false);
+                                // Save the deselection to the file
+                                _cheatList.UpdateCheatSelection(i);
+                            }
                         }
                     }
                     // Toggle even if already selected 
@@ -529,7 +533,10 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
                     item.ToggleSelected();
                 }
                 _selection_dirty = true;
-                // SAVE();
+                
+                // Save the selection change to the file
+                int realIdx = _cheatList.GetVisibleIndices()[visIdx];
+                _cheatList.UpdateCheatSelection(realIdx);
 
                 UpdateLabels();
                 UpdateStatusLabel();
@@ -545,9 +552,10 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
         for (int i = 0; i < items.size(); ++i)
         {
             items[i].SetSelected(false);
+            // Save the deselection to the file
+            _cheatList.UpdateCheatSelection(i);
         }
         _selection_dirty = true;
-        // SAVE();
         UpdateLabels();
         UpdateStatusLabel();
         return true;

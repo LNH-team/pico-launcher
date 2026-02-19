@@ -210,6 +210,8 @@ struct IntArray
 class CheatCodelist
 {
 public:
+    ~CheatCodelist() { CloseDatFile(); }
+    
     /// @brief Parses the usrcheat.dat file for cheats matching the given ROM.
     /// @param romFastFileRef The fast file ref to the NDS ROM file.
     /// @return CheatParseResult indicating success or reason of failure.
@@ -269,6 +271,14 @@ public:
     /// @brief Returns whether the visible list is currently in enabled-only mode.
     bool IsEnabledListMode() const { return _isEnabledListMode; }
 
+    /// @brief Updates the selection state of a cheat in the usrcheat.dat file.
+    /// @param itemIndex Index in _items array.
+    /// @return True on success.
+    bool UpdateCheatSelection(int itemIndex);
+
+    /// @brief Closes the usrcheat.dat file if open.
+    void CloseDatFile();
+
 public:
     struct DatIndex
     {
@@ -282,6 +292,7 @@ public:
     char _gameCode[5] = {};
     u32 _crc32 = 0;
     bool _isEnabledListMode = false;
+    std::unique_ptr<File> _datFile;  // Keep usrcheat.dat open for writing during cheat selection
 
     static u32 ComputeCrc32(const u8* data, u32 length);
     static bool ReadRomData(const FastFileRef& romFastFileRef, u32& outGameCode, u32& outCrc32);

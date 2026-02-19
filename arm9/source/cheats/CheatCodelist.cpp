@@ -201,8 +201,11 @@ bool CheatCodelist::ParseCheatData(File& datFile, u32 gamecode, u32 crc32)
 
 CheatParseResult CheatCodelist::Parse(const FastFileRef& romFastFileRef, const char* gameCodeOverride, u32 crcOverride)
 {
-    auto datFile = std::make_unique<File>();
-    if (datFile->Open("/_pico/extras/usrcheat.dat", FA_READ) != FR_OK) {
+    CloseDatFile();
+    
+    _datFile = std::make_unique<File>();
+    if (_datFile->Open("/_pico/extras/usrcheat.dat", FA_READ | FA_WRITE) != FR_OK) {
+        _datFile.reset();
         return CheatParseResult::DatFileNotFound;
     }
 
@@ -217,7 +220,7 @@ CheatParseResult CheatCodelist::Parse(const FastFileRef& romFastFileRef, const c
         _gameCode[4] = 0;
         _crc32 = crcOverride;
 
-        if (ParseCheatData(*datFile, overrideGamecode, crcOverride))
+        if (ParseCheatData(*_datFile, overrideGamecode, crcOverride))
             return CheatParseResult::Success;
     }
 
@@ -231,11 +234,12 @@ CheatParseResult CheatCodelist::Parse(const FastFileRef& romFastFileRef, const c
             _gameCode[4] = 0;
             _crc32 = romCrc32;
 
-            if (ParseCheatData(*datFile, romGamecode, romCrc32))
+            if (ParseCheatData(*_datFile, romGamecode, romCrc32))
                 return CheatParseResult::Success;
         }
     }
 
+    CloseDatFile();
     return CheatParseResult::NoCheatsFound;
 }
 
@@ -319,4 +323,53 @@ u32 CheatCodelist::CopySelectedCheats(u32* outBuf) const
         }
     }
     return pos;
+}
+
+// Based on TWiLight Menu++
+bool CheatCodelist::UpdateCheatSelection(int itemIndex)
+{
+    if (itemIndex < 0 || itemIndex >= _items.size())
+        return false;
+
+    CheatItem& item = _items[itemIndex];
+    
+    if (item.flags & CheatItem::EFolder)
+        return false;
+    
+    if (item.dataOffset == 0)
+        return false;
+
+    if (!_datFile)
+        return false;
+
+    u8 selectionByte = (item.flags & CheatItem::ESelected) ? 1 : 0;
+
+    if (_datFile->Seek(item.dataOffset) != FR_OK)
+        return false;
+
+    u8 currentValue = 0;
+    u32 bytesRead = 0;
+    if (_datFile->Read(&currentValue, sizeof(currentValue), bytesRead) != FR_OK || bytesRead != sizeof(currentValue))
+        return false;
+
+    if (currentValue != selectionByte)
+    {
+        if (_datFile->Seek(item.dataOffset) != FR_OK)
+            return false;
+
+        u32 bytesWritten = 0;
+        if (_datFile->Write(&selectionByte, sizeof(selectionByte), bytesWritten) != FR_OK || bytesWritten != sizeof(selectionByte))
+            return false;
+    }
+
+    return true;
+}
+
+void CheatCodelist::CloseDatFile()
+{
+    if (_datFile)
+    {
+        _datFile->Close();
+        _datFile.reset();
+    }
 }
