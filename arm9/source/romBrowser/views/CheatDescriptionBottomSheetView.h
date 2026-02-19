@@ -48,7 +48,8 @@ private:
     char _gameCode[5];  
     u32 _crc;
     
-    Label2DView _titleLabel;
+    std::unique_ptr<Label2DView> _titleLabels[2];
+    int _titleLineCount = 0;
     
     // Labels for displaying description
     enum { MAX_DESC_LINES = 8 };
