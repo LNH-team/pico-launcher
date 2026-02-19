@@ -29,7 +29,7 @@ struct CheatItem
     };
 
     char name[64];
-    char note[128];
+    char note[256]; 
     u32 flags;
     long dataOffset; 
     u32* cheatCodes;

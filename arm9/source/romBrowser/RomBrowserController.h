@@ -104,7 +104,7 @@ private:
     TCHAR* _navigateFileName;
     FileInfo _launchFileInfo;
     char _cheatName[128];
-    char _cheatDescription[512];
+    char _cheatDescription[384];
     char _cheatGameCode[5];
     u32 _cheatCrc;
     int _cheatFocusScrollOffset = 0;

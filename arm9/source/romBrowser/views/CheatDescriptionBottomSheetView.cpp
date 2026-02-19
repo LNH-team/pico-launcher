@@ -243,12 +243,6 @@ void CheatDescriptionBottomSheetView::Update()
     if (_descriptionVisibleLineCount > kMaxVisibleDescriptionLines)
         _descriptionVisibleLineCount = kMaxVisibleDescriptionLines;
 
-    int maxScroll = _descriptionTotalLineCount - _descriptionVisibleLineCount;
-    if (maxScroll < 0)
-        maxScroll = 0;
-    if (_descriptionScrollOffset > maxScroll)
-        _descriptionScrollOffset = maxScroll;
-
     for (int i = 0; i < kMaxVisibleDescriptionLines; ++i)
     {
         _descriptionLabels[i]->SetPosition(kDescX, baseY + dynamicDescStartY + i * kDescSpacing);
@@ -290,23 +284,6 @@ bool CheatDescriptionBottomSheetView::HandleInput(const InputProvider& inputProv
     if (inputProvider.Triggered(InputKey::B)) {
         _romBrowserController->HideCheatDescription();
         return true;
-    }
-
-    if (inputProvider.Triggered(InputKey::DpadDown)) {
-        int maxScroll = _descriptionTotalLineCount - _descriptionVisibleLineCount;
-        if (maxScroll < 0)
-            maxScroll = 0;
-        if (_descriptionScrollOffset < maxScroll) {
-            ++_descriptionScrollOffset;
-            return true;
-        }
-    }
-
-    if (inputProvider.Triggered(InputKey::DpadUp)) {
-        if (_descriptionScrollOffset > 0) {
-            --_descriptionScrollOffset;
-            return true;
-        }
     }
 
     return false;

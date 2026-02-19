@@ -16,7 +16,10 @@ RomBrowserController::RomBrowserController(
     TaskQueueBase* bgTaskQueue)
     : _appSettingsService(appSettingsService)
     , _ioTaskQueue(ioTaskQueue), _bgTaskQueue(bgTaskQueue)
-    , _fileTypeProvider(appSettingsService->GetAppSettings()) { }
+    , _fileTypeProvider(appSettingsService->GetAppSettings())
+    {
+        memset(_cheatDescription, 0, sizeof(_cheatDescription));
+    }
 
 void RomBrowserController::NavigateUp()
 {
@@ -91,6 +94,7 @@ void RomBrowserController::ShowCheatDescription(const char* cheatName, const cha
 
 void RomBrowserController::HideCheatDescription()
 {
+    memset(_cheatDescription, 0, sizeof(_cheatDescription));
     _stateMachine.Fire(RomBrowserStateTrigger::HideCheatDescription);
 }
 

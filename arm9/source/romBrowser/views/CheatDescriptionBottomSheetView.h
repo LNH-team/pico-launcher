@@ -49,7 +49,7 @@ private:
     u32 _crc;
 
     static constexpr int kMaxTitleLines = 6;
-    static constexpr int kMaxDescriptionLines = 96;
+    static constexpr int kMaxDescriptionLines = 16;
     static constexpr int kMaxLineChars = 192;
     static constexpr int kMaxVisibleDescriptionLines = 8;
 
