@@ -117,6 +117,8 @@ private:
     void HandleHideGameInfoTrigger();
     void HandleShowCheatsTrigger();
     void HandleHideCheatsTrigger();
+    void HandleShowCheatDescriptionTrigger();
+    void HandleHideCheatDescriptionTrigger();
     void HandleShowDisplaySettingsTrigger();
     void HandleHideDisplaySettingsTrigger();
     void HandleNavigateTrigger();

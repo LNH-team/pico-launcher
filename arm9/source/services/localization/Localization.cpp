@@ -72,7 +72,6 @@ void Localization::LoadFromJson(const char* language)
     auto file = std::make_unique<File>();
     if (file->Open(path, FA_READ | FA_OPEN_EXISTING) != FR_OK)
     {
-        LOG_DEBUG("Translation file not found: %s, using fallback\n", path);
         LoadFallbackEnglish();
         return;
     }

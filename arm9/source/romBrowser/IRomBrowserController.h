@@ -49,6 +49,10 @@ public:
 
     virtual void ShowCheats() = 0;
     virtual void HideCheats() = 0;
+    virtual void ShowCheatDescription(const char* cheatName, const char* description, const char* gameCode, u32 crc,
+        int scrollOffset, int cursorIndex, int folderIndex, int rootScrollOffset, int rootCursorIndex,
+        bool enabledOnlyMode, int savedViewScrollOffset, int savedViewCursorIndex, int savedViewFolderIndex) = 0;
+    virtual void HideCheatDescription() = 0;
 };
 
 inline IRomBrowserController::~IRomBrowserController() { }

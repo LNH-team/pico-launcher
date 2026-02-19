@@ -24,6 +24,10 @@ public:
     void HideGameInfo() override;
     void ShowCheats() override;
     void HideCheats() override;
+    void ShowCheatDescription(const char* cheatName, const char* description, const char* gameCode, u32 crc,
+        int scrollOffset, int cursorIndex, int folderIndex, int rootScrollOffset, int rootCursorIndex,
+        bool enabledOnlyMode, int savedViewScrollOffset, int savedViewCursorIndex, int savedViewFolderIndex) override;
+    void HideCheatDescription() override;
     void ShowDisplaySettings() override;
     void HideDisplaySettings() override;
     void ToggleFavoritesView() override;
@@ -71,6 +75,20 @@ public:
         return _appSettingsService->GetAppSettings().romBrowserDisplaySettings;
     }
 
+    const char* GetCheatName() const { return _cheatName; }
+    const char* GetCheatDescription() const { return _cheatDescription; }
+    const char* GetCheatGameCode() const { return _cheatGameCode; }
+    u32 GetCheatCrc() const { return _cheatCrc; }
+    int GetCheatFocusScrollOffset() const { return _cheatFocusScrollOffset; }
+    int GetCheatFocusCursorIndex() const { return _cheatFocusCursorIndex; }
+    int GetCheatFocusFolderIndex() const { return _cheatFocusFolderIndex; }
+    int GetCheatFocusRootScrollOffset() const { return _cheatFocusRootScrollOffset; }
+    int GetCheatFocusRootCursorIndex() const { return _cheatFocusRootCursorIndex; }
+    bool GetCheatFocusEnabledOnlyMode() const { return _cheatFocusEnabledOnlyMode; }
+    int GetCheatFocusSavedViewScrollOffset() const { return _cheatFocusSavedViewScrollOffset; }
+    int GetCheatFocusSavedViewCursorIndex() const { return _cheatFocusSavedViewCursorIndex; }
+    int GetCheatFocusSavedViewFolderIndex() const { return _cheatFocusSavedViewFolderIndex; }
+
 private:
     IAppSettingsService* _appSettingsService;
     TaskQueueBase* _ioTaskQueue;
@@ -85,6 +103,19 @@ private:
     TCHAR _navigatePath[256];
     TCHAR* _navigateFileName;
     FileInfo _launchFileInfo;
+    char _cheatName[128];
+    char _cheatDescription[512];
+    char _cheatGameCode[5];
+    u32 _cheatCrc;
+    int _cheatFocusScrollOffset = 0;
+    int _cheatFocusCursorIndex = 0;
+    int _cheatFocusFolderIndex = -1;
+    int _cheatFocusRootScrollOffset = 0;
+    int _cheatFocusRootCursorIndex = 0;
+    bool _cheatFocusEnabledOnlyMode = false;
+    int _cheatFocusSavedViewScrollOffset = 0;
+    int _cheatFocusSavedViewCursorIndex = 0;
+    int _cheatFocusSavedViewFolderIndex = -1;
     QueueTask<void> _navigateTask;
     QueueTask<void> _favoritesTask;
     bool _favoritesViewActive = false;

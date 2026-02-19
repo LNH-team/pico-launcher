@@ -69,6 +69,31 @@ void RomBrowserController::HideCheats()
     _stateMachine.Fire(RomBrowserStateTrigger::HideCheats);
 }
 
+void RomBrowserController::ShowCheatDescription(const char* cheatName, const char* description, const char* gameCode, u32 crc,
+    int scrollOffset, int cursorIndex, int folderIndex, int rootScrollOffset, int rootCursorIndex,
+    bool enabledOnlyMode, int savedViewScrollOffset, int savedViewCursorIndex, int savedViewFolderIndex)
+{
+    StringUtil::Copy(_cheatName, cheatName, sizeof(_cheatName) / sizeof(_cheatName[0]));
+    StringUtil::Copy(_cheatDescription, description, sizeof(_cheatDescription) / sizeof(_cheatDescription[0]));
+    StringUtil::Copy(_cheatGameCode, gameCode ? gameCode : "", sizeof(_cheatGameCode) / sizeof(_cheatGameCode[0]));
+    _cheatCrc = crc;
+    _cheatFocusScrollOffset = scrollOffset;
+    _cheatFocusCursorIndex = cursorIndex;
+    _cheatFocusFolderIndex = folderIndex;
+    _cheatFocusRootScrollOffset = rootScrollOffset;
+    _cheatFocusRootCursorIndex = rootCursorIndex;
+    _cheatFocusEnabledOnlyMode = enabledOnlyMode;
+    _cheatFocusSavedViewScrollOffset = savedViewScrollOffset;
+    _cheatFocusSavedViewCursorIndex = savedViewCursorIndex;
+    _cheatFocusSavedViewFolderIndex = savedViewFolderIndex;
+    _stateMachine.Fire(RomBrowserStateTrigger::ShowCheatDescription);
+}
+
+void RomBrowserController::HideCheatDescription()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::HideCheatDescription);
+}
+
 void RomBrowserController::ShowDisplaySettings()
 {
     _stateMachine.Fire(RomBrowserStateTrigger::ShowDisplaySettings);
