@@ -213,7 +213,7 @@ public:
     /// @brief Parses the usrcheat.dat file for cheats matching the given ROM.
     /// @param romFastFileRef The fast file ref to the NDS ROM file.
     /// @return CheatParseResult indicating success or reason of failure.
-    CheatParseResult Parse(const FastFileRef& romFastFileRef);
+    CheatParseResult Parse(const FastFileRef& romFastFileRef, const char* gameCodeOverride = nullptr, u32 crcOverride = 0);
 
     /// @brief Gets all parsed cheat items.
     const CheatItemArray& GetItems() const { return _items; }

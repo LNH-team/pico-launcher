@@ -47,20 +47,30 @@ private:
     
     char _gameCode[5];  
     u32 _crc;
-    
-    std::unique_ptr<Label2DView> _titleLabels[2];
+
+    static constexpr int kMaxTitleLines = 6;
+    static constexpr int kMaxDescriptionLines = 96;
+    static constexpr int kMaxLineChars = 192;
+    static constexpr int kMaxVisibleDescriptionLines = 8;
+
+    std::unique_ptr<Label2DView> _titleLabels[kMaxTitleLines];
     int _titleLineCount = 0;
+
+    std::array<std::unique_ptr<Label2DView>, kMaxVisibleDescriptionLines> _descriptionLabels;
+    int _descriptionTotalLineCount = 0;
+    int _descriptionScrollOffset = 0;
+    int _descriptionVisibleLineCount = 0;
+
+    std::array<std::array<char16_t, kMaxLineChars>, kMaxTitleLines> _titleLineBuffer;
+    std::array<std::array<char16_t, kMaxLineChars>, kMaxDescriptionLines> _descriptionLineBuffer;
     
-    // Labels for displaying description
-    enum { MAX_DESC_LINES = 8 };
-    std::array<std::unique_ptr<Label2DView>, MAX_DESC_LINES> _descriptionLabels;
-    int _descriptionLineCount = 0;
-    
-    static constexpr int kTitleY = 12;
+    static constexpr int kTitleY = 18;
     static constexpr int kDescStartY = 44;
     static constexpr int kDescSpacing = 16;
+    static constexpr int kTitleDescGap = 6;
+    static constexpr int kDescBottomPadding = 8;
     static constexpr int kDescX = 12;
-    static constexpr int kDescWidth = 230;
+    static constexpr int kDescWidth = 232;
     
     void SetDescription(const char* description);
     static const char* WrapNextLine(const nft2_header_t* font, const char* text, u32 maxWidth,

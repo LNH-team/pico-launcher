@@ -11,7 +11,6 @@
 #include "themes/material/MaterialColorScheme.h"
 #include "services/localization/Localization.h"
 #include "core/mini-printf.h"
-#include "cheats/CheatSaveManager.h"
 #include "gui/font/nitroFont2.h"
 
 namespace
@@ -150,7 +149,7 @@ CheatsBottomSheetView::CheatsBottomSheetView(
                     _romFileName[sizeof(_romFileName) - 1] = 0;
                 }
 
-                _parseResult = _cheatList.Parse(fileInfo.GetFastFileRef());
+                _parseResult = _cheatList.Parse(fileInfo.GetFastFileRef(), gameCode, crc);
                 _hasCheats = (_parseResult == CheatParseResult::Success);
 
                 // Use the provided gameCode and crc if available
@@ -173,36 +172,43 @@ CheatsBottomSheetView::CheatsBottomSheetView(
     _titleLabel.SetForegroundColor(materialColorScheme->GetColor(md::sys::color::onSurface));
     AddChildTail(&_titleLabel);
 
-    _gameCodeLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-    _gameCodeLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
-    AddChildTail(&_gameCodeLabel);
+    if (_hasCheats)
+    {
+        _gameCodeLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+        _gameCodeLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+        AddChildTail(&_gameCodeLabel);
 
-    _crcLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-    _crcLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
-    AddChildTail(&_crcLabel);
+        _crcLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+        _crcLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+        AddChildTail(&_crcLabel);
 
-    _folderTitleLine1Label.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-    _folderTitleLine1Label.SetForegroundColor(materialColorScheme->onSurfaceVariant);
-    AddChildTail(&_folderTitleLine1Label);
+        _folderTitleLine1Label.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+        _folderTitleLine1Label.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+        AddChildTail(&_folderTitleLine1Label);
 
-    _folderTitleLine2Label.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-    _folderTitleLine2Label.SetForegroundColor(materialColorScheme->onSurfaceVariant);
-    AddChildTail(&_folderTitleLine2Label);
+        _folderTitleLine2Label.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+        _folderTitleLine2Label.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+        AddChildTail(&_folderTitleLine2Label);
+    }
 
     // Convert ASCII GameCode to UTF-16
     char16_t wc[16];
     int i = 0;
-    for (; _gameCode[i]; ++i) wc[i] = (char16_t)(unsigned char)_gameCode[i];
-    wc[i] = 0;
-    _gameCodeLabel.SetText(wc);
+    if (_hasCheats)
+    {
+        for (; _gameCode[i]; ++i) wc[i] = (char16_t)(unsigned char)_gameCode[i];
+        wc[i] = 0;
+        _gameCodeLabel.SetText(wc);
 
-    // Convert CRC
-    char buf[16];
-    u32 crcVal = _crc;
-    mini_snprintf(buf, sizeof(buf), "%08X", crcVal);
-    for (i = 0; buf[i]; ++i) wc[i] = (char16_t)(unsigned char)buf[i];
-    wc[i] = 0;
-    _crcLabel.SetText(wc);
+        // Convert CRC
+        char buf[16];
+        u32 crcVal = _crc;
+        mini_snprintf(buf, sizeof(buf), "%08X", crcVal);
+        i = 0;
+        for (; buf[i]; ++i) wc[i] = (char16_t)(unsigned char)buf[i];
+        wc[i] = 0;
+        _crcLabel.SetText(wc);
+    }
 
     _statusLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
     AddChildTail(&_statusLabel);
@@ -253,14 +259,33 @@ void CheatsBottomSheetView::Update()
 
     if (_hasCheats)
     {
+        bool hasItemFocus = false;
+        for (int i = 0; i < CHEATS_VIEW_VISIBLE_ITEMS; ++i)
+        {
+            if (_itemLabels[i].IsFocused())
+            {
+                hasItemFocus = true;
+                break;
+            }
+        }
+
+        if (!hasItemFocus && _marqueeStep != 0)
+        {
+            _marqueeStep = 0;
+            UpdateLabels();
+        }
+
         // Position item labels
         for (int i = 0; i < CHEATS_VIEW_VISIBLE_ITEMS; ++i)
         {
-            _itemLabels[i].SetPosition(kItemX, baseY + itemStartY + i * kItemSpacing);
+            int visibleIdx = _scroll_offset + i;
+            bool isFocused = (visibleIdx == GetSelectedCursorVisibleIndex());
+            int focusedOffsetX = isFocused ? 2 : 0;
+            _itemLabels[i].SetPosition(kItemX + focusedOffsetX, baseY + itemStartY + i * kItemSpacing);
         }
 
         // Status below items
-        int statusY = baseY + itemStartY + CHEATS_VIEW_VISIBLE_ITEMS * kItemSpacing + 4;
+        int statusY = baseY + kItemStartY + CHEATS_VIEW_VISIBLE_ITEMS * kItemSpacing + 4;
         _statusLabel.SetPosition(kStatusX, statusY + 10);
 
         if ((_frameCounter % 12) == 0 && _marqueeActive)
@@ -426,9 +451,7 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
     if (inputProvider.Triggered(InputKey::Y)) {
         if (_selection_dirty && _hasCheats)
         {
-            bool saveOk = CheatSaveManager::SaveSelections(_cheatList, _gameCode, _romFileName);
-            bool datOk = _cheatList.UpdateUsrCheatDat("/_pico/extras/usrcheat.dat");
-            _selection_dirty = !(saveOk && datOk);
+            // SAVE();
         }
         int visIdx = GetSelectedCursorVisibleIndex();
         if (visIdx >= 0 && visIdx < _cheatList.GetVisibleCount()) {
@@ -499,8 +522,7 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
                     item.ToggleSelected();
                 }
                 _selection_dirty = true;
-
-                if (false) {}
+                // SAVE();
 
                 UpdateLabels();
                 UpdateStatusLabel();
@@ -518,7 +540,7 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
             items[i].SetSelected(false);
         }
         _selection_dirty = true;
-        if (false) {}
+        // SAVE();
         UpdateLabels();
         UpdateStatusLabel();
         return true;
@@ -592,7 +614,6 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
         }
         else
         {
-            // SaveSelectionsAndClose(); Va rivista perchè è rotta
             _romBrowserController->HideCheats();
             return true;
         }
@@ -605,6 +626,13 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
 void CheatsBottomSheetView::UpdateLabels()
 {
     int visibleCount = _cheatList.GetVisibleCount();
+    int selectedVisibleIndex = GetSelectedCursorVisibleIndex();
+    if (_lastFocusedCheatIndex != selectedVisibleIndex)
+    {
+        _lastFocusedCheatIndex = selectedVisibleIndex;
+        _marqueeStep = 0;
+    }
+
     int cheatIdx = _scroll_offset;
     _marqueeActive = false;
     for (int i = 0; i < CHEATS_VIEW_VISIBLE_ITEMS; ++i)
@@ -617,18 +645,16 @@ void CheatsBottomSheetView::UpdateLabels()
             continue;
 
         const auto& item = _cheatList.GetVisibleItem(cheatIdx);
-        char16_t displayText[64];
+        static constexpr int DISPLAY_NAME_LEN = 30;
+        char16_t displayText[40];
         int pos = 0;
-        bool isFocused = (cheatIdx == GetSelectedCursorVisibleIndex());
-        if (isFocused)
-        {
-            displayText[pos++] = u' ';
-            displayText[pos++] = u' ';
-        }
+        bool isFocused = (cheatIdx == selectedVisibleIndex);
         bool isFolder = item.IsFolder();
-        if (isFolder) 
+
+        if (isFolder)
         {
-            displayText[pos++] = u'[';
+            displayText[pos++] = u'+';
+            displayText[pos++] = u' ';
         }
         else
         {
@@ -649,69 +675,58 @@ void CheatsBottomSheetView::UpdateLabels()
         }
 
         const char* name = item.name;
-        int maxNameChars = 40 - pos;
         int nameLen = (int)strlen(name);
+        bool isMarqueeMode = isFocused && nameLen > DISPLAY_NAME_LEN;
 
-        if (isFocused && nameLen > maxNameChars)
+        if (isMarqueeMode)
         {
             _marqueeActive = true;
 
-            const int holdFrames = 30;   
-            const int gap = 5;          
-            const int speed = 1;         
+            const int holdFrames = 30;
+            const int gap = 5;
+            const int speed = 1;
 
-            int totalScroll = nameLen + gap;  
+            int totalScroll = nameLen + gap;
             int totalCycle = holdFrames + totalScroll + holdFrames;
 
             int step = (_marqueeStep * speed) % totalCycle;
             int offset = 0;
 
             if (step < holdFrames)
-            {
                 offset = 0;
-            }
             else if (step < holdFrames + totalScroll)
-            {
                 offset = step - holdFrames;
-            }
             else
-            {
                 offset = 0;
-            }
 
-            for (int c = 0; c < maxNameChars; ++c)
+            for (int c = 0; c < DISPLAY_NAME_LEN; ++c)
             {
                 int src = offset + c;
-
-                char ch = ' ';
-
+                char ch;
                 if (src < nameLen)
-                {
                     ch = name[src];
-                }
-                else if (src >= nameLen && src < nameLen + gap)
-                {
+                else if (src < nameLen + gap)
                     ch = ' ';
-                }
                 else
-                {
                     ch = name[src - (nameLen + gap)];
-                }
-
                 displayText[pos++] = (char16_t)(unsigned char)ch;
             }
         }
         else
         {
-            while (*name && pos < 40)
+            int c = 0;
+            while (*name && c < DISPLAY_NAME_LEN)
             {
                 displayText[pos++] = (char16_t)(unsigned char)*name++;
+                c++;
+            }
+            while (c < DISPLAY_NAME_LEN)
+            {
+                displayText[pos++] = u' ';
+                c++;
             }
         }
-        if (isFolder)
-        {
-            displayText[pos++] = u']';
-        }
+
         displayText[pos] = 0;
         _itemLabels[i].SetText(displayText, (u32)pos);
 
@@ -927,8 +942,7 @@ void CheatsBottomSheetView::SaveSelectionsAndClose()
 {
     if (_selection_dirty && _hasCheats)
     {
-        CheatSaveManager::SaveSelections(_cheatList, _gameCode, _romFileName);
-        _cheatList.UpdateUsrCheatDat("/_pico/extras/usrcheat.dat");
+        // SAVE();
     }
     _romBrowserController->HideCheats();
 }

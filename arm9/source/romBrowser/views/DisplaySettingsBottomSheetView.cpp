@@ -22,7 +22,6 @@
 #include "themes/IFontRepository.h"
 #include "fat/Directory.h"
 #include "fat/File.h"
-#include "json/ArduinoJson.h"
 #include "core/StringUtil.h"
 #include "core/mini-printf.h"
 #include "DisplaySettingsBottomSheetView.h"
@@ -231,7 +230,6 @@ void DisplaySettingsBottomSheetView::LoadLanguages()
             entry.displayName[i] = (char16_t)baseName[i];
         entry.displayName[len < 63 ? len : 63] = 0;
 
-        // Try to read language_name from the JSON file
         char path[128];
         mini_snprintf(path, sizeof(path), "/_pico/extras/translations/%s", fileInfo.fname);
         {
@@ -254,26 +252,36 @@ void DisplaySettingsBottomSheetView::LoadLanguages()
                             jsonSize -= 3;
                         }
 
-                        DynamicJsonDocument json(2048);
-                        if (deserializeJson(json, jsonData, jsonSize) == DeserializationError::Ok)
+                        static const char key[] = "\"language_name\"";
+                        const char* p = (const char*)jsonData;
+                        const char* end = p + jsonSize;
+                        const char* found = nullptr;
+                        while (p + 15 <= end)
                         {
-                            const char* langName = json["language_name"] | (const char*)nullptr;
-                            if (langName && langName[0] != 0)
+                            if (memcmp(p, key, 15) == 0) { found = p + 15; break; }
+                            ++p;
+                        }
+                        if (found)
+                        {
+                            while (found < end && (*found == ' ' || *found == '\t' || *found == ':')) ++found;
+                            if (found < end && *found == '"')
                             {
-                                // Convert UTF-8 to UTF-16
+                                ++found;
+                                const char* langName = found;
                                 u32 si = 0, di = 0;
-                                while (langName[si] && di < 63)
+                                while ((langName + si) < end && langName[si] && langName[si] != '"' && di < 63)
                                 {
                                     u8 c = (u8)langName[si];
                                     u32 cp;
                                     if (c < 0x80) { cp = c; si++; }
                                     else if ((c & 0xE0) == 0xC0) { cp = (c & 0x1F) << 6; cp |= ((u8)langName[si+1] & 0x3F); si += 2; }
                                     else if ((c & 0xF0) == 0xE0) { cp = (c & 0x0F) << 12; cp |= ((u8)langName[si+1] & 0x3F) << 6; cp |= ((u8)langName[si+2] & 0x3F); si += 3; }
-                                    else { si += 4; continue; }
+                                    else { si++; continue; }
                                     if (cp <= 0xFFFF)
                                         entry.displayName[di++] = (char16_t)cp;
                                 }
-                                entry.displayName[di] = 0;
+                                if (di > 0)
+                                    entry.displayName[di] = 0;
                             }
                         }
                     }

@@ -470,8 +470,6 @@ void App::HandleHideGameInfoTrigger()
 
 void App::HandleShowCheatsTrigger()
 {
-    _dialogPresenter.CloseDialog();
-
     const DialogView* currentDialog = _dialogPresenter.GetCurrentDialog();
     const char* gameCode = nullptr;
     u32 crc = 0;
@@ -481,18 +479,12 @@ void App::HandleShowCheatsTrigger()
         gameCode = gameInfoDialog->GetGameCode();
         crc = gameInfoDialog->GetCrc();
     }
+
+    _dialogPresenter.CloseDialog();
+
     auto cheatsDialog = std::make_unique<CheatsBottomSheetView>(
         &_romBrowserController, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository(), gameCode, crc);
-    cheatsDialog->SetInitialFocusState(
-        _romBrowserController.GetCheatFocusScrollOffset(),
-        _romBrowserController.GetCheatFocusCursorIndex(),
-        _romBrowserController.GetCheatFocusFolderIndex(),
-        _romBrowserController.GetCheatFocusRootScrollOffset(),
-        _romBrowserController.GetCheatFocusRootCursorIndex(),
-        _romBrowserController.GetCheatFocusEnabledOnlyMode(),
-        _romBrowserController.GetCheatFocusSavedViewScrollOffset(),
-        _romBrowserController.GetCheatFocusSavedViewCursorIndex(),
-        _romBrowserController.GetCheatFocusSavedViewFolderIndex());
+    cheatsDialog->SetInitialFocusState(0, 0, -1, 0, 0, false, 0, 0, -1);
     _dialogPresenter.ShowDialog(std::move(cheatsDialog));
 }
 
@@ -534,16 +526,7 @@ void App::HandleHideCheatDescriptionTrigger()
     // Recreate the cheats bottom sheet view
     auto cheatsDialog = std::make_unique<CheatsBottomSheetView>(
         &_romBrowserController, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository(), gameCode, crc);
-    cheatsDialog->SetInitialFocusState(
-        _romBrowserController.GetCheatFocusScrollOffset(),
-        _romBrowserController.GetCheatFocusCursorIndex(),
-        _romBrowserController.GetCheatFocusFolderIndex(),
-        _romBrowserController.GetCheatFocusRootScrollOffset(),
-        _romBrowserController.GetCheatFocusRootCursorIndex(),
-        _romBrowserController.GetCheatFocusEnabledOnlyMode(),
-        _romBrowserController.GetCheatFocusSavedViewScrollOffset(),
-        _romBrowserController.GetCheatFocusSavedViewCursorIndex(),
-        _romBrowserController.GetCheatFocusSavedViewFolderIndex());
+    cheatsDialog->SetInitialFocusState(0, 0, -1, 0, 0, false, 0, 0, -1);
     _dialogPresenter.ShowDialog(std::move(cheatsDialog));
 }
 

@@ -6,6 +6,7 @@
 #include "common.h"
 #include <string.h>
 #include <stdlib.h>
+#include "core/mini-printf.h"
 #include "CheatCodelist.h"
 
 #define CRCPOLY 0xedb88320
@@ -198,24 +199,44 @@ bool CheatCodelist::ParseCheatData(File& datFile, u32 gamecode, u32 crc32)
     return true;
 }
 
-CheatParseResult CheatCodelist::Parse(const FastFileRef& romFastFileRef)
+CheatParseResult CheatCodelist::Parse(const FastFileRef& romFastFileRef, const char* gameCodeOverride, u32 crcOverride)
 {
-    u32 gamecodeVal = 0;
-    u32 crc32Val = 0;
-
-    ReadRomData(romFastFileRef, gamecodeVal, crc32Val);
-
-    memcpy(_gameCode, &gamecodeVal, 4);
-    _gameCode[4] = 0;
-    _crc32 = crc32Val;
-
     auto datFile = std::make_unique<File>();
     if (datFile->Open("/_pico/extras/usrcheat.dat", FA_READ) != FR_OK) {
         return CheatParseResult::DatFileNotFound;
     }
 
-    bool result = ParseCheatData(*datFile, gamecodeVal, crc32Val);
-    return result ? CheatParseResult::Success : CheatParseResult::NoCheatsFound;
+    bool hasOverride = false;
+    u32 overrideGamecode = 0;
+    if (gameCodeOverride && gameCodeOverride[0] && gameCodeOverride[1] && gameCodeOverride[2] && gameCodeOverride[3])
+    {
+        memcpy(&overrideGamecode, gameCodeOverride, 4);
+        hasOverride = true;
+
+        memcpy(_gameCode, &overrideGamecode, 4);
+        _gameCode[4] = 0;
+        _crc32 = crcOverride;
+
+        if (ParseCheatData(*datFile, overrideGamecode, crcOverride))
+            return CheatParseResult::Success;
+    }
+
+    u32 romGamecode = 0;
+    u32 romCrc32 = 0;
+    if (ReadRomData(romFastFileRef, romGamecode, romCrc32))
+    {
+        if (!hasOverride || romGamecode != overrideGamecode || romCrc32 != crcOverride)
+        {
+            memcpy(_gameCode, &romGamecode, 4);
+            _gameCode[4] = 0;
+            _crc32 = romCrc32;
+
+            if (ParseCheatData(*datFile, romGamecode, romCrc32))
+                return CheatParseResult::Success;
+        }
+    }
+
+    return CheatParseResult::NoCheatsFound;
 }
 
 void CheatCodelist::BuildVisibleList()
@@ -274,36 +295,6 @@ void CheatCodelist::BuildVisibleListForFolder(int folderIndex)
     }
 }
 
-bool CheatCodelist::UpdateUsrCheatDat(const char* usrCheatPath)
-{
-    File file;
-    if (file.Open(usrCheatPath, FA_READ | FA_WRITE) != FR_OK)
-        return false;
-
-    u32 bytesWritten;
-    u8 flagByte;
-    
-    for (int i = 0; i < _items.size(); i++)
-    {
-        long offset = _items[i].dataOffset;
-        if (offset == 0) continue; 
-
-        if (file.Seek(offset) != FR_OK) continue;
-        
-        u32 br;
-        if (file.Read(&flagByte, 1, br) != FR_OK || br != 1) continue;
-        
-        if (_items[i].flags & CheatItem::ESelected)
-            flagByte |= 0x01; 
-        flagByte = (_items[i].flags & CheatItem::ESelected) ? 0x01 : 0x00;
-        
-        file.Seek(offset);
-        file.Write(&flagByte, 1, bytesWritten);
-    }
-    
-    file.Sync();
-    return true;
-}
 
 u32 CheatCodelist::GetSelectedCheatCodeCount() const
 {

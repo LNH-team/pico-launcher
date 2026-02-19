@@ -23,12 +23,13 @@ public:
         return new NdsInternalFileInfo(fastFileRef);
     }
 
-    bool TrySetLaunchParameters(pload_params_t* launchParameters, const char* filePath) const override;
-
-    void TryAddCheatFile(pload_params_t* launchParameters, const char* filePath) const;
+    bool TrySetLaunchParameters(pload_params_t* launchParameters, const char* filePath) const override
+    {
+        StringUtil::Copy(launchParameters->romPath, filePath, sizeof(launchParameters->romPath));
+        return true;
+    }
 
 private:
     constexpr NdsFileType()
         : FileType("nds", FileTypeClassification::Game) { }
-
 };
