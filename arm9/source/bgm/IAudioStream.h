@@ -19,10 +19,6 @@ public:
 
     /// @brief Closes the audio stream.
     virtual void Close() = 0;
-
-    /// @brief Consumes a loop/restart notification, if supported by the stream.
-    /// @return True if the stream looped/restarted since the last consume.
-    virtual bool ConsumeLooped() { return false; }
 };
 
 inline IAudioStream::~IAudioStream() { }

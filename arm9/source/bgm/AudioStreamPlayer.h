@@ -23,16 +23,24 @@ public:
         StopPlayback();
     }
 
-    bool StartPlayback(std::unique_ptr<IAudioStream> audioStream) override;
-    void StopPlayback() override;
-
-    bool ConsumePlaybackRestarted() const override
+    bool StartPlayback(std::unique_ptr<IAudioStream> audioStream) override
     {
-        auto* self = const_cast<AudioStreamPlayer*>(this);
-        if (!self->_playbackRestarted)
-            return false;
-        self->_playbackRestarted = false;
-        return true;
+        bool result;
+        rtos_lockMutex(&_mutex);
+        {
+            result = StartPlaybackIntern(std::move(audioStream));
+        }
+        rtos_unlockMutex(&_mutex);
+        return result;
+    }
+
+    void StopPlayback() override
+    {
+        rtos_lockMutex(&_mutex);
+        {
+            StopPlaybackIntern();
+        }
+        rtos_unlockMutex(&_mutex);
     }
 
 private:
@@ -85,7 +93,6 @@ private:
     rtos_thread_t _thread;
     rtos_event_t _event;
     volatile bool _isPlaying = false;
-    volatile bool _playbackRestarted = false;
     volatile u8 _readBlock;
     volatile u8 _writeBlock;
     std::unique_ptr<IAudioStream> _audioStream;

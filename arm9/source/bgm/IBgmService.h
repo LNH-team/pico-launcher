@@ -12,8 +12,9 @@ public:
     /// @return True if playback was successfully started, or false otherwise.
     virtual bool StartBgm(const TCHAR* filePath) = 0;
 
-    /// @brief Starts playback of the background music for the given theme.
-    virtual void StartBgmFromConfig(const char* themeName) = 0;
+    /// @brief Starts playback of the background music according to the app config.
+    /// @param _effectiveThemeName The name of the theme to use for background music.
+    virtual void StartBgmFromConfig(const std::string& _effectiveThemeName) = 0;
 
     /// @brief If currently playing, stops playback.
     virtual void StopBgm() = 0;

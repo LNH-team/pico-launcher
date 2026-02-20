@@ -194,7 +194,6 @@ void BcstmAudioStream::FetchBlock()
 
     if (looped)
     {
-        _loopedSinceLastConsume = true;
         _sampleNumberInBlock = _loopBlockStartSample;
         if (_streamInfo.format == BCSTM_FORMAT_DSP_ADPCM)
         {
@@ -231,15 +230,6 @@ void BcstmAudioStream::FetchBlock()
             }
         }
     }
-}
-
-bool BcstmAudioStream::ConsumeLooped()
-{
-    if (!_loopedSinceLastConsume)
-        return false;
-
-    _loopedSinceLastConsume = false;
-    return true;
 }
 
 extern "C" void dspadpcm_decode(DspAdpcmContext* context);
