@@ -168,8 +168,7 @@ void App::ApplyThemeColors()
 
 void App::ReloadTheme()
 {
-    // Stop BGM synchronously before tearing down views/theme
-    _bgmService.StopBgm();
+    // _bgmService.StopBgm();
 
     // Destroy all views that reference theme data
     _romBrowserTopScreenView.reset();
@@ -226,12 +225,7 @@ void App::ReloadTheme()
     // Restore focus
     _romBrowserBottomScreenView->Focus(_focusManager);
 
-    // Restart BGM with new theme on IO thread
-    _ioTaskQueue.Enqueue([this] (const vu8& cancelRequested)
-    {
-        _bgmService.StartBgmFromConfig(_effectiveThemeName.GetString());
-        return TaskResult<void>::Completed();
-    });
+    // _bgmService.StartBgmFromConfig(_effectiveThemeName.GetString());
 }
 
 void App::VCountIrq()
