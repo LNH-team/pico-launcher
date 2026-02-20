@@ -191,9 +191,11 @@ void DisplaySettingsBottomSheetView::LoadThemes()
 void DisplaySettingsBottomSheetView::LoadLanguages()
 {
     _languageCount = 0;
-    Directory directory;
-    if (directory.Open("/_pico/extras/translations") != FR_OK)
-        return;
+        Directory directory;
+        if (directory.Open("/_pico/extras/translations") != FR_OK) {
+            _languageValueLabel.SetText("No language");
+            return;
+        }
 
     FILINFO fileInfo;
     while (true)
