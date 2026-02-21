@@ -9,6 +9,8 @@
 #include <libtwl/gfx/gfx3d.h>
 #include <libtwl/gfx/gfx3dCmd.h>
 #include <libtwl/sys/sysPower.h>
+#include <libtwl/ipc/ipcFifoSystem.h>
+#include <nds/arm9/cache.h>
 #include "animation/Animator.h"
 #include "gui/materialDesign.h"
 #include "themes/material/MaterialColorSchemeFactory.h"
@@ -17,6 +19,8 @@
 #include "gui/GraphicsContext.h"
 #include "romBrowser/views/ChipView.h"
 #include "picoLoaderBootstrap.h"
+#include "ipcChannels.h"
+#include "soundIpcCommand.h"
 #include "romBrowser/DisplayMode/RomBrowserDisplayModeFactory.h"
 #include "romBrowser/Theme/Material/MaterialThemeFileIconFactory.h"
 #include "romBrowser/views/NdsGameDetailsBottomSheetView.h"
@@ -168,7 +172,21 @@ void App::ApplyThemeColors()
 
 void App::ReloadTheme()
 {
-    // _bgmService.StopBgm();
+    struct alignas(32) SoundStopCmdList
+    {
+        u32 cmdCount;
+        u32 stopChannels;
+    };
+
+    static SoundStopCmdList soundStopCmdList
+    {
+        1,
+        (0b11 << 8) | SND_IPC_CMD_STOP_CHANNELS         // Thanks to Dartz for suggesting SND_IPC_CMD_STOP_CHANNELS
+
+    };
+
+    DC_FlushRange(&soundStopCmdList, sizeof(soundStopCmdList));
+    ipc_sendFifoMessage(IPC_CHANNEL_SOUND, (u32)&soundStopCmdList);
 
     // Destroy all views that reference theme data
     _romBrowserTopScreenView.reset();
@@ -225,7 +243,7 @@ void App::ReloadTheme()
     // Restore focus
     _romBrowserBottomScreenView->Focus(_focusManager);
 
-    // _bgmService.StartBgmFromConfig(_effectiveThemeName.GetString());
+    _bgmService.StartBgmFromConfig(_effectiveThemeName.GetString());
 }
 
 void App::VCountIrq()
