@@ -187,7 +187,7 @@ void App::ReloadTheme()
 
     DC_FlushRange(&soundStopCmdList, sizeof(soundStopCmdList));
     ipc_sendFifoMessage(IPC_CHANNEL_SOUND, (u32)&soundStopCmdList);
-
+    // 
     // Destroy all views that reference theme data
     _romBrowserTopScreenView.reset();
     _romBrowserBottomScreenView.reset();
