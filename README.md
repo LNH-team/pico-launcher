@@ -24,6 +24,15 @@ The steps provided will assume you already have one of those environments set up
 
 1. Install [BlocksDS](https://blocksds.skylyrac.net/docs/setup/options/)
 
+Alternatively, Docker can be used to quickly get a functional development environment:
+```bash
+# run the BlocksDS container with the current directory mapped to /work
+docker run --rm -v .:/work -it --entrypoint bash skylyrac/blocksds:slim-latest
+
+# cd to the current directory within the container
+cd /work
+```
+
 ## Compiling
 
 1. Run `make`
