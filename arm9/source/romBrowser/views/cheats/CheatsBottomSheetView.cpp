@@ -19,6 +19,8 @@
 #define LIST_X              16
 #define LIST_Y              36
 
+static int s_lastFocusedFolderIndex = 0;
+
 CheatsBottomSheetView::CheatsBottomSheetView(std::unique_ptr<CheatsViewModel> viewModel,
     const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository,
     FocusManager* focusManager)
@@ -131,12 +133,13 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
         if (focusManager.IsFocusInside(_cheatListRecycler.get()))
         {
             auto oldCategory = _viewModel->GetCurrentCheatCategory();
+            int selectedIdx = _cheatListRecycler->GetSelectedItem();
+            s_lastFocusedFolderIndex = selectedIdx;
             _viewModel->ItemActivated();
             if (oldCategory != _viewModel->GetCurrentCheatCategory())
             {
                 UpdateCheatList();
             }
-
             return true;
         }
     }
@@ -146,7 +149,7 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
         _viewModel->Back();
         if (oldCategory != _viewModel->GetCurrentCheatCategory())
         {
-            UpdateCheatList();
+            UpdateCheatList(s_lastFocusedFolderIndex);
         }
         return true;
     }
@@ -158,11 +161,11 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
     return false;
 }
 
-void CheatsBottomSheetView::UpdateCheatList()
+void CheatsBottomSheetView::UpdateCheatList(int initialSelectedIndex)
 {
     auto oldAdapter = _cheatsAdapter;
     _cheatsAdapter = new CheatsAdapter(_viewModel->GetCurrentCheatCategory(), _materialColorScheme, _fontRepository, _vramOffsets);
-    _cheatListRecycler->SetAdapter(_cheatsAdapter);
+    _cheatListRecycler->SetAdapter(_cheatsAdapter, initialSelectedIndex);
     delete oldAdapter;
 
     // Ugly hack
