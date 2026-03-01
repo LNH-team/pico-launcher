@@ -14,10 +14,13 @@ CheatsViewModel::CheatsViewModel(const FileInfo& romFileInfo, IRomBrowserControl
         if (_cheats)
         {
             _categoryStack[0] = _cheats.get();
+            _isUsrCheatDatMissing = false;
             _state = State::DisplayCheats;
         }
         else
         {
+            FILINFO usrCheatFileInfo;
+            _isUsrCheatDatMissing = f_stat("/_pico/usrcheat.dat", &usrCheatFileInfo) != FR_OK;
             _state = State::NoCheats;
         }
 

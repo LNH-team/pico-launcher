@@ -42,6 +42,7 @@ private:
     std::unique_ptr<CheatsViewModel> _viewModel;
     Label2DView _titleLabel;
     Label2DView _totalCLabel;
+    Label2DView _statusLabel;
     std::unique_ptr<RecyclerView> _cheatListRecycler;
     CheatsAdapter* _cheatsAdapter = nullptr;
     const MaterialColorScheme* _materialColorScheme;

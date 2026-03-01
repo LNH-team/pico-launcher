@@ -28,6 +28,7 @@ CheatsBottomSheetView::CheatsBottomSheetView(std::unique_ptr<CheatsViewModel> vi
     : _viewModel(std::move(viewModel))
     , _titleLabel(220, 16, 64, fontRepository->GetFont(FontType::Medium11))    
     , _totalCLabel(220, 16, 64, fontRepository->GetFont(FontType::Medium7_5))
+    , _statusLabel(220, 16, 64, fontRepository->GetFont(FontType::Medium10))
     , _cheatListRecycler(std::make_unique<RecyclerView>(LIST_X, LIST_Y, 224, 124, RecyclerView::Mode::VerticalList))
     , _materialColorScheme(materialColorScheme)
     , _fontRepository(fontRepository)
@@ -37,10 +38,13 @@ CheatsBottomSheetView::CheatsBottomSheetView(std::unique_ptr<CheatsViewModel> vi
     _titleLabel.SetEllipsis(true);
     _totalCLabel.SetHorizontalAlignment(Alignment::Start);
     _totalCLabel.SetEllipsis(true);
+    _statusLabel.SetEllipsis(true);
+    _statusLabel.SetHorizontalAlignment(Alignment::Start);
     UpdateTitle();
     UpdateTotalC();
     AddChildTail(&_totalCLabel); 
     AddChildTail(&_titleLabel);
+    AddChildTail(&_statusLabel);
     AddChildTail(_cheatListRecycler.get());
 }
 
@@ -73,8 +77,17 @@ void CheatsBottomSheetView::InitVram(const VramContext& vramContext)
 
 void CheatsBottomSheetView::Update()
 {
+    const bool showNoCheatsMessage = _viewModel->GetState() == CheatsViewModel::State::NoCheats;
+
     _totalCLabel.SetPosition(TOTALC_LABEL_X, _position.y + TOTALC_LABEL_Y);
     _titleLabel.SetPosition(TITLE_LABEL_X, _position.y + TITLE_LABEL_Y);
+    _statusLabel.SetPosition(TITLE_LABEL_X, _position.y + LIST_Y + 12);
+    if (showNoCheatsMessage)
+    {
+        _statusLabel.SetText(_viewModel->GetIsUsrCheatDatMissing()
+            ? u"usrcheats.dat not found"
+            : u"Cheats not found");
+    }
     _cheatListRecycler->SetPosition(LIST_X, _position.y + LIST_Y);
     if (_viewModel->GetState() == CheatsViewModel::State::DisplayCheats)
     {
@@ -109,11 +122,17 @@ void CheatsBottomSheetView::Update()
 
 void CheatsBottomSheetView::Draw(GraphicsContext& graphicsContext)
 {
+    const bool showCheatList = _viewModel->GetState() == CheatsViewModel::State::DisplayCheats;
+    const bool showNoCheatsMessage = _viewModel->GetState() == CheatsViewModel::State::NoCheats;
+
     graphicsContext.SetClipArea(GetBounds());
     u32 oldPrio = graphicsContext.SetPriority(1);
     {
-        graphicsContext.SetClipArea(_cheatListRecycler->GetBounds());
-        _cheatListRecycler->Draw(graphicsContext);
+        if (showCheatList)
+        {
+            graphicsContext.SetClipArea(_cheatListRecycler->GetBounds());
+            _cheatListRecycler->Draw(graphicsContext);
+        }
 
         graphicsContext.SetClipArea(GetBounds());
 
@@ -143,8 +162,17 @@ void CheatsBottomSheetView::Draw(GraphicsContext& graphicsContext)
         _totalCLabel.SetForegroundColor(_materialColorScheme->onSurface);
         _titleLabel.SetBackgroundColor(backColor);
         _titleLabel.SetForegroundColor(_materialColorScheme->onSurface);
-        _totalCLabel.Draw(graphicsContext);
+        _statusLabel.SetBackgroundColor(backColor);
+        _statusLabel.SetForegroundColor(_materialColorScheme->onSurface);
+        if (showCheatList)
+        {
+            _totalCLabel.Draw(graphicsContext);
+        }
         _titleLabel.Draw(graphicsContext);
+        if (showNoCheatsMessage)
+        {
+            _statusLabel.Draw(graphicsContext);
+        }
     }
     graphicsContext.SetPriority(oldPrio);
     graphicsContext.ResetClipArea();

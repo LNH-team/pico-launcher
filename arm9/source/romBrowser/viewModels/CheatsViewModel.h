@@ -29,6 +29,7 @@ public:
     const ICheatCategory* GetCurrentCheatCategory() const { return _categoryStack[_categoryStackLevel]; }
     const char* GetCurrentFolderName() const;
     bool GetIsSelectedOnlyMode() const { return _selectedOnlyMode; }
+    bool GetIsUsrCheatDatMissing() const { return _isUsrCheatDatMissing; }
     void GetRomCheatStats(u32& activeCount, u32& totalCount) const;
     void GetCurrentScopeCheatStats(u32& activeCount, u32& totalCount) const;
     const Cheat* GetSelectedCheats(u32& numberOfCheats) const
@@ -54,6 +55,7 @@ private:
     std::array<const char*, 8> _categoryNameStack;
     std::unique_ptr<Cheat[]> _selectedCheats;
     u32 _numberOfSelectedCheats = 0;
+    bool _isUsrCheatDatMissing = false;
 
     u32 CountCheats(const ICheatCategory* category) const;
     u32 CountActiveCheats(const ICheatCategory* category) const;
