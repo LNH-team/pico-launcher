@@ -20,6 +20,16 @@ public:
 
     CheatListItemView(const VramOffsets& vramOffsets, const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository);
 
+    static void SetFastScrollEnabled(bool enabled)
+    {
+        sFastScrollEnabled = enabled;
+    }
+
+    static void RequestScrollStartNow()
+    {
+        sForceScrollStartRequestId++;
+    }
+
     void Update() override;
     void Draw(GraphicsContext& graphicsContext) override;
 
@@ -30,26 +40,48 @@ public:
 
     void SetName(const char* name)
     {
-        _nameLabel.SetText(name);
+        SetBaseName(name);
     }
 
     void SetCategory(const CheatCategory* cheatCategory)
     {
         _cheat = nullptr;
-        _nameLabel.SetText(cheatCategory->GetName());
+        SetBaseName(cheatCategory->GetName());
         _iconVramOffset = _vramOffsets.folderIconVramOffset;
     }
 
     void SetCheat(const Cheat* cheat)
     {
         _cheat = cheat;
-        _nameLabel.SetText(_cheat->GetName());
+        SetBaseName(_cheat->GetName());
     }
 
 private:
+    enum class NameScrollPhase
+    {
+        PauseAtStart,
+        Scrolling
+    };
+
+    static bool sFastScrollEnabled;
+    static u32 sForceScrollStartRequestId;
+
+    const nft2_header_t* _nameFont;
     Label2DView _nameLabel;
     VramOffsets _vramOffsets;
     const MaterialColorScheme* _materialColorScheme;
     u32 _iconVramOffset = 0;
     const Cheat* _cheat = nullptr;
+    NameScrollPhase _nameScrollPhase = NameScrollPhase::PauseAtStart;
+    int _nameScrollPauseFrames = 0;
+    int _nameScrollOffsetQ8 = 0;
+    int _nameScrollCycleQ8 = 0;
+    bool _nameScrollPrepared = false;
+    u32 _handledForceScrollStartRequestId = 0;
+    char _baseName[96] = { 0 };
+
+    void ResetNameScroll();
+    void SetBaseName(const char* name);
+    void PrepareNameScrollIfNeeded();
+    void UpdateNameScroll();
 };

@@ -199,6 +199,12 @@ View* CheatsBottomSheetView::MoveFocus(View* currentFocus, FocusMoveDirection di
 
 bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, FocusManager& focusManager)
 {
+    CheatListItemView::SetFastScrollEnabled(inputProvider.Current(InputKey::R));
+    if (inputProvider.Current(InputKey::R))
+    {
+        CheatListItemView::RequestScrollStartNow();
+    }
+
     if (inputProvider.Triggered(InputKey::A))
     {
         if (focusManager.IsFocusInside(_cheatListRecycler.get()))
