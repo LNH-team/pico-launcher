@@ -11,6 +11,8 @@
 #include "checkboxUnchecked.h"
 #include "cheatSelector.h"
 #include "core/mini-printf.h"
+#include "core/StringUtil.h"
+#include "cheats/CheatCategory.h"
 #include "gui/DescendingStackVramManager.h"
 #include "CheatsBottomSheetView.h"
 
@@ -29,6 +31,7 @@ CheatsBottomSheetView::CheatsBottomSheetView(std::unique_ptr<CheatsViewModel> vi
     , _titleLabel(220, 16, 64, fontRepository->GetFont(FontType::Medium11))    
     , _totalCLabel(220, 16, 64, fontRepository->GetFont(FontType::Medium7_5))
     , _statusLabel(220, 16, 64, fontRepository->GetFont(FontType::Medium10))
+    , _descriptionLabel(220, 104, 512, fontRepository->GetFont(FontType::Regular10))
     , _cheatListRecycler(std::make_unique<RecyclerView>(LIST_X, LIST_Y, 224, 124, RecyclerView::Mode::VerticalList))
     , _materialColorScheme(materialColorScheme)
     , _fontRepository(fontRepository)
@@ -40,6 +43,10 @@ CheatsBottomSheetView::CheatsBottomSheetView(std::unique_ptr<CheatsViewModel> vi
     _totalCLabel.SetEllipsis(true);
     _statusLabel.SetEllipsis(true);
     _statusLabel.SetHorizontalAlignment(Alignment::Start);
+    _descriptionLabel.SetHorizontalAlignment(Alignment::Start);
+    _descriptionLabel.SetEllipsis(false);
+    _descriptionLabel.SetText(u"");
+    _descriptionLabel.SetParent(this);
     UpdateTitle();
     UpdateTotalC();
     AddChildTail(&_totalCLabel); 
@@ -82,6 +89,7 @@ void CheatsBottomSheetView::Update()
     _totalCLabel.SetPosition(TOTALC_LABEL_X, _position.y + TOTALC_LABEL_Y);
     _titleLabel.SetPosition(TITLE_LABEL_X, _position.y + TITLE_LABEL_Y);
     _statusLabel.SetPosition(TITLE_LABEL_X, _position.y + LIST_Y + 12);
+    _descriptionLabel.SetPosition(TITLE_LABEL_X, _position.y + LIST_Y);
     if (showNoCheatsMessage)
     {
         _statusLabel.SetText(_viewModel->GetIsUsrCheatDatMissing()
@@ -117,13 +125,18 @@ void CheatsBottomSheetView::Update()
         }
     }
     BottomSheetView::Update();
+    if (_isDescriptionMode)
+    {
+        _descriptionLabel.Update();
+    }
     _viewModel->SetSelectedItem(_cheatListRecycler->GetSelectedItem());
 }
 
 void CheatsBottomSheetView::Draw(GraphicsContext& graphicsContext)
 {
-    const bool showCheatList = _viewModel->GetState() == CheatsViewModel::State::DisplayCheats;
+    const bool showCheatList = _viewModel->GetState() == CheatsViewModel::State::DisplayCheats && !_isDescriptionMode;
     const bool showNoCheatsMessage = _viewModel->GetState() == CheatsViewModel::State::NoCheats;
+    const bool showDescriptionMode = _isDescriptionMode;
 
     graphicsContext.SetClipArea(GetBounds());
     u32 oldPrio = graphicsContext.SetPriority(1);
@@ -164,6 +177,8 @@ void CheatsBottomSheetView::Draw(GraphicsContext& graphicsContext)
         _titleLabel.SetForegroundColor(_materialColorScheme->onSurface);
         _statusLabel.SetBackgroundColor(backColor);
         _statusLabel.SetForegroundColor(_materialColorScheme->onSurface);
+        _descriptionLabel.SetBackgroundColor(backColor);
+        _descriptionLabel.SetForegroundColor(_materialColorScheme->onSurface);
         if (showCheatList)
         {
             _totalCLabel.Draw(graphicsContext);
@@ -173,9 +188,22 @@ void CheatsBottomSheetView::Draw(GraphicsContext& graphicsContext)
         {
             _statusLabel.Draw(graphicsContext);
         }
+        if (showDescriptionMode)
+        {
+            _descriptionLabel.Draw(graphicsContext);
+        }
     }
     graphicsContext.SetPriority(oldPrio);
     graphicsContext.ResetClipArea();
+}
+
+void CheatsBottomSheetView::VBlank()
+{
+    BottomSheetView::VBlank();
+    if (_isDescriptionMode)
+    {
+        _descriptionLabel.VBlank();
+    }
 }
 
 View* CheatsBottomSheetView::MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source)
@@ -199,6 +227,23 @@ View* CheatsBottomSheetView::MoveFocus(View* currentFocus, FocusMoveDirection di
 
 bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, FocusManager& focusManager)
 {
+    if (_isDescriptionMode &&
+        (inputProvider.Triggered(InputKey::X) || inputProvider.Triggered(InputKey::B)))
+    {
+        ExitDescriptionMode(focusManager);
+        return true;
+    }
+
+    if (_isDescriptionMode)
+    {
+        if (inputProvider.GetTriggeredKeys() != InputKey::None)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     CheatListItemView::SetFastScrollEnabled(inputProvider.Current(InputKey::R));
     if (inputProvider.Current(InputKey::R))
     {
@@ -249,6 +294,11 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
     {
         return true;
     }
+    else if (inputProvider.Triggered(InputKey::X))
+    {
+        EnterDescriptionMode(focusManager);
+        return true;
+    }
     else if (inputProvider.Triggered(InputKey::B))
     {
         if (_viewModel->GetIsSelectedOnlyMode())
@@ -287,6 +337,280 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
         return true;
     }
     return false;
+}
+
+bool CheatsBottomSheetView::TryGetSelectedItemNameAndDescription(const char*& selectedName, const char*& selectedDescription) const
+{
+    selectedName = nullptr;
+    selectedDescription = nullptr;
+
+    if (_viewModel->GetState() != CheatsViewModel::State::DisplayCheats)
+    {
+        return false;
+    }
+
+    const int selectedIndex = _cheatListRecycler->GetSelectedItem();
+    if (selectedIndex < 0)
+    {
+        return false;
+    }
+
+    if (_viewModel->GetIsSelectedOnlyMode())
+    {
+        u32 numberOfSelectedCheats = 0;
+        auto selectedCheats = _viewModel->GetSelectedCheats(numberOfSelectedCheats);
+        if ((u32)selectedIndex >= numberOfSelectedCheats)
+        {
+            return false;
+        }
+
+        selectedName = selectedCheats[selectedIndex].GetName();
+        selectedDescription = selectedCheats[selectedIndex].GetDescription();
+        return selectedDescription != nullptr && selectedDescription[0] != '\0';
+    }
+
+    auto cheatCategory = _viewModel->GetCurrentCheatCategory();
+    if (cheatCategory == nullptr)
+    {
+        return false;
+    }
+
+    u32 numberOfCategories = 0;
+    auto categories = cheatCategory->GetCategories(numberOfCategories);
+    if ((u32)selectedIndex < numberOfCategories)
+    {
+        selectedName = categories[selectedIndex].GetName();
+        selectedDescription = categories[selectedIndex].GetDescription();
+        return selectedDescription != nullptr && selectedDescription[0] != '\0';
+    }
+
+    u32 numberOfCheats = 0;
+    auto cheats = cheatCategory->GetCheats(numberOfCheats);
+    u32 cheatIndex = (u32)selectedIndex - numberOfCategories;
+    if (cheatIndex >= numberOfCheats)
+    {
+        return false;
+    }
+
+    selectedName = cheats[cheatIndex].GetName();
+    selectedDescription = cheats[cheatIndex].GetDescription();
+    return selectedDescription != nullptr && selectedDescription[0] != '\0';
+}
+
+bool CheatsBottomSheetView::EnterDescriptionMode(FocusManager& focusManager)
+{
+    const char* selectedName = nullptr;
+    const char* selectedDescription = nullptr;
+    if (!TryGetSelectedItemNameAndDescription(selectedName, selectedDescription))
+    {
+        return false;
+    }
+
+    _descriptionModeSelectedIndex = _cheatListRecycler->GetSelectedItem();
+    _isDescriptionMode = true;
+
+    auto emptyAdapter = new CheatsAdapter(nullptr, 0, _materialColorScheme, _fontRepository, _vramOffsets);
+    _cheatListRecycler->SetAdapter(emptyAdapter, 0);
+    delete _cheatsAdapter;
+    _cheatsAdapter = emptyAdapter;
+
+    ((DescendingStackVramManager*)_objVramManager)->SetState(_savedVramState);
+    _descriptionLabel.InitVram(VramContext(nullptr, _objVramManager, nullptr, nullptr));
+
+    _titleLabel.SetText(selectedName);
+    BuildWrappedDescriptionText(selectedDescription);
+    _descriptionLabel.SetText(_wrappedDescriptionBuffer);
+
+    focusManager.Unfocus();
+    focusManager.Focus(&_descriptionLabel);
+    return true;
+}
+
+void CheatsBottomSheetView::BuildWrappedDescriptionText(const char* description)
+{
+    _wrappedDescriptionBuffer[0] = 0;
+    if (description == nullptr || description[0] == '\0')
+    {
+        return;
+    }
+
+    constexpr u32 maxChars = sizeof(_wrappedDescriptionBuffer) / sizeof(_wrappedDescriptionBuffer[0]);
+    char16_t inputBuffer[maxChars];
+    StringUtil::Copy(inputBuffer, description, maxChars);
+
+    char16_t normalizedBuffer[maxChars];
+    u32 normalizedLen = 0;
+    bool previousWasSpace = true;
+    for (u32 i = 0; inputBuffer[i] != 0 && normalizedLen + 1 < maxChars; i++)
+    {
+        char16_t c = inputBuffer[i];
+        bool isWhitespace = c == '\r' || c == '\n' || c == '\t' || c == ' ';
+        if (isWhitespace)
+        {
+            if (!previousWasSpace)
+            {
+                normalizedBuffer[normalizedLen++] = ' ';
+                previousWasSpace = true;
+            }
+            continue;
+        }
+
+        normalizedBuffer[normalizedLen++] = c;
+        previousWasSpace = false;
+    }
+
+    while (normalizedLen > 0 && normalizedBuffer[normalizedLen - 1] == ' ')
+    {
+        normalizedLen--;
+    }
+    normalizedBuffer[normalizedLen] = 0;
+
+    if (normalizedLen == 0)
+    {
+        return;
+    }
+
+    const auto font = _fontRepository->GetFont(FontType::Regular10);
+    constexpr int maxLineWidth = 220;
+    u32 outLen = 0;
+
+    auto measureWidth = [font](const char16_t* text) -> u32
+    {
+        u32 width = 0;
+        u32 height = 0;
+        nft2_measureString(font, text, width, height);
+        return width;
+    };
+
+    auto appendLine = [this, &outLen](const char16_t* line, u32 lineLen)
+    {
+        if (lineLen == 0)
+        {
+            return;
+        }
+
+        if (outLen > 0 && outLen + 1 < maxChars)
+        {
+            _wrappedDescriptionBuffer[outLen++] = '\n';
+        }
+
+        for (u32 i = 0; i < lineLen && outLen + 1 < maxChars; i++)
+        {
+            _wrappedDescriptionBuffer[outLen++] = line[i];
+        }
+
+        _wrappedDescriptionBuffer[outLen] = 0;
+    };
+
+    char16_t lineBuffer[maxChars];
+    u32 lineLen = 0;
+    lineBuffer[0] = 0;
+
+    for (u32 tokenStart = 0; normalizedBuffer[tokenStart] != 0 && outLen + 1 < maxChars;)
+    {
+        u32 tokenEnd = tokenStart;
+        while (normalizedBuffer[tokenEnd] != 0 && normalizedBuffer[tokenEnd] != ' ')
+        {
+            tokenEnd++;
+        }
+        u32 tokenLen = tokenEnd - tokenStart;
+
+        char16_t tokenBuffer[maxChars];
+        u32 tokenCursor = 0;
+        for (; tokenCursor < tokenLen && tokenCursor + 1 < maxChars; tokenCursor++)
+        {
+            tokenBuffer[tokenCursor] = normalizedBuffer[tokenStart + tokenCursor];
+        }
+        tokenBuffer[tokenCursor] = 0;
+
+        char16_t candidateBuffer[maxChars];
+        u32 candidateLen = 0;
+        for (u32 i = 0; i < lineLen && candidateLen + 1 < maxChars; i++)
+        {
+            candidateBuffer[candidateLen++] = lineBuffer[i];
+        }
+        if (lineLen > 0 && candidateLen + 1 < maxChars)
+        {
+            candidateBuffer[candidateLen++] = ' ';
+        }
+        for (u32 i = 0; i < tokenLen && candidateLen + 1 < maxChars; i++)
+        {
+            candidateBuffer[candidateLen++] = tokenBuffer[i];
+        }
+        candidateBuffer[candidateLen] = 0;
+
+        if (lineLen > 0 && measureWidth(candidateBuffer) > maxLineWidth)
+        {
+            appendLine(lineBuffer, lineLen);
+            lineLen = 0;
+            lineBuffer[0] = 0;
+            continue;
+        }
+
+        if (lineLen == 0 && measureWidth(tokenBuffer) > maxLineWidth)
+        {
+            char16_t splitBuffer[maxChars];
+            u32 splitLen = 0;
+            for (u32 i = 0; i < tokenLen && outLen + 1 < maxChars; i++)
+            {
+                splitBuffer[splitLen++] = tokenBuffer[i];
+                splitBuffer[splitLen] = 0;
+                if (measureWidth(splitBuffer) > maxLineWidth)
+                {
+                    splitLen--;
+                    if (splitLen > 0)
+                    {
+                        appendLine(splitBuffer, splitLen);
+                    }
+                    splitLen = 0;
+                    splitBuffer[splitLen++] = tokenBuffer[i];
+                    splitBuffer[splitLen] = 0;
+                }
+            }
+
+            if (splitLen > 0)
+            {
+                for (u32 i = 0; i < splitLen && i + 1 < maxChars; i++)
+                {
+                    lineBuffer[i] = splitBuffer[i];
+                }
+                lineLen = splitLen;
+                lineBuffer[lineLen] = 0;
+            }
+        }
+        else
+        {
+            for (u32 i = 0; i < candidateLen && i + 1 < maxChars; i++)
+            {
+                lineBuffer[i] = candidateBuffer[i];
+            }
+            lineLen = candidateLen;
+            lineBuffer[lineLen] = 0;
+        }
+
+        tokenStart = tokenEnd;
+        if (normalizedBuffer[tokenStart] == ' ')
+        {
+            tokenStart++;
+        }
+    }
+
+    if (lineLen > 0)
+    {
+        appendLine(lineBuffer, lineLen);
+    }
+
+    _wrappedDescriptionBuffer[outLen] = 0;
+}
+
+void CheatsBottomSheetView::ExitDescriptionMode(FocusManager& focusManager)
+{
+    _isDescriptionMode = false;
+    _descriptionLabel.SetText(u"");
+    UpdateTitle();
+
+    focusManager.Unfocus();
+    UpdateCheatList(_descriptionModeSelectedIndex);
 }
 
 void CheatsBottomSheetView::UpdateCheatList(int initialSelectedIndex)

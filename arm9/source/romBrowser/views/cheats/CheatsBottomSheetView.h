@@ -30,6 +30,7 @@ public:
     void InitVram(const VramContext& vramContext) override;
     void Update() override;
     void Draw(GraphicsContext& graphicsContext) override;
+    void VBlank() override;
     View* MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source) override;
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
 
@@ -43,6 +44,7 @@ private:
     Label2DView _titleLabel;
     Label2DView _totalCLabel;
     Label2DView _statusLabel;
+    Label2DView _descriptionLabel;
     std::unique_ptr<RecyclerView> _cheatListRecycler;
     CheatsAdapter* _cheatsAdapter = nullptr;
     const MaterialColorScheme* _materialColorScheme;
@@ -53,8 +55,15 @@ private:
     u32 _savedVramState = 0;
     int _lastFocusedFolderIndex = 0;
     int _selectedModeReturnIndex = 0;
+    bool _isDescriptionMode = false;
+    int _descriptionModeSelectedIndex = 0;
+    char16_t _wrappedDescriptionBuffer[512] = { 0 };
 
     void UpdateTitle();
     void UpdateTotalC();
     void UpdateCheatList(int initialSelectedIndex = 0);
+    bool TryGetSelectedItemNameAndDescription(const char*& selectedName, const char*& selectedDescription) const;
+    void BuildWrappedDescriptionText(const char* description);
+    bool EnterDescriptionMode(FocusManager& focusManager);
+    void ExitDescriptionMode(FocusManager& focusManager);
 };
