@@ -39,6 +39,13 @@ public:
 
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
 
+    void PageByShoulderButtons(bool useLBehavior, FocusManager& focusManager);
+
+    void SetShoulderPagingEnabled(bool enabled)
+    {
+        _shoulderPagingEnabled = enabled;
+    }
+
     void Focus(FocusManager& focusManager) override
     {
         if (_selectedItem)
@@ -94,6 +101,7 @@ private:
     int _curRangeStart;
     int _curRangeLength;
     Animator<int> _scrollOffsetAnimator;
+    bool _shoulderPagingEnabled = true;
 
     void UpdatePosition(ViewPoolEntry& viewPoolEntry);
     ViewPoolEntry* GetViewPoolEntryByItemIndex(int itemIdx);

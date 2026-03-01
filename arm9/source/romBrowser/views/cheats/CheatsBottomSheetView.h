@@ -30,6 +30,7 @@ public:
     void InitVram(const VramContext& vramContext) override;
     void Update() override;
     void Draw(GraphicsContext& graphicsContext) override;
+    View* MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source) override;
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
 
     void Focus(FocusManager& focusManager) override

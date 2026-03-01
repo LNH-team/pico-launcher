@@ -73,6 +73,22 @@ bool CheatsViewModel::ItemActivated()
     return false;
 }
 
+void CheatsViewModel::DisableAllCheats()
+{
+    if (_cheats == nullptr)
+    {
+        return;
+    }
+
+    SetCheatsActive(_cheats.get(), false);
+    _changed = true;
+
+    if (_selectedOnlyMode)
+    {
+        BuildSelectedCheatsList();
+    }
+}
+
 void CheatsViewModel::Back()
 {
     if (_selectedOnlyMode)
@@ -214,6 +230,23 @@ u32 CheatsViewModel::CountActiveCheats(const Cheat* cheats, u32 numberOfCheats) 
         }
     }
     return total;
+}
+
+void CheatsViewModel::SetCheatsActive(const ICheatCategory* category, bool isActive) const
+{
+    u32 numberOfCategories = 0;
+    auto categories = category->GetCategories(numberOfCategories);
+    for (u32 i = 0; i < numberOfCategories; i++)
+    {
+        SetCheatsActive(&categories[i], isActive);
+    }
+
+    u32 numberOfCheats = 0;
+    auto cheats = category->GetCheats(numberOfCheats);
+    for (u32 i = 0; i < numberOfCheats; i++)
+    {
+        cheats[i].SetIsCheatActive(isActive);
+    }
 }
 
 void CheatsViewModel::CopyActiveCheats(const ICheatCategory* category, Cheat* cheats, u32& offset) const

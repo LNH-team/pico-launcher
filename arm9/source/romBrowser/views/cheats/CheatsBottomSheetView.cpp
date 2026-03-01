@@ -14,7 +14,6 @@
 #include "gui/DescendingStackVramManager.h"
 #include "CheatsBottomSheetView.h"
 
-
 #define TOTALC_LABEL_X      20
 #define TOTALC_LABEL_Y      8
 #define TITLE_LABEL_X       20
@@ -34,6 +33,7 @@ CheatsBottomSheetView::CheatsBottomSheetView(std::unique_ptr<CheatsViewModel> vi
     , _fontRepository(fontRepository)
     , _focusManager(focusManager)
 {
+    _cheatListRecycler->SetShoulderPagingEnabled(false);
     _titleLabel.SetEllipsis(true);
     _totalCLabel.SetHorizontalAlignment(Alignment::Start);
     _totalCLabel.SetEllipsis(true);
@@ -150,6 +150,25 @@ void CheatsBottomSheetView::Draw(GraphicsContext& graphicsContext)
     graphicsContext.ResetClipArea();
 }
 
+View* CheatsBottomSheetView::MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source)
+{
+    if (source == _cheatListRecycler.get())
+    {
+        if (direction == FocusMoveDirection::Left)
+        {
+            _cheatListRecycler->PageByShoulderButtons(true, *_focusManager);
+            return nullptr;
+        }
+        if (direction == FocusMoveDirection::Right)
+        {
+            _cheatListRecycler->PageByShoulderButtons(false, *_focusManager);
+            return nullptr;
+        }
+    }
+
+    return View::MoveFocus(currentFocus, direction, source);
+}
+
 bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, FocusManager& focusManager)
 {
     if (inputProvider.Triggered(InputKey::A))
@@ -169,6 +188,32 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
             }
             return true;
         }
+    }
+    else if (inputProvider.Triggered(InputKey::L))
+    {
+        if (focusManager.IsFocusInside(_cheatListRecycler.get()))
+        {
+            int selectedIdx = _cheatListRecycler->GetSelectedItem();
+            _viewModel->DisableAllCheats();
+
+            if (_viewModel->GetIsSelectedOnlyMode())
+            {
+                UpdateCheatList(0);
+            }
+            else
+            {
+                if (selectedIdx < 0)
+                {
+                    selectedIdx = 0;
+                }
+                UpdateCheatList(selectedIdx);
+            }
+            return true;
+        }
+    }
+    else if (inputProvider.Triggered(InputKey::R))
+    {
+        return true;
     }
     else if (inputProvider.Triggered(InputKey::B))
     {

@@ -20,6 +20,7 @@ public:
     CheatsViewModel(const FileInfo& romFileInfo, IRomBrowserController* romBrowserController);
 
     bool ItemActivated();
+    void DisableAllCheats();
     void Back();
     void Close();
     void SetSelectedOnlyMode(bool selectedOnlyMode);
@@ -57,6 +58,7 @@ private:
     u32 CountCheats(const ICheatCategory* category) const;
     u32 CountActiveCheats(const ICheatCategory* category) const;
     u32 CountActiveCheats(const Cheat* cheats, u32 numberOfCheats) const;
+    void SetCheatsActive(const ICheatCategory* category, bool isActive) const;
     void CopyActiveCheats(const ICheatCategory* category, Cheat* cheats, u32& offset) const;
     void BuildSelectedCheatsList();
 };
