@@ -49,5 +49,6 @@ private:
     CheatListItemView::VramOffsets _vramOffsets;
     u32 _savedVramState = 0;
 
+    void UpdateTitle();
     void UpdateCheatList(int initialSelectedIndex = 0);
 };

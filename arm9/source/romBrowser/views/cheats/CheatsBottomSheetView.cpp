@@ -10,6 +10,7 @@
 #include "checkboxChecked.h"
 #include "checkboxUnchecked.h"
 #include "cheatSelector.h"
+#include "core/mini-printf.h"
 #include "gui/DescendingStackVramManager.h"
 #include "CheatsBottomSheetView.h"
 
@@ -25,13 +26,14 @@ CheatsBottomSheetView::CheatsBottomSheetView(std::unique_ptr<CheatsViewModel> vi
     const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository,
     FocusManager* focusManager)
     : _viewModel(std::move(viewModel))
-    , _titleLabel(128, 16, 25, fontRepository->GetFont(FontType::Medium11))
+    , _titleLabel(220, 16, 64, fontRepository->GetFont(FontType::Medium11))
     , _cheatListRecycler(std::make_unique<RecyclerView>(LIST_X, LIST_Y, 224, 124, RecyclerView::Mode::VerticalList))
     , _materialColorScheme(materialColorScheme)
     , _fontRepository(fontRepository)
     , _focusManager(focusManager)
 {
-    _titleLabel.SetText(u"Cheats");
+    _titleLabel.SetEllipsis(true);
+    UpdateTitle();
     AddChildTail(&_titleLabel);
     AddChildTail(_cheatListRecycler.get());
 }
@@ -163,6 +165,8 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
 
 void CheatsBottomSheetView::UpdateCheatList(int initialSelectedIndex)
 {
+    UpdateTitle();
+
     auto oldAdapter = _cheatsAdapter;
     _cheatsAdapter = new CheatsAdapter(_viewModel->GetCurrentCheatCategory(), _materialColorScheme, _fontRepository, _vramOffsets);
     _cheatListRecycler->SetAdapter(_cheatsAdapter, initialSelectedIndex);
@@ -173,4 +177,19 @@ void CheatsBottomSheetView::UpdateCheatList(int initialSelectedIndex)
 
     _cheatListRecycler->InitVram(VramContext(nullptr, _objVramManager, nullptr, nullptr));
     _cheatListRecycler->Focus(*_focusManager);
+}
+
+void CheatsBottomSheetView::UpdateTitle()
+{
+    auto folderName = _viewModel->GetCurrentFolderName();
+    if (folderName != nullptr && folderName[0] != '\0')
+    {
+        char titleBuffer[64];
+        mini_snprintf(titleBuffer, sizeof(titleBuffer), "Cheats / %s", folderName);
+        _titleLabel.SetText(titleBuffer);
+    }
+    else
+    {
+        _titleLabel.SetText(u"Cheats");
+    }
 }
