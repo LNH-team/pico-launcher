@@ -40,6 +40,7 @@ public:
 private:
     std::unique_ptr<CheatsViewModel> _viewModel;
     Label2DView _titleLabel;
+    Label2DView _totalCLabel;
     std::unique_ptr<RecyclerView> _cheatListRecycler;
     CheatsAdapter* _cheatsAdapter = nullptr;
     const MaterialColorScheme* _materialColorScheme;
@@ -52,5 +53,6 @@ private:
     int _selectedModeReturnIndex = 0;
 
     void UpdateTitle();
+    void UpdateTotalC();
     void UpdateCheatList(int initialSelectedIndex = 0);
 };

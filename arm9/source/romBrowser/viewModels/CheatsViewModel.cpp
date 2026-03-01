@@ -126,6 +126,59 @@ const char* CheatsViewModel::GetCurrentFolderName() const
     return _categoryNameStack[_categoryStackLevel];
 }
 
+void CheatsViewModel::GetRomCheatStats(u32& activeCount, u32& totalCount) const
+{
+    activeCount = 0;
+    totalCount = 0;
+    if (_cheats == nullptr)
+    {
+        return;
+    }
+
+    totalCount = CountCheats(_cheats.get());
+    activeCount = CountActiveCheats(_cheats.get());
+}
+
+void CheatsViewModel::GetCurrentScopeCheatStats(u32& activeCount, u32& totalCount) const
+{
+    activeCount = 0;
+    totalCount = 0;
+
+    if (_selectedOnlyMode)
+    {
+        totalCount = _numberOfSelectedCheats;
+        activeCount = CountActiveCheats(_selectedCheats.get(), _numberOfSelectedCheats);
+        return;
+    }
+
+    auto currentCategory = GetCurrentCheatCategory();
+    if (currentCategory == nullptr)
+    {
+        return;
+    }
+
+    totalCount = CountCheats(currentCategory);
+    activeCount = CountActiveCheats(currentCategory);
+}
+
+u32 CheatsViewModel::CountCheats(const ICheatCategory* category) const
+{
+    u32 total = 0;
+
+    u32 numberOfCategories = 0;
+    auto categories = category->GetCategories(numberOfCategories);
+    for (u32 i = 0; i < numberOfCategories; i++)
+    {
+        total += CountCheats(&categories[i]);
+    }
+
+    u32 numberOfCheats = 0;
+    category->GetCheats(numberOfCheats);
+    total += numberOfCheats;
+
+    return total;
+}
+
 u32 CheatsViewModel::CountActiveCheats(const ICheatCategory* category) const
 {
     u32 total = 0;
@@ -147,6 +200,19 @@ u32 CheatsViewModel::CountActiveCheats(const ICheatCategory* category) const
         }
     }
 
+    return total;
+}
+
+u32 CheatsViewModel::CountActiveCheats(const Cheat* cheats, u32 numberOfCheats) const
+{
+    u32 total = 0;
+    for (u32 i = 0; i < numberOfCheats; i++)
+    {
+        if (cheats[i].GetIsCheatActive())
+        {
+            total++;
+        }
+    }
     return total;
 }
 

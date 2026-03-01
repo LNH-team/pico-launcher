@@ -14,8 +14,11 @@
 #include "gui/DescendingStackVramManager.h"
 #include "CheatsBottomSheetView.h"
 
+
+#define TOTALC_LABEL_X      20
+#define TOTALC_LABEL_Y      8
 #define TITLE_LABEL_X       20
-#define TITLE_LABEL_Y       16
+#define TITLE_LABEL_Y       20
 
 #define LIST_X              16
 #define LIST_Y              36
@@ -24,14 +27,19 @@ CheatsBottomSheetView::CheatsBottomSheetView(std::unique_ptr<CheatsViewModel> vi
     const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository,
     FocusManager* focusManager)
     : _viewModel(std::move(viewModel))
-    , _titleLabel(220, 16, 64, fontRepository->GetFont(FontType::Medium11))
+    , _titleLabel(220, 16, 64, fontRepository->GetFont(FontType::Medium11))    
+    , _totalCLabel(220, 16, 64, fontRepository->GetFont(FontType::Medium7_5))
     , _cheatListRecycler(std::make_unique<RecyclerView>(LIST_X, LIST_Y, 224, 124, RecyclerView::Mode::VerticalList))
     , _materialColorScheme(materialColorScheme)
     , _fontRepository(fontRepository)
     , _focusManager(focusManager)
 {
     _titleLabel.SetEllipsis(true);
+    _totalCLabel.SetHorizontalAlignment(Alignment::Start);
+    _totalCLabel.SetEllipsis(true);
     UpdateTitle();
+    UpdateTotalC();
+    AddChildTail(&_totalCLabel); 
     AddChildTail(&_titleLabel);
     AddChildTail(_cheatListRecycler.get());
 }
@@ -65,6 +73,7 @@ void CheatsBottomSheetView::InitVram(const VramContext& vramContext)
 
 void CheatsBottomSheetView::Update()
 {
+    _totalCLabel.SetPosition(TOTALC_LABEL_X, _position.y + TOTALC_LABEL_Y);
     _titleLabel.SetPosition(TITLE_LABEL_X, _position.y + TITLE_LABEL_Y);
     _cheatListRecycler->SetPosition(LIST_X, _position.y + LIST_Y);
     if (_viewModel->GetState() == CheatsViewModel::State::DisplayCheats)
@@ -83,6 +92,8 @@ void CheatsBottomSheetView::Update()
                 _cheatsAdapter = new CheatsAdapter(
                     _viewModel->GetCurrentCheatCategory(), _materialColorScheme, _fontRepository, _vramOffsets);
             }
+            UpdateTitle();
+            UpdateTotalC();
             _cheatListRecycler->SetAdapter(_cheatsAdapter);
 
             // Ugly hack
@@ -128,8 +139,11 @@ void CheatsBottomSheetView::Draw(GraphicsContext& graphicsContext)
             .WithPriority(graphicsContext.GetPriority())
             .Build(maskOam[3]);
 
+        _totalCLabel.SetBackgroundColor(backColor);
+        _totalCLabel.SetForegroundColor(_materialColorScheme->onSurface);
         _titleLabel.SetBackgroundColor(backColor);
         _titleLabel.SetForegroundColor(_materialColorScheme->onSurface);
+        _totalCLabel.Draw(graphicsContext);
         _titleLabel.Draw(graphicsContext);
     }
     graphicsContext.SetPriority(oldPrio);
@@ -148,6 +162,10 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
             if (categoryChanged)
             {
                 UpdateCheatList(0);
+            }
+            else
+            {
+                UpdateTotalC();
             }
             return true;
         }
@@ -195,6 +213,7 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
 void CheatsBottomSheetView::UpdateCheatList(int initialSelectedIndex)
 {
     UpdateTitle();
+    UpdateTotalC();
 
     auto oldAdapter = _cheatsAdapter;
     if (_viewModel->GetIsSelectedOnlyMode())
@@ -215,6 +234,26 @@ void CheatsBottomSheetView::UpdateCheatList(int initialSelectedIndex)
 
     _cheatListRecycler->InitVram(VramContext(nullptr, _objVramManager, nullptr, nullptr));
     _cheatListRecycler->Focus(*_focusManager);
+}
+
+void CheatsBottomSheetView::UpdateTotalC()
+{
+    u32 romActive = 0;
+    u32 romTotal = 0;
+    _viewModel->GetRomCheatStats(romActive, romTotal);
+
+    u32 currentActive = 0;
+    u32 currentTotal = 0;
+    _viewModel->GetCurrentScopeCheatStats(currentActive, currentTotal);
+
+    char totalCBuffer[40];
+    auto folderName = _viewModel->GetCurrentFolderName();
+    if ((folderName == nullptr || folderName[0] == '\0') || _viewModel->GetIsSelectedOnlyMode()) {
+        mini_snprintf(totalCBuffer, sizeof(totalCBuffer), "%lu/%lu", romActive, romTotal);
+    } else {
+        mini_snprintf(totalCBuffer, sizeof(totalCBuffer), "%lu/%lu             %lu/%lu", romActive, romTotal, currentActive, currentTotal);
+    }
+    _totalCLabel.SetText(totalCBuffer);
 }
 
 void CheatsBottomSheetView::UpdateTitle()
