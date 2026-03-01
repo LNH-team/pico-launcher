@@ -25,8 +25,19 @@ CheatsViewModel::CheatsViewModel(const FileInfo& romFileInfo, IRomBrowserControl
     });
 }
 
-void CheatsViewModel::ItemActivated()
+bool CheatsViewModel::ItemActivated()
 {
+    if (_selectedOnlyMode)
+    {
+        if (_selectedItem >= 0 && (u32)_selectedItem < _numberOfSelectedCheats)
+        {
+            auto& cheat = _selectedCheats[_selectedItem];
+            cheat.SetIsCheatActive(!cheat.GetIsCheatActive());
+            _changed = true;
+        }
+        return false;
+    }
+
     auto cheatCategory = GetCurrentCheatCategory();
     u32 numberOfCategories = 0;
     auto categories = cheatCategory->GetCategories(numberOfCategories);
@@ -40,6 +51,7 @@ void CheatsViewModel::ItemActivated()
         {
             _categoryStack[++_categoryStackLevel] = &categories[_selectedItem];
             _categoryNameStack[_categoryStackLevel] = categories[_selectedItem].GetName();
+            return true;
         }
     }
     else
@@ -57,10 +69,17 @@ void CheatsViewModel::ItemActivated()
         cheat.SetIsCheatActive(isEnabled);
         _changed = true;
     }
+
+    return false;
 }
 
 void CheatsViewModel::Back()
 {
+    if (_selectedOnlyMode)
+    {
+        return;
+    }
+
     if (_categoryStackLevel == 0)
     {
         Close();
@@ -86,4 +105,88 @@ void CheatsViewModel::Close()
     }
 
     _romBrowserController->HideGameInfo();
+}
+
+void CheatsViewModel::SetSelectedOnlyMode(bool selectedOnlyMode)
+{
+    _selectedOnlyMode = selectedOnlyMode;
+    if (_selectedOnlyMode)
+    {
+        BuildSelectedCheatsList();
+    }
+}
+
+const char* CheatsViewModel::GetCurrentFolderName() const
+{
+    if (_selectedOnlyMode)
+    {
+        return "Selected";
+    }
+
+    return _categoryNameStack[_categoryStackLevel];
+}
+
+u32 CheatsViewModel::CountActiveCheats(const ICheatCategory* category) const
+{
+    u32 total = 0;
+
+    u32 numberOfCategories = 0;
+    auto categories = category->GetCategories(numberOfCategories);
+    for (u32 i = 0; i < numberOfCategories; i++)
+    {
+        total += CountActiveCheats(&categories[i]);
+    }
+
+    u32 numberOfCheats = 0;
+    auto cheats = category->GetCheats(numberOfCheats);
+    for (u32 i = 0; i < numberOfCheats; i++)
+    {
+        if (cheats[i].GetIsCheatActive())
+        {
+            total++;
+        }
+    }
+
+    return total;
+}
+
+void CheatsViewModel::CopyActiveCheats(const ICheatCategory* category, Cheat* cheats, u32& offset) const
+{
+    u32 numberOfCategories = 0;
+    auto categories = category->GetCategories(numberOfCategories);
+    for (u32 i = 0; i < numberOfCategories; i++)
+    {
+        CopyActiveCheats(&categories[i], cheats, offset);
+    }
+
+    u32 numberOfCheats = 0;
+    auto categoryCheats = category->GetCheats(numberOfCheats);
+    for (u32 i = 0; i < numberOfCheats; i++)
+    {
+        if (categoryCheats[i].GetIsCheatActive())
+        {
+            cheats[offset++] = categoryCheats[i];
+        }
+    }
+}
+
+void CheatsViewModel::BuildSelectedCheatsList()
+{
+    _selectedCheats.reset();
+    _numberOfSelectedCheats = 0;
+
+    if (_cheats == nullptr)
+    {
+        return;
+    }
+
+    _numberOfSelectedCheats = CountActiveCheats(_cheats.get());
+    if (_numberOfSelectedCheats == 0)
+    {
+        return;
+    }
+
+    _selectedCheats = std::make_unique<Cheat[]>(_numberOfSelectedCheats);
+    u32 offset = 0;
+    CopyActiveCheats(_cheats.get(), _selectedCheats.get(), offset);
 }

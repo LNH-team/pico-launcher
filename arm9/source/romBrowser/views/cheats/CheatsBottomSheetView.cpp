@@ -20,8 +20,6 @@
 #define LIST_X              16
 #define LIST_Y              36
 
-static int s_lastFocusedFolderIndex = 0;
-
 CheatsBottomSheetView::CheatsBottomSheetView(std::unique_ptr<CheatsViewModel> viewModel,
     const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository,
     FocusManager* focusManager)
@@ -73,8 +71,18 @@ void CheatsBottomSheetView::Update()
     {
         if (_cheatsAdapter == nullptr && _objVramManager != nullptr)
         {
-            _cheatsAdapter = new CheatsAdapter(
-                _viewModel->GetCurrentCheatCategory(), _materialColorScheme, _fontRepository, _vramOffsets);
+            if (_viewModel->GetIsSelectedOnlyMode())
+            {
+                u32 numberOfSelectedCheats = 0;
+                auto selectedCheats = _viewModel->GetSelectedCheats(numberOfSelectedCheats);
+                _cheatsAdapter = new CheatsAdapter(selectedCheats, numberOfSelectedCheats,
+                    _materialColorScheme, _fontRepository, _vramOffsets);
+            }
+            else
+            {
+                _cheatsAdapter = new CheatsAdapter(
+                    _viewModel->GetCurrentCheatCategory(), _materialColorScheme, _fontRepository, _vramOffsets);
+            }
             _cheatListRecycler->SetAdapter(_cheatsAdapter);
 
             // Ugly hack
@@ -134,24 +142,45 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
     {
         if (focusManager.IsFocusInside(_cheatListRecycler.get()))
         {
-            auto oldCategory = _viewModel->GetCurrentCheatCategory();
             int selectedIdx = _cheatListRecycler->GetSelectedItem();
-            s_lastFocusedFolderIndex = selectedIdx;
-            _viewModel->ItemActivated();
-            if (oldCategory != _viewModel->GetCurrentCheatCategory())
+            _lastFocusedFolderIndex = selectedIdx;
+            bool categoryChanged = _viewModel->ItemActivated();
+            if (categoryChanged)
             {
-                UpdateCheatList();
+                UpdateCheatList(0);
             }
             return true;
         }
     }
     else if (inputProvider.Triggered(InputKey::B))
     {
+        if (_viewModel->GetIsSelectedOnlyMode())
+        {
+            _viewModel->SetSelectedOnlyMode(false);
+            UpdateCheatList(_selectedModeReturnIndex);
+            return true;
+        }
+
         auto oldCategory = _viewModel->GetCurrentCheatCategory();
         _viewModel->Back();
         if (oldCategory != _viewModel->GetCurrentCheatCategory())
         {
-            UpdateCheatList(s_lastFocusedFolderIndex);
+            UpdateCheatList(_lastFocusedFolderIndex);
+        }
+        return true;
+    }
+    else if (inputProvider.Triggered(InputKey::Select))
+    {
+        if (_viewModel->GetIsSelectedOnlyMode())
+        {
+            _viewModel->SetSelectedOnlyMode(false);
+            UpdateCheatList(_selectedModeReturnIndex);
+        }
+        else
+        {
+            _selectedModeReturnIndex = _cheatListRecycler->GetSelectedItem();
+            _viewModel->SetSelectedOnlyMode(true);
+            UpdateCheatList(0);
         }
         return true;
     }
@@ -168,7 +197,16 @@ void CheatsBottomSheetView::UpdateCheatList(int initialSelectedIndex)
     UpdateTitle();
 
     auto oldAdapter = _cheatsAdapter;
-    _cheatsAdapter = new CheatsAdapter(_viewModel->GetCurrentCheatCategory(), _materialColorScheme, _fontRepository, _vramOffsets);
+    if (_viewModel->GetIsSelectedOnlyMode())
+    {
+        u32 numberOfSelectedCheats = 0;
+        auto selectedCheats = _viewModel->GetSelectedCheats(numberOfSelectedCheats);
+        _cheatsAdapter = new CheatsAdapter(selectedCheats, numberOfSelectedCheats, _materialColorScheme, _fontRepository, _vramOffsets);
+    }
+    else
+    {
+        _cheatsAdapter = new CheatsAdapter(_viewModel->GetCurrentCheatCategory(), _materialColorScheme, _fontRepository, _vramOffsets);
+    }
     _cheatListRecycler->SetAdapter(_cheatsAdapter, initialSelectedIndex);
     delete oldAdapter;
 

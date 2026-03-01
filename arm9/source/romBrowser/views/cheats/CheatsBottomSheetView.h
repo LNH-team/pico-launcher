@@ -48,6 +48,8 @@ private:
     FocusManager* _focusManager;
     CheatListItemView::VramOffsets _vramOffsets;
     u32 _savedVramState = 0;
+    int _lastFocusedFolderIndex = 0;
+    int _selectedModeReturnIndex = 0;
 
     void UpdateTitle();
     void UpdateCheatList(int initialSelectedIndex = 0);
