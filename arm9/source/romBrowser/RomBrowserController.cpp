@@ -261,7 +261,7 @@ void RomBrowserController::HandleNavigateTrigger()
         }
         if (!_cheatRepository)
         {
-            _cheatRepository = UsrCheatRepositoryFactory().FromUsrCheatDat("/_pico/usrcheat.dat");
+            _cheatRepository = UsrCheatRepositoryFactory().FromUsrCheatDat("/_pico/extras/usrcheat.dat");
             if (!_cheatRepository)
             {
                 // When usrcheat.dat is not found or cannot be read use a dummy empty cheat repository

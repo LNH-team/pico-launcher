@@ -40,7 +40,14 @@ public:
     }
 
 private:
+    enum class TitleScrollPhase
+    {
+        PauseAtStart,
+        Scrolling
+    };
+
     std::unique_ptr<CheatsViewModel> _viewModel;
+    Label2DView _titlePrefixLabel;
     Label2DView _titleLabel;
     Label2DView _totalCLabel;
     Label2DView _statusLabel;
@@ -58,10 +65,23 @@ private:
     bool _isDescriptionMode = false;
     int _descriptionModeSelectedIndex = 0;
     char16_t _wrappedDescriptionBuffer[512] = { 0 };
+    char _descriptionModeTitle[128] = { 0 };
+
+    bool _titleHasPrefix = false;
+    bool _titleScrollPrepared = false;
+    int _titleScrollCycleQ8 = 0;
+    int _titleScrollOffsetQ8 = 0;
+    u32 _titleScrollPauseFrames = 0;
+    TitleScrollPhase _titleScrollPhase = TitleScrollPhase::PauseAtStart;
+    char _titleBaseText[128] = { 0 };
+    int _titlePrefixPixelWidth = 0;
 
     void UpdateTitle();
     void UpdateTotalC();
     void UpdateCheatList(int initialSelectedIndex = 0);
+    void ResetTitleScroll();
+    void PrepareTitleScrollIfNeeded(int availableWidth);
+    void UpdateTitleScroll(int availableWidth);
     bool TryGetSelectedItemNameAndDescription(const char*& selectedName, const char*& selectedDescription) const;
     void BuildWrappedDescriptionText(const char* description);
     bool EnterDescriptionMode(FocusManager& focusManager);

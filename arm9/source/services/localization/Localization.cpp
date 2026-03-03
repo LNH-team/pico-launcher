@@ -62,8 +62,8 @@ void Localization::LoadFallbackEnglish()
     AddEntry("cheats_dat_missing", u"usrcheat.dat not found");
     AddEntry("game_details", u"Game Details");
     AddEntry("cheats_no_description_available", u"No description available.");
-    AddEntry("Selected_Cheats", u"Selected Cheats");
-}
+    AddEntry("selected_cheats", u"Selected Cheats");
+    AddEntry("Selected_Cheats", u"Selected Cheats");}
 
 void Localization::LoadFromJson(const char* language)
 {

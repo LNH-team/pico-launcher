@@ -14,6 +14,7 @@
 #include "core/StringUtil.h"
 #include "cheats/CheatCategory.h"
 #include "gui/DescendingStackVramManager.h"
+#include "services/localization/Localization.h"
 #include "CheatsBottomSheetView.h"
 
 #define TOTALC_LABEL_X      20
@@ -24,11 +25,17 @@
 #define LIST_X              16
 #define LIST_Y              36
 
+#define TITLE_SCROLL_SEPARATOR          "   "
+#define TITLE_SCROLL_START_PAUSE_FRAMES 120
+#define TITLE_SCROLL_CYCLE_PAUSE_FRAMES 120
+#define TITLE_SCROLL_SPEED_Q8           96
+
 CheatsBottomSheetView::CheatsBottomSheetView(std::unique_ptr<CheatsViewModel> viewModel,
     const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository,
     FocusManager* focusManager)
     : _viewModel(std::move(viewModel))
-    , _titleLabel(220, 16, 64, fontRepository->GetFont(FontType::Medium11))    
+    , _titlePrefixLabel(120, 16, 64, fontRepository->GetFont(FontType::Medium11))
+    , _titleLabel(220, 16, 128, fontRepository->GetFont(FontType::Medium11))
     , _totalCLabel(220, 16, 64, fontRepository->GetFont(FontType::Medium7_5))
     , _statusLabel(220, 16, 64, fontRepository->GetFont(FontType::Medium10))
     , _descriptionLabel(220, 104, 512, fontRepository->GetFont(FontType::Regular10))
@@ -38,7 +45,8 @@ CheatsBottomSheetView::CheatsBottomSheetView(std::unique_ptr<CheatsViewModel> vi
     , _focusManager(focusManager)
 {
     _cheatListRecycler->SetShoulderPagingEnabled(false);
-    _titleLabel.SetEllipsis(true);
+    _titlePrefixLabel.SetEllipsis(false);
+    _titleLabel.SetEllipsis(false);
     _totalCLabel.SetHorizontalAlignment(Alignment::Start);
     _totalCLabel.SetEllipsis(true);
     _statusLabel.SetEllipsis(true);
@@ -49,6 +57,7 @@ CheatsBottomSheetView::CheatsBottomSheetView(std::unique_ptr<CheatsViewModel> vi
     _descriptionLabel.SetParent(this);
     UpdateTitle();
     UpdateTotalC();
+    AddChildTail(&_titlePrefixLabel);
     AddChildTail(&_totalCLabel); 
     AddChildTail(&_titleLabel);
     AddChildTail(&_statusLabel);
@@ -87,14 +96,31 @@ void CheatsBottomSheetView::Update()
     const bool showNoCheatsMessage = _viewModel->GetState() == CheatsViewModel::State::NoCheats;
 
     _totalCLabel.SetPosition(TOTALC_LABEL_X, _position.y + TOTALC_LABEL_Y);
-    _titleLabel.SetPosition(TITLE_LABEL_X, _position.y + TITLE_LABEL_Y);
+    _titlePrefixLabel.SetPosition(TITLE_LABEL_X, _position.y + TITLE_LABEL_Y);
+
+    int titleTextX = TITLE_LABEL_X;
+    if (_titleHasPrefix)
+    {
+        titleTextX += _titlePrefixPixelWidth + 4;
+    }
+    _titleLabel.SetPosition(titleTextX, _position.y + TITLE_LABEL_Y);
+
+    int titleAvailableWidth = 220 - (titleTextX - TITLE_LABEL_X);
+    if (titleAvailableWidth < 32)
+    {
+        titleAvailableWidth = 32;
+    }
+    UpdateTitleScroll(titleAvailableWidth);
+
     _statusLabel.SetPosition(TITLE_LABEL_X, _position.y + LIST_Y + 12);
     _descriptionLabel.SetPosition(TITLE_LABEL_X, _position.y + LIST_Y);
     if (showNoCheatsMessage)
     {
+        const char16_t* missing = Localization::Translate("cheats_dat_missing");
+        const char16_t* notFound = Localization::Translate("cheats_not_found");
         _statusLabel.SetText(_viewModel->GetIsUsrCheatDatMissing()
-            ? u"usrcheats.dat not found"
-            : u"Cheats not found");
+            ? ((missing && missing[0] != 0) ? missing : u"usrcheat.dat not found")
+            : ((notFound && notFound[0] != 0) ? notFound : u"Cheats not found"));
     }
     _cheatListRecycler->SetPosition(LIST_X, _position.y + LIST_Y);
     if (_viewModel->GetState() == CheatsViewModel::State::DisplayCheats)
@@ -173,6 +199,8 @@ void CheatsBottomSheetView::Draw(GraphicsContext& graphicsContext)
 
         _totalCLabel.SetBackgroundColor(backColor);
         _totalCLabel.SetForegroundColor(_materialColorScheme->onSurface);
+        _titlePrefixLabel.SetBackgroundColor(backColor);
+        _titlePrefixLabel.SetForegroundColor(_materialColorScheme->onSurface);
         _titleLabel.SetBackgroundColor(backColor);
         _titleLabel.SetForegroundColor(_materialColorScheme->onSurface);
         _statusLabel.SetBackgroundColor(backColor);
@@ -183,7 +211,24 @@ void CheatsBottomSheetView::Draw(GraphicsContext& graphicsContext)
         {
             _totalCLabel.Draw(graphicsContext);
         }
+        if (_titleHasPrefix)
+        {
+            _titlePrefixLabel.Draw(graphicsContext);
+        }
+
+        int titleTextX = TITLE_LABEL_X;
+        if (_titleHasPrefix)
+        {
+            titleTextX += _titlePrefixPixelWidth + 4;
+        }
+        int titleAvailableWidth = 220 - (titleTextX - TITLE_LABEL_X);
+        if (titleAvailableWidth < 1)
+        {
+            titleAvailableWidth = 1;
+        }
+        graphicsContext.SetClipArea(Rectangle(titleTextX, _position.y + TITLE_LABEL_Y, titleAvailableWidth, 16));
         _titleLabel.Draw(graphicsContext);
+        graphicsContext.SetClipArea(GetBounds());
         if (showNoCheatsMessage)
         {
             _statusLabel.Draw(graphicsContext);
@@ -228,7 +273,7 @@ View* CheatsBottomSheetView::MoveFocus(View* currentFocus, FocusMoveDirection di
 bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, FocusManager& focusManager)
 {
     if (_isDescriptionMode &&
-        (inputProvider.Triggered(InputKey::X) || inputProvider.Triggered(InputKey::B)))
+        (inputProvider.Triggered(InputKey::Y) || inputProvider.Triggered(InputKey::B)))
     {
         ExitDescriptionMode(focusManager);
         return true;
@@ -241,6 +286,19 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
             return true;
         }
 
+        return false;
+    }
+
+    // Gestione input quando non ci sono cheats
+    if (_viewModel->GetState() == CheatsViewModel::State::NoCheats) {
+        if (inputProvider.Triggered(InputKey::A)) {
+            // Ignora A se non ci sono cheats
+            return true;
+        }
+        if (inputProvider.Triggered(InputKey::B)) {
+            _viewModel->Close();
+            return true;
+        }
         return false;
     }
 
@@ -272,6 +330,14 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
     {
         if (focusManager.IsFocusInside(_cheatListRecycler.get()))
         {
+            u32 romActive = 0;
+            u32 romTotal = 0;
+            _viewModel->GetRomCheatStats(romActive, romTotal);
+            if (romActive == 0)
+            {
+                return true;
+            }
+
             int selectedIdx = _cheatListRecycler->GetSelectedItem();
             _viewModel->DisableAllCheats();
 
@@ -294,7 +360,7 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
     {
         return true;
     }
-    else if (inputProvider.Triggered(InputKey::X))
+    else if (inputProvider.Triggered(InputKey::Y))
     {
         EnterDescriptionMode(focusManager);
         return true;
@@ -329,11 +395,6 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
             _viewModel->SetSelectedOnlyMode(true);
             UpdateCheatList(0);
         }
-        return true;
-    }
-    else if (inputProvider.Triggered(InputKey::Y))
-    {
-        _viewModel->Close();
         return true;
     }
     return false;
@@ -408,6 +469,7 @@ bool CheatsBottomSheetView::EnterDescriptionMode(FocusManager& focusManager)
 
     _descriptionModeSelectedIndex = _cheatListRecycler->GetSelectedItem();
     _isDescriptionMode = true;
+    StringUtil::Copy(_descriptionModeTitle, selectedName, sizeof(_descriptionModeTitle));
 
     auto emptyAdapter = new CheatsAdapter(nullptr, 0, _materialColorScheme, _fontRepository, _vramOffsets);
     _cheatListRecycler->SetAdapter(emptyAdapter, 0);
@@ -417,7 +479,7 @@ bool CheatsBottomSheetView::EnterDescriptionMode(FocusManager& focusManager)
     ((DescendingStackVramManager*)_objVramManager)->SetState(_savedVramState);
     _descriptionLabel.InitVram(VramContext(nullptr, _objVramManager, nullptr, nullptr));
 
-    _titleLabel.SetText(selectedName);
+    UpdateTitle();
     BuildWrappedDescriptionText(selectedDescription);
     _descriptionLabel.SetText(_wrappedDescriptionBuffer);
 
@@ -659,17 +721,158 @@ void CheatsBottomSheetView::UpdateTotalC()
     _totalCLabel.SetText(totalCBuffer);
 }
 
+void CheatsBottomSheetView::ResetTitleScroll()
+{
+    _titleScrollPrepared = false;
+    _titleScrollCycleQ8 = 0;
+    _titleScrollOffsetQ8 = 0;
+    _titleScrollPauseFrames = TITLE_SCROLL_START_PAUSE_FRAMES;
+    _titleScrollPhase = TitleScrollPhase::PauseAtStart;
+    _titleLabel.SetTextOffsetX(0);
+}
+
+void CheatsBottomSheetView::PrepareTitleScrollIfNeeded(int availableWidth)
+{
+    if (_titleScrollPrepared)
+    {
+        return;
+    }
+
+    _titleScrollPrepared = true;
+    _titleScrollCycleQ8 = 0;
+    _titleLabel.SetText(_titleBaseText);
+
+    char16_t baseText16[128];
+    StringUtil::Copy(baseText16, _titleBaseText, sizeof(baseText16) / sizeof(baseText16[0]));
+
+    u32 baseWidth = 0;
+    u32 baseHeight = 0;
+    nft2_measureString(_fontRepository->GetFont(FontType::Medium11), baseText16, baseWidth, baseHeight);
+    if ((int)baseWidth <= availableWidth)
+    {
+        return;
+    }
+
+    char16_t separator16[8];
+    StringUtil::Copy(separator16, TITLE_SCROLL_SEPARATOR, sizeof(separator16) / sizeof(separator16[0]));
+    u32 separatorWidth = 0;
+    u32 separatorHeight = 0;
+    nft2_measureString(_fontRepository->GetFont(FontType::Medium11), separator16, separatorWidth, separatorHeight);
+
+    char scrollerText[320];
+    scrollerText[0] = 0;
+    strlcat(scrollerText, _titleBaseText, sizeof(scrollerText));
+    strlcat(scrollerText, TITLE_SCROLL_SEPARATOR, sizeof(scrollerText));
+    strlcat(scrollerText, _titleBaseText, sizeof(scrollerText));
+    strlcat(scrollerText, TITLE_SCROLL_SEPARATOR, sizeof(scrollerText));
+    strlcat(scrollerText, _titleBaseText, sizeof(scrollerText));
+    _titleLabel.SetText(scrollerText);
+
+    _titleScrollCycleQ8 = ((int)baseWidth + (int)separatorWidth) << 8;
+}
+
+void CheatsBottomSheetView::UpdateTitleScroll(int availableWidth)
+{
+    PrepareTitleScrollIfNeeded(availableWidth);
+    if (_titleScrollCycleQ8 <= 0)
+    {
+        if (_titleScrollOffsetQ8 != 0)
+        {
+            _titleLabel.SetTextOffsetX(0);
+            _titleScrollOffsetQ8 = 0;
+        }
+        return;
+    }
+
+    if (_titleScrollPhase == TitleScrollPhase::PauseAtStart)
+    {
+        if (_titleScrollPauseFrames > 0)
+        {
+            _titleScrollPauseFrames--;
+            return;
+        }
+
+        _titleScrollPhase = TitleScrollPhase::Scrolling;
+    }
+
+    _titleScrollOffsetQ8 += TITLE_SCROLL_SPEED_Q8;
+    if (_titleScrollOffsetQ8 >= _titleScrollCycleQ8)
+    {
+        _titleScrollOffsetQ8 = 0;
+        _titleLabel.SetTextOffsetX(0);
+        _titleScrollPhase = TitleScrollPhase::PauseAtStart;
+        _titleScrollPauseFrames = TITLE_SCROLL_CYCLE_PAUSE_FRAMES;
+        return;
+    }
+
+    _titleLabel.SetTextOffsetX(-(_titleScrollOffsetQ8 >> 8));
+}
+
 void CheatsBottomSheetView::UpdateTitle()
 {
+    const char16_t* cheatsText = Localization::Translate("cheats");
+    const char16_t* selectedCheatsText = Localization::Translate("selected_cheats");
+    const char16_t* selectedCheatsFallback = Localization::Translate("Selected_Cheats");
+
+    if (_isDescriptionMode)
+    {
+        _titleHasPrefix = false;
+        _titlePrefixPixelWidth = 0;
+        _titlePrefixLabel.SetText(u"");
+        StringUtil::Copy(_titleBaseText, _descriptionModeTitle, sizeof(_titleBaseText));
+        ResetTitleScroll();
+        return;
+    }
+
+    if (_viewModel->GetIsSelectedOnlyMode())
+    {
+        _titleHasPrefix = false;
+        _titlePrefixPixelWidth = 0;
+        _titlePrefixLabel.SetText(u"");
+        if (selectedCheatsText && selectedCheatsText[0] != 0)
+        {
+            _titleLabel.SetText(selectedCheatsText);
+        }
+        else if (selectedCheatsFallback && selectedCheatsFallback[0] != 0)
+        {
+            _titleLabel.SetText(selectedCheatsFallback);
+        }
+        else
+        {
+            _titleLabel.SetText("Selected Cheats");
+        }
+        _titleBaseText[0] = 0;
+        ResetTitleScroll();
+        _titleScrollPrepared = true;
+        return;
+    }
+
     auto folderName = _viewModel->GetCurrentFolderName();
     if (folderName != nullptr && folderName[0] != '\0')
     {
-        char titleBuffer[64];
-        mini_snprintf(titleBuffer, sizeof(titleBuffer), "Cheats / %s", folderName);
-        _titleLabel.SetText(titleBuffer);
+        _titleHasPrefix = false;
+        _titlePrefixPixelWidth = 0;
+        _titlePrefixLabel.SetText(u"");
+        StringUtil::Copy(_titleBaseText, folderName, sizeof(_titleBaseText));
     }
     else
     {
-        _titleLabel.SetText(u"Cheats");
+        _titleHasPrefix = false;
+        _titlePrefixPixelWidth = 0;
+        _titlePrefixLabel.SetText(u"");
+        if (cheatsText && cheatsText[0] != 0)
+        {
+            _titleLabel.SetText(cheatsText);
+        }
+        else
+        {
+            _titleLabel.SetText("Cheats");
+        }
+        _titleBaseText[0] = 0;
+        ResetTitleScroll();
+        _titleScrollPrepared = true;
+        return;
     }
+
+    ResetTitleScroll();
 }

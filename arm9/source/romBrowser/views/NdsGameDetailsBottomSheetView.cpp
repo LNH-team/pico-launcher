@@ -13,11 +13,81 @@
 #include "../viewModels/RomBrowserViewModel.h"
 #include "services/localization/Localization.h"
 #include "services/launchStats/LaunchStatsService.h"
+#include "cheats/ICheatCategory.h"
+#include "cheats/ICheatRepository.h"
+#include "cheats/CheatCategory.h"
+#include "cheats/Cheat.h"
 #include "../FileType/Nds/NdsFileType.h"
 #include "../FileType/Nds/NdsInternalFileInfo.h"
 #include "core/mini-printf.h"
-#include "cheats/CheatCodelist.h"
 #include "fat/File.h"
+
+#define CRCPOLY 0xEDB88320
+
+static u32 ComputeCrc32(const void* buffer, u32 length)
+{
+    u32 crc = ~0u;
+    const u8* p = (const u8*)buffer;
+    while (length--)
+    {
+        crc ^= *p++;
+        for (int i = 0; i < 8; i++)
+        {
+            crc = (crc >> 1) ^ ((crc & 1) ? CRCPOLY : 0);
+        }
+    }
+
+    return crc;
+}
+
+static u32 CountCheatsRecursive(const ICheatCategory* category)
+{
+    if (!category)
+    {
+        return 0;
+    }
+
+    u32 total = 0;
+    u32 numberOfCategories = 0;
+    auto categories = category->GetCategories(numberOfCategories);
+    for (u32 i = 0; i < numberOfCategories; i++)
+    {
+        total += CountCheatsRecursive(&categories[i]);
+    }
+
+    u32 numberOfCheats = 0;
+    category->GetCheats(numberOfCheats);
+    total += numberOfCheats;
+    return total;
+}
+
+static u32 CountActiveCheatsRecursive(const ICheatCategory* category)
+{
+    if (!category)
+    {
+        return 0;
+    }
+
+    u32 total = 0;
+    u32 numberOfCategories = 0;
+    auto categories = category->GetCategories(numberOfCategories);
+    for (u32 i = 0; i < numberOfCategories; i++)
+    {
+        total += CountActiveCheatsRecursive(&categories[i]);
+    }
+
+    u32 numberOfCheats = 0;
+    auto cheats = category->GetCheats(numberOfCheats);
+    for (u32 i = 0; i < numberOfCheats; i++)
+    {
+        if (cheats[i].GetIsCheatActive())
+        {
+            total++;
+        }
+    }
+
+    return total;
+}
 
 NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     IRomBrowserController* romBrowserController,
@@ -31,6 +101,8 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     , _favoriteChip(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository)
     , _countLaunchLabel(80, 16, 20, fontRepository->GetFont(FontType::Regular10))
     , _countLaunchValueLabel(30, 16, 20, fontRepository->GetFont(FontType::Regular10))
+    , _cheatCountLabel(80, 16, 24, fontRepository->GetFont(FontType::Regular10))
+    , _cheatCountValueLabel(40, 16, 20, fontRepository->GetFont(FontType::Regular10))
 {
     _titleLabel.SetText((const char16_t*)L"Game Details"); 
     const char16_t* localizedTitle = Localization::Translate("game_details");
@@ -43,13 +115,18 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
 
     _gameCodeLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
     _gameCodeLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+    _gameCodeLabel.SetText(u"");
     AddChildTail(&_gameCodeLabel);
 
     _crcLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
     _crcLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+    _crcLabel.SetText(u"");
     AddChildTail(&_crcLabel);
 
     bool isNds = false;
+
+    u32 cheatActiveCount = 0;
+    u32 cheatTotalCount = 0;
 
     if (_romBrowserController) {
         const auto& viewModel = _romBrowserController->GetRomBrowserViewModel();
@@ -69,6 +146,13 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                     }
 
                     if (isNds) {
+                        auto gameCheats = _romBrowserController->GetCheatRepository().GetCheatsForGame(fileInfo.GetFastFileRef());
+                        if (gameCheats)
+                        {
+                            cheatTotalCount = CountCheatsRecursive(gameCheats.get());
+                            cheatActiveCount = CountActiveCheatsRecursive(gameCheats.get());
+                        }
+
                         std::unique_ptr<InternalFileInfo> internalInfo(fileInfo.CreateInternalFileInfo());
                         const char* gameCode = nullptr;
                         if (internalInfo) {
@@ -81,7 +165,7 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                             if (romFile.GetSize() >= 512) {
                                 u8 header[512];
                                 if (romFile.ReadExact(header, sizeof(header))) {
-                                    crc32 = CheatCodelist::ComputeCrc32(header, sizeof(header));
+                                    crc32 = ComputeCrc32(header, sizeof(header));
                                 }
                             }
                         }
@@ -91,7 +175,16 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                         } else {
                             _gameCode[0] = 0;
                         }
-                        _crc = crc32;
+                        if (crc32 != 0)
+                        {
+                            _crc = crc32;
+                            _hasValidCrc = true;
+                        }
+                        else
+                        {
+                            _crc = 0;
+                            _hasValidCrc = false;
+                        }
 
                         char16_t wc[16];
                         int i = 0;
@@ -101,11 +194,18 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                         wc[i] = 0;
                         _gameCodeLabel.SetText(wc);
 
-                        char buf[16];
-                        mini_snprintf(buf, sizeof(buf), "%08X", _crc);
-                        for (i = 0; buf[i]; ++i) wc[i] = (char16_t)(unsigned char)buf[i];
-                        wc[i] = 0;
-                        _crcLabel.SetText(wc);
+                        if (_hasValidCrc)
+                        {
+                            char buf[16];
+                            mini_snprintf(buf, sizeof(buf), "%08X", _crc);
+                            for (i = 0; buf[i]; ++i) wc[i] = (char16_t)(unsigned char)buf[i];
+                            wc[i] = 0;
+                            _crcLabel.SetText(wc);
+                        }
+                        else
+                        {
+                            _crcLabel.SetText(u"");
+                        }
                     }
                 }
             }
@@ -117,6 +217,15 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
         _cheatsChip.SetSelected(false);
         AddChildTail(&_cheatsChip);
         _hasCheatsChip = true;
+
+        if (cheatTotalCount > 0) {
+            char cheatCountText[24];
+            mini_snprintf(cheatCountText, sizeof(cheatCountText), "%lu/%lu", cheatActiveCount, cheatTotalCount);
+            _cheatCountValueLabel.SetText(cheatCountText);
+            _cheatCountValueLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+            _cheatCountValueLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+            AddChildTail(&_cheatCountValueLabel);
+        }
     }
     _favoriteChip.SetText(Localization::Translate("favorites"));
     _isFavorite = _romBrowserController->IsSelectedFileFavorite();
@@ -152,15 +261,20 @@ void NdsGameDetailsBottomSheetView::Update()
     int codeY = _position.y + 8; // match cheats menu, move higher
     _gameCodeLabel.SetPosition(codeX, codeY);
     int codeW = _gameCodeLabel.GetStringWidth();
-    _crcLabel.SetPosition(codeX + codeW + 8, codeY);
+    if (_hasValidCrc)
+    {
+        _crcLabel.SetPosition(codeX + codeW + 8, codeY);
+    }
 
     if (_hasCheatsChip) {
         _cheatsChip.SetPosition(92, _position.y + 35); 
         _favoriteChip.SetPosition(162, _position.y + 35);
+        _cheatCountLabel.SetPosition(92, _position.y + 54);
+        _cheatCountValueLabel.SetPosition(102, _position.y + 56);
     } else {
         _favoriteChip.SetPosition(92, _position.y + 35);
     }
-    _countLaunchLabel.SetPosition(10, _position.y + 40);
+    _countLaunchLabel.SetPosition(12, _position.y + 40);
     _countLaunchValueLabel.SetPosition(20, _position.y + 55);
 }
 

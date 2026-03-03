@@ -20,7 +20,7 @@ CheatsViewModel::CheatsViewModel(const FileInfo& romFileInfo, IRomBrowserControl
         else
         {
             FILINFO usrCheatFileInfo;
-            _isUsrCheatDatMissing = f_stat("/_pico/usrcheat.dat", &usrCheatFileInfo) != FR_OK;
+            _isUsrCheatDatMissing = f_stat("/_pico/extras/usrcheat.dat", &usrCheatFileInfo) != FR_OK;
             _state = State::NoCheats;
         }
 

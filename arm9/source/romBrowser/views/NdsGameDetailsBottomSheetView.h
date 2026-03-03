@@ -70,8 +70,11 @@ private:
     void InitLaunchCountLabel(const MaterialColorScheme* materialColorScheme);
     Label2DView _countLaunchLabel;
     Label2DView _countLaunchValueLabel;
+    Label2DView _cheatCountLabel;
+    Label2DView _cheatCountValueLabel;
 
     char _gameCode[5] = {0};
     u32 _crc = 0;
+    bool _hasValidCrc = false;
 
 };
