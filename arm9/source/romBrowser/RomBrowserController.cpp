@@ -56,6 +56,9 @@ void RomBrowserController::LaunchFile(const FileInfo& fileInfo)
 
 void RomBrowserController::ShowGameInfo(const FileInfo& fileInfo)
 {
+    if (fileInfo.GetFileType()->GetClassification() == FileTypeClassification::Folder)
+        return;
+
     _launchFileInfo = FileInfo(fileInfo);
     _stateMachine.Fire(RomBrowserStateTrigger::ShowGameInfo);
 }
