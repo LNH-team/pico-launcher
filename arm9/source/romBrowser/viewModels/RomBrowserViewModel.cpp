@@ -1,6 +1,5 @@
 #include "common.h"
 #include <algorithm>
-#include "romBrowser/FileType/Nds/NdsFileType.h"
 #include "RomBrowserViewModel.h"
 
 RomBrowserViewModel::RomBrowserViewModel(IRomBrowserController* romBrowserController, const char* initialSelectedFileName)
@@ -61,8 +60,5 @@ void RomBrowserViewModel::NavigateUp()
 void RomBrowserViewModel::ShowGameInfo()
 {
     const auto& item = _fileInfoManager->GetItem(_selectedItem);
-    if (item.GetFileType() == &NdsFileType::sInstance)
-    {
-        _romBrowserController->ShowGameInfo(item);
-    }
+    _romBrowserController->ShowGameInfo(item);
 }

@@ -119,8 +119,8 @@ void CheatsBottomSheetView::Update()
         const char16_t* missing = Localization::Translate("cheats_dat_missing");
         const char16_t* notFound = Localization::Translate("cheats_not_found");
         _statusLabel.SetText(_viewModel->GetIsUsrCheatDatMissing()
-            ? ((missing && missing[0] != 0) ? missing : u"usrcheat.dat not found")
-            : ((notFound && notFound[0] != 0) ? notFound : u"Cheats not found"));
+            ? missing
+            : notFound);
     }
     _cheatListRecycler->SetPosition(LIST_X, _position.y + LIST_Y);
     if (_viewModel->GetState() == CheatsViewModel::State::DisplayCheats)

@@ -104,10 +104,7 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     , _cheatCountLabel(80, 16, 24, fontRepository->GetFont(FontType::Regular10))
     , _cheatCountValueLabel(40, 16, 20, fontRepository->GetFont(FontType::Regular10))
 {
-    _titleLabel.SetText((const char16_t*)L"Game Details"); 
-    const char16_t* localizedTitle = Localization::Translate("game_details");
-    if (localizedTitle && localizedTitle[0] != 0)
-        _titleLabel.SetText(localizedTitle);
+    _titleLabel.SetText(Localization::Translate("game_details"));
         
     _titleLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
     _titleLabel.SetForegroundColor(materialColorScheme->GetColor(md::sys::color::onSurface));
@@ -116,12 +113,10 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     _gameCodeLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
     _gameCodeLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
     _gameCodeLabel.SetText(u"");
-    AddChildTail(&_gameCodeLabel);
 
     _crcLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
     _crcLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
     _crcLabel.SetText(u"");
-    AddChildTail(&_crcLabel);
 
     bool isNds = false;
 
@@ -213,6 +208,9 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     }
 
     if (isNds) {
+        AddChildTail(&_gameCodeLabel);
+        AddChildTail(&_crcLabel);
+
         _cheatsChip.SetText(Localization::Translate("cheats"));
         _cheatsChip.SetSelected(false);
         AddChildTail(&_cheatsChip);
@@ -257,13 +255,16 @@ void NdsGameDetailsBottomSheetView::Update()
     
     _titleLabel.SetPosition(12, _position.y + 12);
 
-    int codeX = 180;
-    int codeY = _position.y + 8; // match cheats menu, move higher
-    _gameCodeLabel.SetPosition(codeX, codeY);
-    int codeW = _gameCodeLabel.GetStringWidth();
-    if (_hasValidCrc)
+    if (_hasCheatsChip)
     {
-        _crcLabel.SetPosition(codeX + codeW + 8, codeY);
+        int codeX = 180;
+        int codeY = _position.y + 8;
+        _gameCodeLabel.SetPosition(codeX, codeY);
+        int codeW = _gameCodeLabel.GetStringWidth();
+        if (_hasValidCrc)
+        {
+            _crcLabel.SetPosition(codeX + codeW + 8, codeY);
+        }
     }
 
     if (_hasCheatsChip) {
