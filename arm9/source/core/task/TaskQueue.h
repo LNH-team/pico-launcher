@@ -79,12 +79,12 @@ public:
 
     template <typename FuncType>
     [[gnu::noinline]]
-    auto Enqueue(const FuncType& function) -> QueueTask<decltype(TaskResultToResultType(function(*new vu8())))>
+    auto Enqueue(FuncType&& function) -> QueueTask<decltype(TaskResultToResultType(function(*new vu8())))>
     {
         using TaskType = FuncTask<decltype(TaskResultToResultType(function(*new vu8()))), FuncType>;
         // static_assert(sizeof(TaskType) <= MaxTaskSize, "Task is too big for this pool");
         void* slot = GetSlot();
-        auto task = new (slot) TaskType(function);
+        auto task = new (slot) TaskType(std::move(function));
         Enqueue(task);
         return QueueTask(task, this);
     }

@@ -1,5 +1,6 @@
 #include "common.h"
 #include <algorithm>
+#include "romBrowser/FileType/Nds/NdsFileType.h"
 #include "RomBrowserViewModel.h"
 
 RomBrowserViewModel::RomBrowserViewModel(IRomBrowserController* romBrowserController, const char* initialSelectedFileName)
@@ -34,7 +35,8 @@ RomBrowserViewModel::RomBrowserViewModel(IRomBrowserController* romBrowserContro
     auto sortedFilteredFiles = sdFolder.FilterAndSort(filterSortParams, filteredCount);
     u64 endTick = gTickCounter.GetValue();
     LOG_DEBUG("Filter + sort took: %d us\n", (u32)TickCounter::TicksToMicroSeconds(endTick - startTick));
-    _fileInfoManager = std::make_unique<FileInfoManager>(std::move(sortedFilteredFiles), filteredCount, _romBrowserController->GetCoverRepository());
+    _fileInfoManager = std::make_unique<FileInfoManager>(std::move(sortedFilteredFiles),
+        filteredCount, _romBrowserController->GetCoverRepository());
     _selectedItem = _fileInfoManager->GetItemIndex(initialSelectedFileName);
 }
 
@@ -59,7 +61,8 @@ void RomBrowserViewModel::NavigateUp()
 void RomBrowserViewModel::ShowGameInfo()
 {
     const auto& item = _fileInfoManager->GetItem(_selectedItem);
-    if (item.GetFileType()->GetClassification() == FileTypeClassification::Folder)
-        return;
-    _romBrowserController->ShowGameInfo();
+    if (item.GetFileType() == &NdsFileType::sInstance)
+    {
+        _romBrowserController->ShowGameInfo(item);
+    }
 }

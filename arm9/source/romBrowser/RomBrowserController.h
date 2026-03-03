@@ -9,6 +9,7 @@
 #include "CoverRepository.h"
 #include "FileType/ExtensionFileTypeProvider.h"
 #include "services/settings/IAppSettingsService.h"
+#include "cheats/ICheatRepository.h"
 
 class RomBrowserController : public IRomBrowserController
 {
@@ -20,7 +21,7 @@ public:
 
     void NavigateToPath(const TCHAR* name) override;
     void LaunchFile(const FileInfo& fileInfo) override;
-    void ShowGameInfo() override;
+    void ShowGameInfo(const FileInfo& fileInfo) override;
     void HideGameInfo() override;
     void ShowCheats() override;
     void HideCheats() override;
@@ -56,6 +57,7 @@ public:
     TaskQueueBase* GetIoTaskQueue() const override { return _ioTaskQueue; }
     TaskQueueBase* GetBgTaskQueue() const override { return _bgTaskQueue; }
     const ICoverRepository& GetCoverRepository() const override { return *_coverRepository; }
+    const ICheatRepository& GetCheatRepository() const override { return *_cheatRepository; }
 
     void SetRomBrowserDisplaySettings(const RomBrowserDisplaySettings& romBrowserDisplaySettings) override;
 
@@ -75,19 +77,7 @@ public:
         return _appSettingsService->GetAppSettings().romBrowserDisplaySettings;
     }
 
-    const char* GetCheatName() const { return _cheatName; }
-    const char* GetCheatDescription() const { return _cheatDescription; }
-    const char* GetCheatGameCode() const { return _cheatGameCode; }
-    u32 GetCheatCrc() const { return _cheatCrc; }
-    int GetCheatFocusScrollOffset() const { return _cheatFocusScrollOffset; }
-    int GetCheatFocusCursorIndex() const { return _cheatFocusCursorIndex; }
-    int GetCheatFocusFolderIndex() const { return _cheatFocusFolderIndex; }
-    int GetCheatFocusRootScrollOffset() const { return _cheatFocusRootScrollOffset; }
-    int GetCheatFocusRootCursorIndex() const { return _cheatFocusRootCursorIndex; }
-    bool GetCheatFocusEnabledOnlyMode() const { return _cheatFocusEnabledOnlyMode; }
-    int GetCheatFocusSavedViewScrollOffset() const { return _cheatFocusSavedViewScrollOffset; }
-    int GetCheatFocusSavedViewCursorIndex() const { return _cheatFocusSavedViewCursorIndex; }
-    int GetCheatFocusSavedViewFolderIndex() const { return _cheatFocusSavedViewFolderIndex; }
+    virtual const FileInfo& GetTriggerFileInfo() const override { return _launchFileInfo; }
 
 private:
     IAppSettingsService* _appSettingsService;
@@ -125,6 +115,7 @@ private:
     bool _themeReloadRequested = false;
     std::unique_ptr<CoverRepository> _coverRepository;
     ExtensionFileTypeProvider _fileTypeProvider;
+    std::unique_ptr<ICheatRepository> _cheatRepository;
 
     void HandleTrigger();
     void HandleNavigateTrigger();
@@ -141,4 +132,5 @@ private:
     void RemoveFavoritePath(const char* fullPath);
     void SaveSettingsAsync();
     const FileInfo* GetSelectedFileInfo() const;
+    void LoadCheats() const;
 };

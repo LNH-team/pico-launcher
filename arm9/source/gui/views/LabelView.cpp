@@ -58,7 +58,7 @@ void LabelView::UpdateTileBuffer()
     if (_textBuffer[0] != 0)
     {
         nft2_string_render_params_t renderParams;
-        renderParams.x = 0;
+        renderParams.x = _textOffsetX;
         renderParams.y = 0;
         renderParams.width = _width;
         renderParams.height = _height;

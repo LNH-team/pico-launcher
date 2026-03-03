@@ -1,7 +1,7 @@
 #pragma once
 
 /// @brief The Pico Loader API version supported by this header file.
-#define PICO_LOADER_API_VERSION     2
+#define PICO_LOADER_API_VERSION     3
 
 /// @brief Enum to specify the drive to boot from.
 typedef enum
@@ -43,6 +43,46 @@ typedef struct
     char launcherPath[256];
 } pload_header7_v2_t;
 
+/// @brief Struct representing a single Action Replay cheat opcode.
+typedef struct
+{
+    /// @brief The first part of the opcode.
+    u32 a;
+
+    /// @brief The second part of the opcode.
+    u32 b;
+} pload_cheat_opcode_t;
+
+/// @brief Struct representing a single Action Replay cheat.
+typedef struct
+{
+    /// @brief Length of \see opcodes in bytes.
+    u32 length;
+
+    /// @brief The cheat opcodes.
+    pload_cheat_opcode_t opcodes[1];
+} pload_cheat_t;
+
+/// @brief Struct representing one or more cheats. Cheats are adjacent starting from the firstCheat field.
+typedef struct
+{
+    /// @brief Length of this stucture (length field + numberOfCheats field + all cheats).
+    u32 length;
+
+    /// @brief The number of cheats.
+    u32 numberOfCheats;
+
+    /// @brief The first cheat.
+    pload_cheat_t firstCheat;
+} pload_cheats_t;
+
+/// @brief Struct representing the API version 3 part of the header of picoLoader7.bin.
+typedef struct
+{
+    /// @brief Pointer to the cheats, or \c nullptr when there are no cheats.
+    const pload_cheats_t* cheats;
+} pload_header7_v3_t;
+
 /// @brief Struct representing the header of picoLoader7.bin.
 typedef struct
 {
@@ -63,4 +103,7 @@ typedef struct
 
     /// @brief The API version 2 part of the header. Only access this when \see apiVersion >= 2.
     pload_header7_v2_t v2;
+
+    /// @brief The API version 3 part of the header. Only access this when \see apiVersion >= 3.
+    pload_header7_v3_t v3;
 } pload_header7_t;

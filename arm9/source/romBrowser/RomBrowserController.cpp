@@ -9,6 +9,9 @@
 #include "SdFolderFactory.h"
 #include "fat/Directory.h"
 #include "services/settings/IAppSettingsService.h"
+#include "cheats/UsrCheatRepositoryFactory.h"
+#include "cheats/EmptyCheatRepository.h"
+#include "cheats/PicoLoaderCheatDataFactory.h"
 #include "RomBrowserController.h"
 
 RomBrowserController::RomBrowserController(
@@ -18,7 +21,6 @@ RomBrowserController::RomBrowserController(
     , _ioTaskQueue(ioTaskQueue), _bgTaskQueue(bgTaskQueue)
     , _fileTypeProvider(appSettingsService->GetAppSettings())
     {
-        memset(_cheatDescription, 0, sizeof(_cheatDescription));
     }
 
 void RomBrowserController::NavigateUp()
@@ -52,8 +54,9 @@ void RomBrowserController::LaunchFile(const FileInfo& fileInfo)
     _stateMachine.Fire(RomBrowserStateTrigger::Launch);
 }
 
-void RomBrowserController::ShowGameInfo()
+void RomBrowserController::ShowGameInfo(const FileInfo& fileInfo)
 {
+    _launchFileInfo = FileInfo(fileInfo);
     _stateMachine.Fire(RomBrowserStateTrigger::ShowGameInfo);
 }
 
@@ -256,6 +259,15 @@ void RomBrowserController::HandleNavigateTrigger()
             _coverRepository = std::make_unique<CoverRepository>();
             _coverRepository->Initialize();
         }
+        if (!_cheatRepository)
+        {
+            _cheatRepository = UsrCheatRepositoryFactory().FromUsrCheatDat("/_pico/usrcheat.dat");
+            if (!_cheatRepository)
+            {
+                // When usrcheat.dat is not found or cannot be read use a dummy empty cheat repository
+                _cheatRepository = std::make_unique<EmptyCheatRepository>();
+            }
+        }
 
         u64 startTick = gTickCounter.GetValue();
         _navigateFileName = nullptr;
@@ -304,6 +316,8 @@ void RomBrowserController::HandleLaunchTrigger()
         _appSettingsService->Save();
 
         LaunchStatsService::Instance().Increment(_navigatePath);
+
+        LoadCheats();
 
         auto loadParams = pload_getLoadParams();
         loadParams->savePath[0] = 0;
@@ -579,4 +593,16 @@ const FileInfo* RomBrowserController::GetSelectedFileInfo() const
         return nullptr;
 
     return &fileInfoManager.GetItem(selectedItem);
+}
+
+void RomBrowserController::LoadCheats() const
+{
+    if (!_cheatRepository)
+    {
+        return;
+    }
+
+    auto cheats = _cheatRepository->GetCheatsForGame(_launchFileInfo.GetFastFileRef());
+    auto cheatData = PicoLoaderCheatDataFactory().CreateCheatData(cheats);
+    pload_setCheatData(cheatData);
 }

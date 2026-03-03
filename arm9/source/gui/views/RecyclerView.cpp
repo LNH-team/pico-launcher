@@ -39,6 +39,10 @@ void RecyclerView::SetAdapter(const RecyclerAdapter* adapter, int initialSelecte
         _viewPool.reset();
         _viewPoolFreeCount = 0;
         _viewPoolTotalCount = 0;
+        _xOffset = 0;
+        _yOffset = 0;
+        _curRangeStart = 0;
+        _curRangeLength = 0;
     }
     _adapter = adapter;
     _adapter->GetViewSize(_itemWidth, _itemHeight);
@@ -305,36 +309,53 @@ View* RecyclerView::MoveFocusVertical(View* currentFocus, FocusMoveDirection dir
 
 bool RecyclerView::HandleInput(const InputProvider& inputProvider, FocusManager& focusManager)
 {
-    if (inputProvider.Triggered(InputKey::L | InputKey::R))
+    if (_shoulderPagingEnabled && inputProvider.Triggered(InputKey::L | InputKey::R))
     {
-        int direction = inputProvider.Triggered(InputKey::L) ? 1 : -1;
-        int selected = _selectedItem->itemIdx;
-        if (_mode == Mode::HorizontalList || _mode == Mode::HorizontalGrid)
-        {
-            int visibleColumns = _width / (_itemWidth + _xSpacing);
-            SetScrollOffset(_scrollOffsetAnimator.GetTargetValue() + direction * visibleColumns * (_itemWidth + _xSpacing), true);
-            int row = selected % _rows;
-            selected = std::clamp(selected - direction * visibleColumns * _rows, 0, (int)_itemCount - 1);
-            selected = selected / _rows * _rows + row; // try to stay in the same row
-            selected = std::clamp(selected, 0, (int)_itemCount - 1); // but clamp to the last item
-        }
-        else
-        {
-            int visibleRows = _height / (_itemHeight + _ySpacing);
-            SetScrollOffset(_scrollOffsetAnimator.GetTargetValue() + direction * visibleRows * (_itemHeight + _ySpacing), true);
-            int column = selected % _columns;
-            selected = std::clamp(selected - direction * visibleRows * _columns, 0, (int)_itemCount - 1);
-            selected = selected / _columns * _columns + column; // try to stay in the same column
-            selected = std::clamp(selected, 0, (int)_itemCount - 1); // but clamp to the last item
-        }
-
-        focusManager.Unfocus();
-        SetSelectedItem(selected);
-        focusManager.Focus(_selectedItem->view);
+        PageByShoulderButtons(inputProvider.Triggered(InputKey::L), focusManager);
         return true;
     }
 
     return View::HandleInput(inputProvider, focusManager);
+}
+
+void RecyclerView::PageByShoulderButtons(bool useLBehavior, FocusManager& focusManager)
+{
+    if (_selectedItem == nullptr || _itemCount == 0)
+    {
+        return;
+    }
+
+    int direction = useLBehavior ? 1 : -1;
+    int selected = _selectedItem->itemIdx;
+    if (_mode == Mode::HorizontalList || _mode == Mode::HorizontalGrid)
+    {
+        int visibleColumns = _width / (_itemWidth + _xSpacing);
+        SetScrollOffset(_scrollOffsetAnimator.GetTargetValue() + direction * visibleColumns * (_itemWidth + _xSpacing), true);
+        int row = selected % _rows;
+        selected = std::clamp(selected - direction * visibleColumns * _rows, 0, (int)_itemCount - 1);
+        selected = selected / _rows * _rows + row; // try to stay in the same row
+        selected = std::clamp(selected, 0, (int)_itemCount - 1); // but clamp to the last item
+    }
+    else
+    {
+        int visibleRows = _height / (_itemHeight + _ySpacing);
+        SetScrollOffset(_scrollOffsetAnimator.GetTargetValue() + direction * visibleRows * (_itemHeight + _ySpacing), true);
+        int column = selected % _columns;
+        selected = std::clamp(selected - direction * visibleRows * _columns, 0, (int)_itemCount - 1);
+        selected = selected / _columns * _columns + column; // try to stay in the same row
+        selected = std::clamp(selected, 0, (int)_itemCount - 1); // but clamp to the last item
+    }
+
+    focusManager.Unfocus();
+    SetSelectedItem(selected);
+    if (_selectedItem != nullptr)
+    {
+        focusManager.Focus(_selectedItem->view);
+    }
+    else
+    {
+        focusManager.Focus(this);
+    }
 }
 
 Point RecyclerView::GetItemPosition(int itemIdx)

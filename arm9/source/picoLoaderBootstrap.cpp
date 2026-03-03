@@ -21,6 +21,7 @@ typedef void (*pico_loader_9_func_t)(void);
 static pload_params_t sLoadParams;
 static char sLauncherPath[256] alignas(32);
 static PicoLoaderBootDrive sBootDrive;
+static const pload_cheats_t* sCheatData = nullptr;
 
 pload_params_t* pload_getLoadParams()
 {
@@ -35,6 +36,11 @@ void pload_setBootDrive(PicoLoaderBootDrive bootDrive)
 void pload_setLauncherPath(const char* launcherPath)
 {
     StringUtil::Copy(sLauncherPath, launcherPath, sizeof(sLauncherPath));
+}
+
+void pload_setCheatData(const pload_cheats_t* cheatData)
+{
+    sCheatData = cheatData;
 }
 
 void pload_start()
@@ -91,6 +97,10 @@ void pload_start()
     if (header->apiVersion >= 2)
     {
         dma_ntrCopy16(3, &sLauncherPath, &header->v2.launcherPath, sizeof(header->v2.launcherPath));
+    }
+    if (header->apiVersion >= 3)
+    {
+        header->v3.cheats = sCheatData;
     }
     mem_setVramCMapping(MEM_VRAM_C_ARM7_00000);
     mem_setVramDMapping(MEM_VRAM_D_ARM7_20000);

@@ -43,6 +43,19 @@ public:
         return Rectangle(_position, _width, _height);
     }
 
+    void SetEllipsis(bool ellipsis) { _ellipsis = ellipsis; }
+
+    void SetTextOffsetX(int textOffsetX)
+    {
+        if (_textOffsetX == textOffsetX)
+        {
+            return;
+        }
+
+        _textOffsetX = textOffsetX;
+        UpdateTileBuffer();
+    }
+
 protected:
     u32 _width;
     u32 _height;
@@ -60,6 +73,7 @@ protected:
     Rgb<8, 8, 8> _foregroundColor;
     int _paletteRow = -1;
     bool _ellipsis = false;
+    int _textOffsetX = 0;
     bool _a5i3;
 
     void SetTextBuffer(const char* text);
