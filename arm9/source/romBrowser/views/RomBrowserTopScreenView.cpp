@@ -4,12 +4,27 @@
 #include <libtwl/gfx/gfxBackground.h>
 #include <libtwl/gfx/gfxPalette.h>
 #include <libtwl/gfx/gfxWindow.h>
+#include "core/mini-printf.h"
+#include "core/StringUtil.h"
 #include "bgm/IBgmService.h"
+#include "themes/material/MaterialColorScheme.h"
+#include "themes/IFontRepository.h"
 #include "../viewModels/RomBrowserViewModel.h"
 #include "gui/GraphicsContext.h"
 #include "gui/IVramManager.h"
+#include "gui/VramContext.h"
 #include "../Theme/IRomBrowserViewFactory.h"
+#include "rtcIpc.h"
 #include "RomBrowserTopScreenView.h"
+
+static u8 bcdToDecimal(u8 bcd)
+{
+    u8 ones = bcd & 0x0F;
+    u8 tens = (bcd >> 4) & 0x0F;
+    if (ones > 9 || tens > 9)
+        return 0;
+    return (u8)(tens * 10 + ones);
+}
 
 RomBrowserTopScreenView::RomBrowserTopScreenView(
     const SharedPtr<RomBrowserViewModel>& viewModel,
@@ -22,15 +37,29 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
     : _viewModel(viewModel)
     , _themeFileIconFactory(themeFileIconFactory)
     , _fileInfoView(romBrowserViewFactory->CreateFileInfoView())
+    , _dateTimeChip(md::sys::color::surfaceContainerHighest, materialColorScheme, fontRepository)
     , _showCover(displayMode->ShowCoverOnTopScreen())
     , _bgmService(bgmService)
 {
+    _dateTimeChip.SetCenteredText(true);
+    _dateTimeChip.SetText(u"88/88/8888 88:88");
+    _dateTimeChip.SetPosition(0, 0);
+
     AddChildTail(_fileInfoView.get());
+    AddChildTail(&_dateTimeChip);
 }
 
 void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
 {
     ViewContainer::InitVram(vramContext);
+
+    const auto objVramManager = vramContext.GetObjVramManager();
+    if (objVramManager)
+    {
+        auto chipGraphics = ChipView::UploadGraphics(*objVramManager);
+        _dateTimeChip.SetGraphics(chipGraphics);
+    }
+
     int tileIndex = 0;
     vu16* mapPtr = (vu16*)((u8*)GFX_BG_SUB + 0x3800);
     for (int y = 0; y < 12; y++)
@@ -46,6 +75,52 @@ void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
 
 void RomBrowserTopScreenView::Update()
 {
+    u64 tick = gTickCounter.GetValue();
+    u32 elapsedMs = TickCounter::TicksToMilliSeconds((u32)(tick - _lastTimeUpdateTick));
+    if (_lastTimeUpdateTick == 0 || elapsedMs >= 1000)
+    {
+        rtc_datetime_t dateTime;
+        rtc_readDateTime(&dateTime);
+
+        u8 year = bcdToDecimal(dateTime.date.year);
+        u8 month = bcdToDecimal(dateTime.date.month);
+        u8 monthDay = bcdToDecimal(dateTime.date.monthDay);
+
+        u8 hour = bcdToDecimal(dateTime.time.hour);
+        u8 minute = bcdToDecimal(dateTime.time.minute);
+
+        if (month < 1 || month > 12)
+            month = 1;
+        if (monthDay < 1 || monthDay > 31)
+            monthDay = 1;
+        if (hour > 23)
+            hour = 0;
+        if (minute > 59)
+            minute = 0;
+
+        if (_lastYear != year || _lastMonth != month || _lastMonthDay != monthDay
+            || _lastHour != hour || _lastMinute != minute)
+        {
+            char dateTimeText[24];
+            mini_snprintf(dateTimeText, sizeof(dateTimeText), "%02u/%02u/%04u %02u:%02u",
+                monthDay, month, 2000 + year, hour, minute);
+
+            char16_t dateTimeText16[24];
+            StringUtil::Copy(dateTimeText16, dateTimeText, sizeof(dateTimeText16) / sizeof(dateTimeText16[0]));
+            _dateTimeChip.SetText(dateTimeText16);
+            _dateTimeChip.SetPosition(0, 0);
+
+            _lastYear = year;
+            _lastMonth = month;
+            _lastMonthDay = monthDay;
+
+            _lastHour = hour;
+            _lastMinute = minute;
+        }
+
+        _lastTimeUpdateTick = tick;
+    }
+
     int selectedItem = _viewModel->GetSelectedItem();
     if (selectedItem != _lastSelectedItem)
     {

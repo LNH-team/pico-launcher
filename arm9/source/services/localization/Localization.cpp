@@ -26,6 +26,7 @@ static const char16_t* GetFallbackEnglishValue(const char* key)
     if (!strcasecmp(key, "language")) return u"Language";
     if (!strcasecmp(key, "favorites")) return u"Favorites";
     if (!strcasecmp(key, "total_launches")) return u"Total Launches";
+    if (!strcasecmp(key, "last_launch")) return u"Last Launch";
     if (!strcasecmp(key, "cheats")) return u"Cheats";
     if (!strcasecmp(key, "cheats_not_found")) return u"No cheats found for this game";
     if (!strcasecmp(key, "cheats_dat_missing")) return u"usrcheat.dat not found";
@@ -79,6 +80,7 @@ void Localization::LoadFallbackEnglish()
     AddEntry("language", GetFallbackEnglishValue("language"));
     AddEntry("favorites", GetFallbackEnglishValue("favorites"));
     AddEntry("total_launches", GetFallbackEnglishValue("total_launches"));
+    AddEntry("last_launch", GetFallbackEnglishValue("last_launch"));
     AddEntry("cheats", GetFallbackEnglishValue("cheats"));
     AddEntry("cheats_not_found", GetFallbackEnglishValue("cheats_not_found"));
     AddEntry("cheats_dat_missing", GetFallbackEnglishValue("cheats_dat_missing"));

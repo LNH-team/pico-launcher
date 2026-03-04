@@ -42,11 +42,15 @@ void ChipView::Draw(GraphicsContext& graphicsContext)
         {
             _label.SetBackgroundColor(_materialColorScheme->secondaryContainer);
             _label.SetForegroundColor(_materialColorScheme->onSecondaryContainer);
+            _secondaryLabel.SetBackgroundColor(_materialColorScheme->secondaryContainer);
+            _secondaryLabel.SetForegroundColor(_materialColorScheme->onSecondaryContainer);
         }
         else
         {
             _label.SetBackgroundColor(fgColor);
             _label.SetForegroundColor(_materialColorScheme->onSecondaryContainer);
+            _secondaryLabel.SetBackgroundColor(fgColor);
+            _secondaryLabel.SetForegroundColor(_materialColorScheme->onSecondaryContainer);
         }
     }
     else
@@ -72,33 +76,89 @@ void ChipView::Draw(GraphicsContext& graphicsContext)
         {
             _label.SetBackgroundColor(_materialColorScheme->GetColor(_backgroundColor));
             _label.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+            _secondaryLabel.SetBackgroundColor(_materialColorScheme->GetColor(_backgroundColor));
+            _secondaryLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         }
         else
         {
             _label.SetBackgroundColor(fgColor);
             _label.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+            _secondaryLabel.SetBackgroundColor(fgColor);
+            _secondaryLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         }
     }
 
-    int width = GetWidth();
+    int textWidth = _label.GetStringWidth();
+    int finalWidth = GetWidth();
 
-    auto oams = graphicsContext.GetOamManager().AllocOams(2);
+    int rightX = _position.x + finalWidth - 64;
+    int middleCount = 0;
+    for (int x = _position.x + 32; x < rightX; x += 32)
+        middleCount++;
+
+    auto oams = graphicsContext.GetOamManager().AllocOams(2 + middleCount);
+
+    int oamIdx = 0;
     OamBuilder::OamWithSize<64, 32>(_position, _vramOffset >> 7)
         .WithPalette16(paletteRow)
         .WithPriority(graphicsContext.GetPriority())
-        .Build(oams[0]);
+        .Build(oams[oamIdx++]);
+
+    for (int x = _position.x + 32; x < rightX; x += 32)
+    {
+        OamBuilder::OamWithSize<64, 32>(
+                x,
+                _position.y, _vramOffset >> 7)
+            .WithPalette16(paletteRow)
+            .WithPriority(graphicsContext.GetPriority())
+            .Build(oams[oamIdx++]);
+    }
+
     OamBuilder::OamWithSize<64, 32>(
-            _position.x + width - 48 - 16, 
+            rightX,
             _position.y, _vramOffset >> 7)
         .WithPalette16(paletteRow)
         .WithPriority(graphicsContext.GetPriority())
         .WithHFlip()
-        .Build(oams[1]);
+        .Build(oams[oamIdx]);
 
     DrawIcon(graphicsContext, fgColor);
 
-    _label.SetPosition(_position.x + (_iconVramOffset == 0xFFFFFFFF ? 10 : 22), _position.y + 3);
+    int labelX;
+    if (_iconVramOffset == 0xFFFFFFFF)
+    {
+        if (_centeredText)
+            labelX = _position.x + (finalWidth - textWidth) / 2;
+        else
+            labelX = _position.x + 8;
+    }
+    else
+    {
+        labelX = _position.x + 22;
+    }
+
+    _label.SetPosition(labelX, _position.y + (_hasSecondaryText ? 1 : 3));
     _label.Draw(graphicsContext);
+
+    if (_hasSecondaryText)
+    {
+        int secondaryTextWidth = _secondaryLabel.GetStringWidth();
+        int secondaryX;
+        if (_iconVramOffset == 0xFFFFFFFF)
+        {
+            if (_centeredText)
+                secondaryX = _position.x + (finalWidth - secondaryTextWidth) / 2;
+            else
+                secondaryX = _position.x + 8;
+        }
+        else
+        {
+            secondaryX = _position.x + 22;
+        }
+
+        _secondaryLabel.SetPosition(secondaryX, _position.y + 13);
+        _secondaryLabel.Draw(graphicsContext);
+    }
 }
 
 void ChipView::DrawIcon(GraphicsContext& graphicsContext, const Rgb<8, 8, 8>& fgColor)

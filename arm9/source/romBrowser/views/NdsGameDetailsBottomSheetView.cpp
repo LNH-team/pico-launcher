@@ -23,6 +23,80 @@
 #include "fat/File.h"
 
 #define CRCPOLY 0xEDB88320
+static constexpr int GAME_DETAILS_CHEATS_CHIP_WIDTH = 64;
+static constexpr int GAME_DETAILS_FAVORITES_CHIP_WIDTH = 80;
+
+static bool BuildStatsPath(const FileInfo& fileInfo, char* outPath, u32 outPathSize)
+{
+    if (!outPath || outPathSize == 0)
+    {
+        return false;
+    }
+
+    outPath[0] = 0;
+    const TCHAR* fullPath = fileInfo.GetFullPath();
+    if (fullPath && fullPath[0] != 0)
+    {
+        strncpy(outPath, fullPath, outPathSize - 1);
+        outPath[outPathSize - 1] = 0;
+    }
+    else
+    {
+        if (f_getcwd(outPath, outPathSize) != FR_OK)
+        {
+            return false;
+        }
+
+        int idx = strlcat(outPath, "/", outPathSize);
+        if (idx > 1 && outPath[idx - 2] == '/')
+        {
+            outPath[idx - 1] = 0;
+        }
+        strlcat(outPath, fileInfo.GetFileName(), outPathSize);
+    }
+
+    const char* normalizedPath = strchr(outPath, ':');
+    if (!normalizedPath)
+    {
+        outPath[0] = 0;
+        return false;
+    }
+
+    if (normalizedPath != outPath)
+    {
+        size_t len = strlen(normalizedPath);
+        memmove(outPath, normalizedPath, len + 1);
+    }
+
+    return outPath[0] != 0;
+}
+
+static void BuildCheatsLabelWithActiveText(const char16_t* label, u32 activeCount, char16_t* outText, u32 outTextLen)
+{
+    if (!outText || outTextLen == 0)
+        return;
+
+    outText[0] = 0;
+    u32 cursor = 0;
+    if (label)
+    {
+        for (; label[cursor] != 0 && cursor + 1 < outTextLen; cursor++)
+        {
+            outText[cursor] = label[cursor];
+        }
+    }
+    if (cursor + 2 < outTextLen)
+    {
+        outText[cursor++] = ' ';
+        char countText[16];
+        mini_snprintf(countText, sizeof(countText), "%lu", activeCount);
+        for (u32 i = 0; countText[i] != 0 && cursor + 1 < outTextLen; i++)
+        {
+            outText[cursor++] = (char16_t)(unsigned char)countText[i];
+        }
+    }
+    outText[cursor] = 0;
+}
 
 static u32 ComputeCrc32(const void* buffer, u32 length)
 {
@@ -101,8 +175,9 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     , _favoriteChip(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository)
     , _countLaunchLabel(80, 16, 20, fontRepository->GetFont(FontType::Regular10))
     , _countLaunchValueLabel(30, 16, 20, fontRepository->GetFont(FontType::Regular10))
-    , _cheatCountLabel(80, 16, 24, fontRepository->GetFont(FontType::Regular10))
-    , _cheatCountValueLabel(40, 16, 20, fontRepository->GetFont(FontType::Regular10))
+    , _lastLaunchLabel(80, 16, 24, fontRepository->GetFont(FontType::Regular10))
+    , _lastLaunchDateValueLabel(140, 16, 24, fontRepository->GetFont(FontType::Regular10))
+    , _lastLaunchTimeValueLabel(140, 16, 24, fontRepository->GetFont(FontType::Regular10))
 {
     _titleLabel.SetText(Localization::Translate("game_details"));
         
@@ -141,11 +216,28 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                     }
 
                     if (isNds) {
-                        auto gameCheats = _romBrowserController->GetCheatRepository().GetCheatsForGame(fileInfo.GetFastFileRef());
-                        if (gameCheats)
+                        char statsPath[256];
+                        bool hasStatsPath = BuildStatsPath(fileInfo, statsPath, sizeof(statsPath));
+                        bool hasCachedCheatStats = false;
+                        if (hasStatsPath)
                         {
-                            cheatTotalCount = CountCheatsRecursive(gameCheats.get());
-                            cheatActiveCount = CountActiveCheatsRecursive(gameCheats.get());
+                            hasCachedCheatStats = LaunchStatsService::Instance().TryGetCheatStats(
+                                statsPath, cheatActiveCount, cheatTotalCount);
+                        }
+
+                        if (!hasCachedCheatStats)
+                        {
+                            auto gameCheats = _romBrowserController->GetCheatRepository().GetCheatsForGame(fileInfo.GetFastFileRef());
+                            if (gameCheats)
+                            {
+                                cheatTotalCount = CountCheatsRecursive(gameCheats.get());
+                                cheatActiveCount = CountActiveCheatsRecursive(gameCheats.get());
+                            }
+
+                            if (hasStatsPath)
+                            {
+                                LaunchStatsService::Instance().SetCheatStats(statsPath, cheatActiveCount, cheatTotalCount);
+                            }
                         }
 
                         std::unique_ptr<InternalFileInfo> internalInfo(fileInfo.CreateInternalFileInfo());
@@ -211,21 +303,21 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
         AddChildTail(&_gameCodeLabel);
         AddChildTail(&_crcLabel);
 
-        _cheatsChip.SetText(Localization::Translate("cheats"));
+        char16_t cheatsLabelText[32];
+        BuildCheatsLabelWithActiveText(Localization::Translate("cheats"), cheatActiveCount,
+            cheatsLabelText, sizeof(cheatsLabelText) / sizeof(cheatsLabelText[0]));
+        _cheatsChip.SetText(cheatsLabelText);
+        _cheatsChip.SetSecondaryText(u"");
+        _cheatsChip.SetCenteredText(true);
+        _cheatsChip.SetMinWidth(GAME_DETAILS_CHEATS_CHIP_WIDTH);
+        _cheatsChip.SetFixedWidth(GAME_DETAILS_CHEATS_CHIP_WIDTH);
         _cheatsChip.SetSelected(false);
         AddChildTail(&_cheatsChip);
         _hasCheatsChip = true;
-
-        if (cheatTotalCount > 0) {
-            char cheatCountText[24];
-            mini_snprintf(cheatCountText, sizeof(cheatCountText), "%lu/%lu", cheatActiveCount, cheatTotalCount);
-            _cheatCountValueLabel.SetText(cheatCountText);
-            _cheatCountValueLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-            _cheatCountValueLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
-            AddChildTail(&_cheatCountValueLabel);
-        }
     }
     _favoriteChip.SetText(Localization::Translate("favorites"));
+    _favoriteChip.SetCenteredText(true);
+    _favoriteChip.SetFixedWidth(GAME_DETAILS_FAVORITES_CHIP_WIDTH);
     _isFavorite = _romBrowserController->IsSelectedFileFavorite();
     _favoriteChip.SetSelected(_isFavorite);
     AddChildTail(&_favoriteChip);
@@ -252,6 +344,10 @@ void NdsGameDetailsBottomSheetView::InitVram(const VramContext& vramContext)
 void NdsGameDetailsBottomSheetView::Update()
 {
     BottomSheetView::Update();
+
+    constexpr int screenWidth = 256;
+    constexpr int rightPadding = 12;
+    constexpr int chipGap = 8;
     
     _titleLabel.SetPosition(12, _position.y + 12);
 
@@ -268,15 +364,20 @@ void NdsGameDetailsBottomSheetView::Update()
     }
 
     if (_hasCheatsChip) {
-        _cheatsChip.SetPosition(92, _position.y + 35); 
-        _favoriteChip.SetPosition(162, _position.y + 35);
-        _cheatCountLabel.SetPosition(92, _position.y + 54);
-        _cheatCountValueLabel.SetPosition(102, _position.y + 56);
+        int totalChipWidth = GAME_DETAILS_CHEATS_CHIP_WIDTH + chipGap + GAME_DETAILS_FAVORITES_CHIP_WIDTH;
+        int chipsStartX = screenWidth - rightPadding - totalChipWidth;
+
+        _cheatsChip.SetPosition(chipsStartX, _position.y + 35);
+        _favoriteChip.SetPosition(chipsStartX + GAME_DETAILS_CHEATS_CHIP_WIDTH + chipGap, _position.y + 35);
     } else {
-        _favoriteChip.SetPosition(92, _position.y + 35);
+        _cheatsChip.SetSecondaryText(u"");
+        _favoriteChip.SetPosition(screenWidth - rightPadding - GAME_DETAILS_FAVORITES_CHIP_WIDTH, _position.y + 35);
     }
     _countLaunchLabel.SetPosition(12, _position.y + 40);
     _countLaunchValueLabel.SetPosition(20, _position.y + 55);
+    _lastLaunchLabel.SetPosition(12, _position.y + 72);
+    _lastLaunchDateValueLabel.SetPosition(20, _position.y + 87);
+    _lastLaunchTimeValueLabel.SetPosition(20, _position.y + 101);
 }
 
 void NdsGameDetailsBottomSheetView::Draw(GraphicsContext& graphicsContext)
@@ -335,6 +436,8 @@ bool NdsGameDetailsBottomSheetView::HandleInput(const InputProvider& inputProvid
 void NdsGameDetailsBottomSheetView::InitLaunchCountLabel(const MaterialColorScheme* materialColorScheme)
 {
     u32 launchCount = 0;
+    char lastLaunchDate[16] = {0};
+    char lastLaunchTime[16] = {0};
 
     if (_romBrowserController) {
         const auto& viewModel = _romBrowserController->GetRomBrowserViewModel();
@@ -363,6 +466,10 @@ void NdsGameDetailsBottomSheetView::InitLaunchCountLabel(const MaterialColorSche
                     const char* normalizedPath = strchr(pathBuf, ':');
                     if (normalizedPath) {
                         launchCount = LaunchStatsService::Instance().GetCount(normalizedPath);
+                        LaunchStatsService::Instance().TryGetLastLaunchDate(
+                            normalizedPath, lastLaunchDate, sizeof(lastLaunchDate));
+                        LaunchStatsService::Instance().TryGetLastLaunchTime(
+                            normalizedPath, lastLaunchTime, sizeof(lastLaunchTime));
                     }
                 }
             }
@@ -381,4 +488,19 @@ void NdsGameDetailsBottomSheetView::InitLaunchCountLabel(const MaterialColorSche
     _countLaunchValueLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
     _countLaunchValueLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
     AddChildTail(&_countLaunchValueLabel);
+
+    _lastLaunchLabel.SetText(Localization::Translate("last_launch"));
+    _lastLaunchLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+    _lastLaunchLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+    AddChildTail(&_lastLaunchLabel);
+
+    _lastLaunchDateValueLabel.SetText(lastLaunchDate[0] != 0 ? lastLaunchDate : "-");
+    _lastLaunchDateValueLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+    _lastLaunchDateValueLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+    AddChildTail(&_lastLaunchDateValueLabel);
+
+    _lastLaunchTimeValueLabel.SetText(lastLaunchTime[0] != 0 ? lastLaunchTime : "-");
+    _lastLaunchTimeValueLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+    _lastLaunchTimeValueLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+    AddChildTail(&_lastLaunchTimeValueLabel);
 }

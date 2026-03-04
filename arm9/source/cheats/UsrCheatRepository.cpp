@@ -129,7 +129,6 @@ std::unique_ptr<GameCheats> UsrCheatRepository::GetCheatsForGame(u32 gameCode, u
         }
     }
 
-    categories = (CheatCategory*)realloc(categories, categoryCount * sizeof(CheatCategory));
     cheats = (Cheat*)realloc(cheats, cheatCount * sizeof(Cheat));
 
     return std::make_unique<GameCheats>(
@@ -203,7 +202,6 @@ void UsrCheatRepository::ParseCategory(CheatCategory& category, u8*& ptr) const
         }
     }
 
-    categories = (CheatCategory*)realloc(categories, categoryCount * sizeof(CheatCategory));
     cheats = (Cheat*)realloc(cheats, cheatCount * sizeof(Cheat));
 
     new (&category) CheatCategory (itemName, itemDescription, isMaxOneCheatActive, categories, categoryCount, cheats, cheatCount);

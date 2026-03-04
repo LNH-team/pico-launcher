@@ -2,6 +2,7 @@
 #include "core/SharedPtr.h"
 #include "gui/views/ViewContainer.h"
 #include "BannerView.h"
+#include "ChipView.h"
 #include "../FileType/FileIcon.h"
 #include "../DisplayMode/RomBrowserDisplayMode.h"
 class RomBrowserViewModel;
@@ -37,8 +38,15 @@ private:
     std::unique_ptr<FileIcon> _selectedFileIcon;
     SharedPtr<FileCover> _selectedFileCover;
     int _lastSelectedItem = -1;
+    ChipView _dateTimeChip;
     bool _iconGraphicsUploaded = false;
     bool _coverGraphicsUploaded = false;
     bool _showCover;
     const IBgmService* _bgmService;
+    u64 _lastTimeUpdateTick = 0;
+    u8 _lastYear = 0xFF;
+    u8 _lastMonth = 0xFF;
+    u8 _lastMonthDay = 0xFF;
+    u8 _lastHour = 0xFF;
+    u8 _lastMinute = 0xFF;
 };

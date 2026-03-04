@@ -9,6 +9,11 @@ public:
     {
         String<char, 256> path;
         u32 launchCount = 0;
+        String<char, 11> lastLaunchDate;
+        String<char, 9> lastLaunchTime;
+        u32 cheatActiveCount = 0;
+        u32 cheatTotalCount = 0;
+        bool hasCheatStats = false;
     };
 
     static LaunchStatsService& Instance();
@@ -18,6 +23,10 @@ public:
 
     void Increment(const char* path);
     u32 GetCount(const char* path) const;
+    bool TryGetLastLaunchDate(const char* path, char* outValue, u32 outValueSize) const;
+    bool TryGetLastLaunchTime(const char* path, char* outValue, u32 outValueSize) const;
+    bool TryGetCheatStats(const char* path, u32& activeCount, u32& totalCount) const;
+    void SetCheatStats(const char* path, u32 activeCount, u32 totalCount);
 
 private:
     LaunchStatsService();

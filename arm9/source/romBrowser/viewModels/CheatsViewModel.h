@@ -2,6 +2,7 @@
 #include <array>
 #include <memory>
 #include "core/task/TaskQueue.h"
+#include "core/String.h"
 #include "cheats/GameCheats.h"
 #include "romBrowser/FileInfo.h"
 #include "romBrowser/IRomBrowserController.h"
@@ -63,4 +64,11 @@ private:
     void SetCheatsActive(const ICheatCategory* category, bool isActive) const;
     void CopyActiveCheats(const ICheatCategory* category, Cheat* cheats, u32& offset) const;
     void BuildSelectedCheatsList();
+    bool BuildStatsPath(char* outPath, u32 outPathSize) const;
+    void UpdateRomCheatStatsFromTree(bool saveToStats);
+    void SaveRomCheatStatsToStats() const;
+
+    u32 _romActiveCheatCount = 0;
+    u32 _romTotalCheatCount = 0;
+    String<char, 256> _statsPath;
 };

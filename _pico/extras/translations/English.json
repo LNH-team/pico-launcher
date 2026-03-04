@@ -7,6 +7,7 @@
     "language": "Language",
     "favorites": "Favorites",
     "total_launches": "Total Launches",
+    "last_launch": "Last Launch",
     "cheats": "Cheats",
     "cheats_not_found": "No cheats found for this game",
     "cheats_dat_missing": "usrcheat.dat not found",
