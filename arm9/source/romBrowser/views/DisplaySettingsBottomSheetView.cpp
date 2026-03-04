@@ -311,6 +311,11 @@ void DisplaySettingsBottomSheetView::ChangeTheme(int newIdx)
 
 void DisplaySettingsBottomSheetView::ApplyTheme()
 {
+    if (_selectedThemeIdx == _originalThemeIdx)
+    {
+        return;
+    }
+
     _appSettingsService->GetAppSettings().theme = _themeNames[_selectedThemeIdx].GetString();
     _settingsDirty = true;
     SaveIfDirty();
@@ -505,11 +510,7 @@ bool DisplaySettingsBottomSheetView::HandleInput(
 {
     if (_themeValueLabel.IsFocused() && inputProvider.Triggered(InputKey::A))
     {
-        const char* selectedTheme = _themeNames[_selectedThemeIdx].GetString();
-        if (strcasecmp(selectedTheme, "RANDOM") != 0)
-        {
-            ApplyTheme();
-        }
+        ApplyTheme();
         return true;
     }
     if (inputProvider.Triggered(InputKey::B))

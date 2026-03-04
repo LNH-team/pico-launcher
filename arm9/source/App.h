@@ -99,7 +99,7 @@ private:
     VramState _vramStateBeforeMakeBottomScreenView;
     VramState _vramStateAfterMakeBottomScreenView;
     bool _changeDisplayMode = false;
-    bool _pendingThemeReload = false;
+    bool _pendingAppRestart = false;
 
     ChipView::VramToken _chipViewVram;
     IconButton2DView::VramToken _iconButtonViewVram;
@@ -109,7 +109,6 @@ private:
     void InitVramMapping() const;
     void DisplaySplashScreen() const;
     void LoadTheme();
-    void ReloadTheme();
     void ApplyThemeColors();
     void VCountIrq();
     void HandleTrigger(RomBrowserStateTrigger trigger, RomBrowserState newState);
@@ -141,5 +140,4 @@ private:
     int _themeCount = 0;
 
     String<char, 64> _effectiveThemeName;
-    String<char, 64> _previousThemeName;
 };

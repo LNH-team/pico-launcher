@@ -19,8 +19,7 @@
 #include "gui/GraphicsContext.h"
 #include "romBrowser/views/ChipView.h"
 #include "picoLoaderBootstrap.h"
-#include "ipcChannels.h"
-#include "soundIpcCommand.h"
+#include "PicoLoaderProcess.h"
 #include "romBrowser/DisplayMode/RomBrowserDisplayModeFactory.h"
 #include "romBrowser/Theme/Material/MaterialThemeFileIconFactory.h"
 #include "romBrowser/views/NdsGameDetailsBottomSheetView.h"
@@ -30,6 +29,7 @@
 #include "bgm/BgmService.h"
 #include "themes/ThemeInfoFactory.h"
 #include "themes/ThemeFactory.h"
+#include "core/StringUtil.h"
 #include "gui/Gx.h"
 #include "splashTop.h"
 #include "App.h"
@@ -37,6 +37,24 @@
 #include "services/localization/Localization.h"
 
 #define SPLASH_FRAMES       44
+
+static bool TryGetThemeReloadLauncherPath(const char*& outLauncherPath)
+{
+    FILINFO fileInfo;
+    if (f_stat("/_picoboot.nds", &fileInfo) == FR_OK && (fileInfo.fattrib & AM_DIR) == 0)
+    {
+        outLauncherPath = "/_picoboot.nds";
+        return true;
+    }
+    else if (f_stat("/LAUNCHER.nds", &fileInfo) == FR_OK && (fileInfo.fattrib & AM_DIR) == 0)
+    {
+        outLauncherPath = "/LAUNCHER.nds";
+        return true;
+    }
+
+    outLauncherPath = nullptr;
+    return false;
+}
 
 App::App(IAppSettingsService& appSettingsService, IBgmService& bgmService)
     : _mainObjPltt(GFX_PLTT_OBJ_MAIN)
@@ -169,82 +187,6 @@ void App::ApplyThemeColors()
     REG_BG0CNT = 3;
 }
 
-void App::ReloadTheme()
-{
-    struct alignas(32) SoundStopCmdList
-    {
-        u32 cmdCount;
-        u32 stopChannels;
-    };
-
-    static SoundStopCmdList soundStopCmdList
-    {
-        1,
-        (0b11 << 8) | SND_IPC_CMD_STOP_CHANNELS         // Thanks to Dartz for suggesting SND_IPC_CMD_STOP_CHANNELS
-
-    };
-
-    DC_FlushRange(&soundStopCmdList, sizeof(soundStopCmdList));
-    ipc_sendFifoMessage(IPC_CHANNEL_SOUND, (u32)&soundStopCmdList);
-    // 
-    // Destroy all views that reference theme data
-    _romBrowserTopScreenView.reset();
-    _romBrowserBottomScreenView.reset();
-    _materialThemeFileIconFactory.reset();
-    _topBackground.reset();
-    _bottomBackground.reset();
-    _theme.reset();
-
-    // Restore VRAM to before theme was loaded
-    RestoreVramState(_vramStateBeforeThemeLoad);
-
-    // Reset sub display to a clean base state before loading new theme
-    // Mode 5, OBJ 1D mapping, OBJ display, display mode 1, BG ext palette
-    REG_DISPCNT_SUB = 0x40211015;
-
-    // Load the new theme
-    _effectiveThemeName = _appSettingsService.GetAppSettings().theme;
-    LoadTheme();
-    _previousThemeName = _effectiveThemeName;
-
-    // Recreate bottom screen view
-    StoreVramState(_vramStateBeforeMakeBottomScreenView);
-
-    auto displayMode = RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
-        _romBrowserController.GetRomBrowserDisplaySettings().layout);
-    _romBrowserBottomScreenView = std::make_unique<RomBrowserBottomScreenView>(
-        &_romBrowserBottomScreenViewModel,
-        displayMode,
-        _materialThemeFileIconFactory.get(),
-        _theme->GetRomBrowserViewFactory(),
-        &_vblankTextureLoader);
-    _romBrowserBottomScreenView->InitVram(_mainVramContext);
-
-    StoreVramState(_vramStateAfterMakeBottomScreenView);
-
-    // Recreate top screen view
-    _romBrowserTopScreenView = std::make_unique<RomBrowserTopScreenView>(
-        _romBrowserController.GetRomBrowserViewModel(),
-        displayMode,
-        _materialThemeFileIconFactory.get(),
-        _theme->GetRomBrowserViewFactory(),
-        &_theme->GetMaterialColorScheme(),
-        _theme->GetFontRepository(),
-        &_bgmService);
-    _romBrowserTopScreenView->InitVram(_subVramContext);
-
-    // Apply new color scheme
-    ApplyThemeColors();
-
-    // Reapply bottom screen view data
-    _romBrowserBottomScreenView->RomBrowserViewModelInvalidated(_mainVramContext);
-
-    // Restore focus
-    _romBrowserBottomScreenView->Focus(_focusManager);
-
-    _bgmService.StartBgmFromConfig(_effectiveThemeName.GetString());
-}
-
 void App::VCountIrq()
 {
     _mainObjPltt.VCount();
@@ -269,7 +211,6 @@ void App::Run()
 
     StoreVramState(_vramStateBeforeThemeLoad);
     LoadTheme();
-    _previousThemeName = _effectiveThemeName;
 
     _ioTaskQueue.StartThread(1, _ioTaskThreadStack, sizeof(_ioTaskThreadStack));
     _bgTaskQueue.StartThread(2, _bgTaskThreadStack, sizeof(_bgTaskThreadStack));
@@ -522,11 +463,7 @@ void App::HandleHideDisplaySettingsTrigger()
     // Check if theme reload was explicitly requested with A button
     if (_romBrowserController.ConsumeThemeReloadRequest())
     {
-        const char* newTheme = _appSettingsService.GetAppSettings().theme.GetString();
-        if (strcmp(newTheme, "RANDOM") != 0)
-        {
-            _pendingThemeReload = true;
-        }
+        _pendingAppRestart = true;
     }
 
     if (!_dialogPresenter.GetOldFocus())
@@ -693,11 +630,24 @@ void App::Update()
 
     _dialogPresenter.Update();
 
-    // Reload theme after dialog close animation finishes
-    if (_pendingThemeReload && _dialogPresenter.IsIdle())
+    if (_pendingAppRestart && _dialogPresenter.IsIdle())
     {
-        _pendingThemeReload = false;
-        ReloadTheme();
+        _pendingAppRestart = false;
+
+        const char* launcherPath = nullptr;
+        if (!TryGetThemeReloadLauncherPath(launcherPath))
+        {
+            return;
+        }
+
+        auto loadParams = pload_getLoadParams();
+        StringUtil::Copy(loadParams->romPath, launcherPath, sizeof(loadParams->romPath));
+        loadParams->savePath[0] = 0;
+        loadParams->arguments[0] = 0;
+        loadParams->argumentsLength = 0;
+        pload_setCheatData(nullptr);
+        gProcessManager.Goto<PicoLoaderProcess>();
+        return;
     }
 
     _romBrowserBottomScreenView->Update();
