@@ -26,6 +26,26 @@ static u8 bcdToDecimal(u8 bcd)
     return (u8)(tens * 10 + ones);
 }
 
+static void sanitizeDateTime(u8& month, u8& monthDay, u8& hour, u8& minute)
+{
+    if (month < 1 || month > 12)
+        month = 1;
+    if (monthDay < 1 || monthDay > 31)
+        monthDay = 1;
+    if (hour > 23)
+        hour = 0;
+    if (minute > 59)
+        minute = 0;
+}
+
+static void formatDateTimeText(char16_t* outText, u32 outTextLength, u8 year, u8 month, u8 monthDay, u8 hour, u8 minute)
+{
+    char dateTimeText[24];
+    mini_snprintf(dateTimeText, sizeof(dateTimeText), "%02u/%02u/%04u %02u:%02u",
+        monthDay, month, 2000 + year, hour, minute);
+    StringUtil::Copy(outText, dateTimeText, outTextLength);
+}
+
 RomBrowserTopScreenView::RomBrowserTopScreenView(
     const SharedPtr<RomBrowserViewModel>& viewModel,
     const RomBrowserDisplayMode* displayMode,
@@ -41,10 +61,29 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
     , _showCover(displayMode->ShowCoverOnTopScreen())
     , _bgmService(bgmService)
 {
+    constexpr int DATE_TIME_CHIP_WIDTH = 90;
+    constexpr int DATE_TIME_CHIP_X = 0;
+    constexpr int DATE_TIME_CHIP_Y = -3;
+
     _dateTimeChip.SetCenteredText(true);
-    _dateTimeChip.SetText(u"88/88/8888 88:88");
-    _dateTimeChip.SetFixedWidth(90);
-    _dateTimeChip.SetPosition(0, -3);
+    _dateTimeChip.SetFixedWidth(DATE_TIME_CHIP_WIDTH);
+    _dateTimeChip.SetPosition(DATE_TIME_CHIP_X, DATE_TIME_CHIP_Y);
+
+    rtc_datetime_t dateTime;
+    rtc_readDateTime(&dateTime);
+
+    _lastYear = bcdToDecimal(dateTime.date.year);
+    _lastMonth = bcdToDecimal(dateTime.date.month);
+    _lastMonthDay = bcdToDecimal(dateTime.date.monthDay);
+    _lastHour = bcdToDecimal(dateTime.time.hour);
+    _lastMinute = bcdToDecimal(dateTime.time.minute);
+
+    sanitizeDateTime(_lastMonth, _lastMonthDay, _lastHour, _lastMinute);
+
+    char16_t dateTimeText16[24];
+    formatDateTimeText(dateTimeText16, sizeof(dateTimeText16) / sizeof(dateTimeText16[0]),
+        _lastYear, _lastMonth, _lastMonthDay, _lastHour, _lastMinute);
+    _dateTimeChip.SetText(dateTimeText16);
 
     AddChildTail(_fileInfoView.get());
     AddChildTail(&_dateTimeChip);
@@ -90,27 +129,15 @@ void RomBrowserTopScreenView::Update()
         u8 hour = bcdToDecimal(dateTime.time.hour);
         u8 minute = bcdToDecimal(dateTime.time.minute);
 
-        if (month < 1 || month > 12)
-            month = 1;
-        if (monthDay < 1 || monthDay > 31)
-            monthDay = 1;
-        if (hour > 23)
-            hour = 0;
-        if (minute > 59)
-            minute = 0;
+        sanitizeDateTime(month, monthDay, hour, minute);
 
         if (_lastYear != year || _lastMonth != month || _lastMonthDay != monthDay
             || _lastHour != hour || _lastMinute != minute)
         {
-            char dateTimeText[24];
-            mini_snprintf(dateTimeText, sizeof(dateTimeText), "%02u/%02u/%04u %02u:%02u",
-                monthDay, month, 2000 + year, hour, minute);
-
             char16_t dateTimeText16[24];
-            StringUtil::Copy(dateTimeText16, dateTimeText, sizeof(dateTimeText16) / sizeof(dateTimeText16[0]));
+            formatDateTimeText(dateTimeText16, sizeof(dateTimeText16) / sizeof(dateTimeText16[0]),
+                year, month, monthDay, hour, minute);
             _dateTimeChip.SetText(dateTimeText16);
-            _dateTimeChip.SetFixedWidth(90); 
-            _dateTimeChip.SetPosition(1, -3);
 
             _lastYear = year;
             _lastMonth = month;

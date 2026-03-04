@@ -88,18 +88,21 @@ void LabelView::SetText(const char* text)
 {
     SetTextBuffer(text);
     UpdateTileBuffer();
+    _stringWidth = _newStringWidth;
 }
 
 void LabelView::SetText(const char16_t* text)
 {
     SetTextBuffer(text);
     UpdateTileBuffer();
+    _stringWidth = _newStringWidth;
 }
 
 void LabelView::SetText(const char16_t* text, u32 length)
 {
     SetTextBuffer(text, length);
     UpdateTileBuffer();
+    _stringWidth = _newStringWidth;
 }
 
 QueueTask<void> LabelView::SetTextAsync(TaskQueueBase* taskQueue, const char* text)
