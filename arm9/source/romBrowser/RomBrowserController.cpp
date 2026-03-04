@@ -134,7 +134,16 @@ void RomBrowserController::SetRomBrowserDisplaySettings(
     }
 
     _appSettingsService->GetAppSettings().romBrowserDisplaySettings = romBrowserDisplaySettings;
-    _saveSettingsPending = true;
+    bool inDisplaySettings = _stateMachine.GetCurrentState() == RomBrowserState::DisplaySettings;
+    if (inDisplaySettings)
+    {
+        _saveSettingsPending = true;
+    }
+    else
+    {
+        _saveSettingsPending = false;
+        SaveSettingsAsync();
+    }
 
     if (previousDisplaySettings.layout != romBrowserDisplaySettings.layout)
     {
