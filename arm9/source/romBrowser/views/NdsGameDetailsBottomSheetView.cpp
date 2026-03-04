@@ -218,26 +218,16 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                     if (isNds) {
                         char statsPath[256];
                         bool hasStatsPath = BuildStatsPath(fileInfo, statsPath, sizeof(statsPath));
-                        bool hasCachedCheatStats = false;
-                        if (hasStatsPath)
+                        auto gameCheats = _romBrowserController->GetCheatRepository().GetCheatsForGame(fileInfo.GetFastFileRef());
+                        if (gameCheats)
                         {
-                            hasCachedCheatStats = LaunchStatsService::Instance().TryGetCheatStats(
-                                statsPath, cheatActiveCount, cheatTotalCount);
+                            cheatTotalCount = CountCheatsRecursive(gameCheats.get());
+                            cheatActiveCount = CountActiveCheatsRecursive(gameCheats.get());
                         }
 
-                        if (!hasCachedCheatStats)
+                        if (hasStatsPath)
                         {
-                            auto gameCheats = _romBrowserController->GetCheatRepository().GetCheatsForGame(fileInfo.GetFastFileRef());
-                            if (gameCheats)
-                            {
-                                cheatTotalCount = CountCheatsRecursive(gameCheats.get());
-                                cheatActiveCount = CountActiveCheatsRecursive(gameCheats.get());
-                            }
-
-                            if (hasStatsPath)
-                            {
-                                LaunchStatsService::Instance().SetCheatStats(statsPath, cheatActiveCount, cheatTotalCount);
-                            }
+                            LaunchStatsService::Instance().SetCheatStats(statsPath, cheatActiveCount, cheatTotalCount);
                         }
 
                         std::unique_ptr<InternalFileInfo> internalInfo(fileInfo.CreateInternalFileInfo());

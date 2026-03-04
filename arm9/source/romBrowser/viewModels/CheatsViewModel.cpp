@@ -23,17 +23,7 @@ CheatsViewModel::CheatsViewModel(const FileInfo& romFileInfo, IRomBrowserControl
             _categoryStack[0] = _cheats.get();
             _isUsrCheatDatMissing = false;
             _state = State::DisplayCheats;
-            bool loadedFromStats = false;
-            if (_statsPath.GetString()[0] != 0)
-            {
-                loadedFromStats = LaunchStatsService::Instance().TryGetCheatStats(
-                    _statsPath.GetString(), _romActiveCheatCount, _romTotalCheatCount);
-            }
-
-            if (!loadedFromStats)
-            {
-                UpdateRomCheatStatsFromTree(true);
-            }
+            UpdateRomCheatStatsFromTree(true);
         }
         else
         {
@@ -95,7 +85,7 @@ bool CheatsViewModel::ItemActivated()
         if (wasEnabled != isEnabled || cheatCategory->GetIsMaxOneCheatActive())
         {
             _changed = true;
-            UpdateRomCheatStatsFromTree(true);
+            UpdateRomCheatStatsFromTree(false);
         }
     }
 
@@ -143,6 +133,8 @@ void CheatsViewModel::Close()
 {
     if (_changed)
     {
+        SaveRomCheatStatsToStats();
+
         // Save which cheats are enabled/disabled
         _romBrowserController->GetIoTaskQueue()->Enqueue(
             [romBrowserController = _romBrowserController, cheats = move(_cheats)] (const vu8& cancelRequested)

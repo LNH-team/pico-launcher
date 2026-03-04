@@ -12,7 +12,6 @@ public:
         String<char, 11> lastLaunchDate;
         String<char, 9> lastLaunchTime;
         u32 cheatActiveCount = 0;
-        u32 cheatTotalCount = 0;
         bool hasCheatStats = false;
     };
 

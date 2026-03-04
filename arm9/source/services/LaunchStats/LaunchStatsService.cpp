@@ -129,11 +129,10 @@ void LaunchStatsService::Load()
         const char* lastLaunchTime = item["last_launch_time"].as<const char*>();
         if (lastLaunchTime && lastLaunchTime[0] != 0)
             _infos[i].lastLaunchTime = lastLaunchTime;
-        _infos[i].hasCheatStats = item.containsKey("cheat_active_count") && item.containsKey("cheat_total_count");
+        _infos[i].hasCheatStats = item.containsKey("cheat_active_count");
         if (_infos[i].hasCheatStats)
         {
             _infos[i].cheatActiveCount = item["cheat_active_count"] | 0;
-            _infos[i].cheatTotalCount = item["cheat_total_count"] | 0;
         }
         (void)0;
         i++;
@@ -162,7 +161,6 @@ void LaunchStatsService::Save() const
         if (_infos[i].hasCheatStats)
         {
             obj["cheat_active_count"] = _infos[i].cheatActiveCount;
-            obj["cheat_total_count"] = _infos[i].cheatTotalCount;
         }
     }
     
@@ -341,7 +339,6 @@ bool LaunchStatsService::TryGetCheatStats(const char* path, u32& activeCount, u3
                 return false;
 
             activeCount = _infos[i].cheatActiveCount;
-            totalCount = _infos[i].cheatTotalCount;
             return true;
         }
     }
@@ -351,6 +348,8 @@ bool LaunchStatsService::TryGetCheatStats(const char* path, u32& activeCount, u3
 
 void LaunchStatsService::SetCheatStats(const char* path, u32 activeCount, u32 totalCount)
 {
+    (void)totalCount;
+
     if (!path || path[0] == 0)
         return;
 
@@ -365,11 +364,10 @@ void LaunchStatsService::SetCheatStats(const char* path, u32 activeCount, u32 to
     {
         if (!strcasecmp(_infos[i].path.GetString(), normalized))
         {
-            if (_infos[i].cheatActiveCount == activeCount && _infos[i].cheatTotalCount == totalCount)
+            if (_infos[i].cheatActiveCount == activeCount)
                 return;
 
             _infos[i].cheatActiveCount = activeCount;
-            _infos[i].cheatTotalCount = totalCount;
             _infos[i].hasCheatStats = true;
             Save();
             return;
@@ -383,7 +381,6 @@ void LaunchStatsService::SetCheatStats(const char* path, u32 activeCount, u32 to
 
     newInfos[newCount - 1].path = normalized;
     newInfos[newCount - 1].cheatActiveCount = activeCount;
-    newInfos[newCount - 1].cheatTotalCount = totalCount;
     newInfos[newCount - 1].hasCheatStats = true;
 
     _infos = std::move(newInfos);
