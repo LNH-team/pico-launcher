@@ -36,6 +36,11 @@ public:
     View* MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source) override;
     void Focus(FocusManager& focusManager, int button);
 
+    int GetButtonIndex(const View* view) const
+    {
+        return FindButtonIndex(view);
+    }
+
     constexpr Orientation GetOrientation() const { return _orientation; }
 
 protected:
@@ -46,7 +51,7 @@ protected:
 
     void UpdateButtonPositionsHorizontal();
     void UpdateButtonPositionsVertical();
-    int FindButtonIndex(const View* view);
+    int FindButtonIndex(const View* view) const;
 
     AppBarView(int x, int y, Orientation orientation,
         int startButtonCount, int endButtonCount, const MaterialColorScheme* materialColorScheme);

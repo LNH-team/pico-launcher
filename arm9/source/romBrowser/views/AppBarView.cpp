@@ -122,7 +122,7 @@ void AppBarView::UpdateButtonPositionsVertical()
     }
 }
 
-int AppBarView::FindButtonIndex(const View* view)
+int AppBarView::FindButtonIndex(const View* view) const
 {
     for (int i = 0; i < _startButtonCount + _endButtonCount; i++)
     {

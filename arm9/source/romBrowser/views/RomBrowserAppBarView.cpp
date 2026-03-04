@@ -5,12 +5,12 @@
 #include "backIcon.h"
 #include "settingsIcon.h"
 #include "heartIcon.h"
-#include "recentIcon.h"
 #include "hGridIcon.h"
 #include "vGridIcon.h"
 #include "bannerListIcon.h"
 #include "coverflowIcon.h"
-#include "listIcon.h"
+#include "sortNameAscendingIcon.h"
+#include "sortNameDescendingIcon.h"
 #include "gui/IVramManager.h"
 #include "../DisplayMode/RomBrowserDisplayMode.h"
 #include "RomBrowserAppBarView.h"
@@ -22,7 +22,7 @@ RomBrowserAppBarView::RomBrowserAppBarView(
     const IRomBrowserViewFactory* romBrowserViewFactory)
     : _viewModel(viewModel)
 {
-    _appBarView = displayMode.CreateAppBarView(romBrowserViewFactory, 1, 2);
+    _appBarView = displayMode.CreateAppBarView(romBrowserViewFactory, 1, 4);
     _appBarView->SetParent(this);
 
     _appBarView->SetButtonAction(APP_BAR_BUTTON_BACK, [] (IconButtonView* sender, void* arg)
@@ -36,6 +36,14 @@ RomBrowserAppBarView::RomBrowserAppBarView(
     _appBarView->SetButtonAction(APP_BAR_BUTTON_FAVORITES, [] (IconButtonView* sender, void* arg)
     {
         ((RomBrowserAppBarViewModel*)arg)->ToggleFavoritesView();
+    }, _viewModel);
+    _appBarView->SetButtonAction(APP_BAR_BUTTON_SORT_MODE, [] (IconButtonView* sender, void* arg)
+    {
+        ((RomBrowserAppBarViewModel*)arg)->CycleSortMode();
+    }, _viewModel);
+    _appBarView->SetButtonAction(APP_BAR_BUTTON_LAYOUT, [] (IconButtonView* sender, void* arg)
+    {
+        ((RomBrowserAppBarViewModel*)arg)->CycleLayout();
     }, _viewModel);
 }
 
@@ -71,6 +79,30 @@ void RomBrowserAppBarView::InitVram(const VramContext& vramContext)
         u32 heartIconVramOffset = objVramManager->Alloc(heartIconTilesLen);
         dma_ntrCopy32(3, heartIconTiles, objVramManager->GetVramAddress(heartIconVramOffset), heartIconTilesLen);
         _appBarView->SetButtonIcon(APP_BAR_BUTTON_FAVORITES, heartIconVramOffset);
+
+        _sortIconNameAscendingVramOffset = objVramManager->Alloc(sortNameAscendingIconTilesLen);
+        dma_ntrCopy32(3, sortNameAscendingIconTiles,
+            objVramManager->GetVramAddress(_sortIconNameAscendingVramOffset), sortNameAscendingIconTilesLen);
+
+        _sortIconNameDescendingVramOffset = objVramManager->Alloc(sortNameDescendingIconTilesLen);
+        dma_ntrCopy32(3, sortNameDescendingIconTiles,
+            objVramManager->GetVramAddress(_sortIconNameDescendingVramOffset), sortNameDescendingIconTilesLen);
+
+        _layoutIconHorizontalGridVramOffset = objVramManager->Alloc(hGridIconTilesLen);
+        dma_ntrCopy32(3, hGridIconTiles,
+            objVramManager->GetVramAddress(_layoutIconHorizontalGridVramOffset), hGridIconTilesLen);
+
+        _layoutIconVerticalGridVramOffset = objVramManager->Alloc(vGridIconTilesLen);
+        dma_ntrCopy32(3, vGridIconTiles,
+            objVramManager->GetVramAddress(_layoutIconVerticalGridVramOffset), vGridIconTilesLen);
+
+        _layoutIconBannerListVramOffset = objVramManager->Alloc(bannerListIconTilesLen);
+        dma_ntrCopy32(3, bannerListIconTiles,
+            objVramManager->GetVramAddress(_layoutIconBannerListVramOffset), bannerListIconTilesLen);
+
+        _layoutIconCoverFlowVramOffset = objVramManager->Alloc(coverflowIconTilesLen);
+        dma_ntrCopy32(3, coverflowIconTiles,
+            objVramManager->GetVramAddress(_layoutIconCoverFlowVramOffset), coverflowIconTilesLen);
 
         // u32 settingsIconVramOffset = objVramManager->Alloc(settingsIconTilesLen);
         // dma_ntrCopy32(3, settingsIconTiles, objVramManager->GetVramAddress(settingsIconVramOffset), settingsIconTilesLen);
@@ -129,6 +161,39 @@ void RomBrowserAppBarView::Update()
         _viewModel->IsFavoritesViewActive()
             ? IconButtonView::State::ToggleSelected
             : IconButtonView::State::ToggleUnselected);
+
+    switch (_viewModel->GetRomBrowserLayout())
+    {
+        case RomBrowserLayout::HorizontalIconGrid:
+            _appBarView->SetButtonIcon(APP_BAR_BUTTON_LAYOUT, _layoutIconHorizontalGridVramOffset);
+            break;
+        case RomBrowserLayout::VerticalIconGrid:
+            _appBarView->SetButtonIcon(APP_BAR_BUTTON_LAYOUT, _layoutIconVerticalGridVramOffset);
+            break;
+        case RomBrowserLayout::BannerList:
+            _appBarView->SetButtonIcon(APP_BAR_BUTTON_LAYOUT, _layoutIconBannerListVramOffset);
+            break;
+        case RomBrowserLayout::CoverFlow:
+            _appBarView->SetButtonIcon(APP_BAR_BUTTON_LAYOUT, _layoutIconCoverFlowVramOffset);
+            break;
+        default:
+            _appBarView->SetButtonIcon(APP_BAR_BUTTON_LAYOUT, _layoutIconHorizontalGridVramOffset);
+            break;
+    }
+
+    switch (_viewModel->GetRomBrowserSortMode())
+    {
+        case RomBrowserSortMode::NameAscending:
+            _appBarView->SetButtonIcon(APP_BAR_BUTTON_SORT_MODE, _sortIconNameAscendingVramOffset);
+            break;
+        case RomBrowserSortMode::NameDescending:
+            _appBarView->SetButtonIcon(APP_BAR_BUTTON_SORT_MODE, _sortIconNameDescendingVramOffset);
+            break;
+        default:
+            _appBarView->SetButtonIcon(APP_BAR_BUTTON_SORT_MODE, _sortIconNameAscendingVramOffset);
+            break;
+    }
+
     _appBarView->Update();
 }
 

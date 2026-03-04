@@ -561,6 +561,10 @@ void App::HandleFolderLoadDoneTrigger()
 
 void App::HandleRomBrowserViewModelInvalidated()
 {
+    bool wasFavoritesAppBarFocused = _romBrowserBottomScreenView->IsAppBarFocused(_focusManager)
+        && _romBrowserBottomScreenView->GetFocusedAppBarButton(_focusManager)
+            == RomBrowserAppBarView::APP_BAR_BUTTON_FAVORITES;
+
     _romBrowserTopScreenView.reset();
     RestoreVramState(_vramStateAfterMakeBottomScreenView);
     auto displayMode = RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
@@ -578,15 +582,28 @@ void App::HandleRomBrowserViewModelInvalidated()
 
     if (_romBrowserController.IsFavoritesViewActive())
     {
-        auto viewModel = _romBrowserController.GetRomBrowserViewModel();
-        bool hasItems = viewModel.IsValid()
-            && viewModel->GetFileInfoManager().GetItemCount() > 0;
-
-        if (hasItems)
-            _romBrowserBottomScreenView->Focus(_focusManager);
-        else
+        if (wasFavoritesAppBarFocused)
+        {
             _romBrowserBottomScreenView->FocusAppBar(
                 _focusManager, RomBrowserAppBarView::APP_BAR_BUTTON_FAVORITES);
+        }
+        else
+        {
+            auto viewModel = _romBrowserController.GetRomBrowserViewModel();
+            bool hasItems = viewModel.IsValid()
+                && viewModel->GetFileInfoManager().GetItemCount() > 0;
+
+            if (hasItems)
+                _romBrowserBottomScreenView->Focus(_focusManager);
+            else
+                _romBrowserBottomScreenView->FocusAppBar(
+                    _focusManager, RomBrowserAppBarView::APP_BAR_BUTTON_FAVORITES);
+        }
+    }
+    else if (wasFavoritesAppBarFocused)
+    {
+        _romBrowserBottomScreenView->FocusAppBar(
+            _focusManager, RomBrowserAppBarView::APP_BAR_BUTTON_FAVORITES);
     }
     else if (!_focusManager.GetCurrentFocus())
     {
@@ -596,6 +613,11 @@ void App::HandleRomBrowserViewModelInvalidated()
 
 void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)
 {
+    bool wasAppBarFocused = _romBrowserBottomScreenView->IsAppBarFocused(_focusManager);
+    auto focusedAppBarButton = wasAppBarFocused
+        ? _romBrowserBottomScreenView->GetFocusedAppBarButton(_focusManager)
+        : RomBrowserAppBarView::APP_BAR_BUTTON_BACK;
+
     _dialogPresenter.ClearOldFocus();
     RestoreVramState(_vramStateBeforeMakeBottomScreenView);
     auto displayMode = RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
@@ -619,7 +641,12 @@ void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)
     _romBrowserTopScreenView->InitVram(_subVramContext);
     _romBrowserBottomScreenView->RomBrowserViewModelInvalidated(_mainVramContext);
     if (newState == RomBrowserState::Browser)
-        _romBrowserBottomScreenView->Focus(_focusManager);
+    {
+        if (wasAppBarFocused)
+            _romBrowserBottomScreenView->FocusAppBar(_focusManager, focusedAppBarButton);
+        else
+            _romBrowserBottomScreenView->Focus(_focusManager);
+    }
 }
 
 bool App::IsRomBrowserVisible() const

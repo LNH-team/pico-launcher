@@ -126,9 +126,25 @@ void RomBrowserController::HideDisplaySettings()
 void RomBrowserController::SetRomBrowserDisplaySettings(
     const RomBrowserDisplaySettings& romBrowserDisplaySettings)
 {
+    const auto previousDisplaySettings = _appSettingsService->GetAppSettings().romBrowserDisplaySettings;
+    if (previousDisplaySettings.layout == romBrowserDisplaySettings.layout
+        && previousDisplaySettings.sortMode == romBrowserDisplaySettings.sortMode)
+    {
+        return;
+    }
+
     _appSettingsService->GetAppSettings().romBrowserDisplaySettings = romBrowserDisplaySettings;
     _saveSettingsPending = true;
-    _stateMachine.Fire(RomBrowserStateTrigger::ChangeDisplayMode);
+
+    if (previousDisplaySettings.layout != romBrowserDisplaySettings.layout)
+    {
+        _stateMachine.Fire(RomBrowserStateTrigger::ChangeDisplayMode);
+    }
+    else
+    {
+        _romBrowserViewModel = SharedPtr(new RomBrowserViewModel(this));
+        _viewModelInvalidated = true;
+    }
 }
 
 void RomBrowserController::ToggleFavoritesView()
