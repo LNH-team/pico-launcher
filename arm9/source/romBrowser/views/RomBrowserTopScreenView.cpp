@@ -43,7 +43,8 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
 {
     _dateTimeChip.SetCenteredText(true);
     _dateTimeChip.SetText(u"88/88/8888 88:88");
-    _dateTimeChip.SetPosition(0, 0);
+    _dateTimeChip.SetFixedWidth(90);
+    _dateTimeChip.SetPosition(0, -3);
 
     AddChildTail(_fileInfoView.get());
     AddChildTail(&_dateTimeChip);
@@ -108,7 +109,8 @@ void RomBrowserTopScreenView::Update()
             char16_t dateTimeText16[24];
             StringUtil::Copy(dateTimeText16, dateTimeText, sizeof(dateTimeText16) / sizeof(dateTimeText16[0]));
             _dateTimeChip.SetText(dateTimeText16);
-            _dateTimeChip.SetPosition(0, 0);
+            _dateTimeChip.SetFixedWidth(90); 
+            _dateTimeChip.SetPosition(1, -3);
 
             _lastYear = year;
             _lastMonth = month;
