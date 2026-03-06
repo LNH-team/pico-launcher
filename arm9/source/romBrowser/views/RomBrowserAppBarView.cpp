@@ -2,6 +2,7 @@
 #include "../viewModels/RomBrowserAppBarViewModel.h"
 #include "gui/GraphicsContext.h"
 #include "gui/VramContext.h"
+#include "gui/input/TouchEvent.h"
 #include "backIcon.h"
 #include "settingsIcon.h"
 #include "heartIcon.h"
@@ -224,3 +225,28 @@ View* RomBrowserAppBarView::MoveFocus(View* currentFocus, FocusMoveDirection dir
     return nullptr;
 }
 
+bool RomBrowserAppBarView::HandleTouch(const TouchEvent& event, FocusManager& focusManager)
+{
+    static constexpr int TOUCH_INFLATE = 16;
+    const Rectangle barBounds = _appBarView->GetBounds();
+    const Rectangle inflatedBounds(
+        barBounds.GetX(),
+        barBounds.GetY(),
+        barBounds.GetWidth() > barBounds.GetHeight()
+            ? barBounds.GetWidth()         
+            : barBounds.GetWidth() + TOUCH_INFLATE,  
+        barBounds.GetWidth() > barBounds.GetHeight()
+            ? barBounds.GetHeight() + TOUCH_INFLATE 
+            : barBounds.GetHeight());              
+
+    bool inBounds = inflatedBounds.Contains(event.position);
+    bool startedInBounds = event.type != TouchEventType::Down &&
+        inflatedBounds.Contains(event.startPosition);
+
+    if (inBounds || startedInBounds)
+    {
+        _appBarView->HandleTouch(event, focusManager);
+        return true;
+    }
+    return false;
+}

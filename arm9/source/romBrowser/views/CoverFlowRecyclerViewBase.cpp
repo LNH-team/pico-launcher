@@ -1,4 +1,6 @@
 #include "common.h"
+#include <algorithm>
+#include "gui/input/TouchEvent.h"
 #include "CoverFlowRecyclerViewBase.h"
 
 void CoverFlowRecyclerViewBase::InitVram(const VramContext& vramContext)
@@ -181,4 +183,142 @@ void CoverFlowRecyclerViewBase::SetSelectedItem(int itemIdx, bool initial)
     {
         UpdateItemPosition(i, initial);
     }
+}
+
+bool CoverFlowRecyclerViewBase::HandleTouch(const TouchEvent& event, FocusManager& focusManager)
+{
+    if (_itemCount == 0)
+        return false;
+
+    switch (event.type)
+    {
+        case TouchEventType::Down:
+        {
+            _touchDragging = false;
+            _touchLongPressFired = false;
+            _touchStartPos = event.position;
+            _touchStartSelectedItem = GetSelectedItem();
+            _touchHoldSide = 0;
+            _touchHoldRepeat = 0;
+            _touchHoldSideCalculated = false;
+            return true;
+        }
+        case TouchEventType::Move:
+        {
+            int deltaX = event.position.x - _touchStartPos.x;
+            int absDelta = deltaX > 0 ? deltaX : -deltaX;
+
+            if (!_touchDragging && absDelta > TOUCH_DRAG_THRESHOLD)
+            {
+                _touchDragging = true;
+            }
+
+            if (_touchDragging)
+            {
+                int itemDelta = -deltaX / TOUCH_ITEM_STEP;
+                int newIdx = std::clamp(_touchStartSelectedItem + itemDelta,
+                                        0, (int)_itemCount - 1);
+                if (newIdx != GetSelectedItem())
+                {
+                    SetSelectedItem(newIdx, false);
+                    if (_selectedItem)
+                        focusManager.Focus(_selectedItem->view);
+                }
+            }
+
+            if (!_touchHoldSideCalculated && _selectedItem)
+            {
+                _touchHoldSideCalculated = true;
+                const Rectangle selectedBounds = GetSelectedItemTapBounds();
+                if (_touchStartPos.x < selectedBounds.GetLeft())
+                    _touchHoldSide = -1;
+                else if (_touchStartPos.x >= selectedBounds.GetRight())
+                    _touchHoldSide = 1;
+                else
+                    _touchHoldSide = 0;
+            }
+
+            if (!_touchDragging && !_touchLongPressFired &&
+                _touchHoldSide == 0 &&
+                event.holdFrames >= TOUCH_LONG_PRESS_FRAMES)
+            {
+                _touchLongPressFired = true;
+                if (_touchLongPressCallback && GetSelectedItem() >= 0)
+                {
+                    _touchLongPressCallback(GetSelectedItem(), _touchLongPressCallbackArg);
+                }
+            }
+
+            if (!_touchDragging && _touchHoldSide != 0 && _selectedItem)
+            {
+                if (event.holdFrames >= TOUCH_HOLD_START_DELAY)
+                {
+                    _touchHoldRepeat++;
+                    if (_touchHoldRepeat >= TOUCH_HOLD_REPEAT_DELAY)
+                    {
+                        _touchHoldRepeat = 0;
+                        int newIdx = std::clamp(GetSelectedItem() + _touchHoldSide,
+                                                0, (int)_itemCount - 1);
+                        if (newIdx != GetSelectedItem())
+                        {
+                            SetSelectedItem(newIdx, false);
+                            if (_selectedItem)
+                                focusManager.Focus(_selectedItem->view);
+                            _touchLongPressFired = true; 
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+        case TouchEventType::Up:
+        {
+            if (!_touchDragging && !_touchLongPressFired &&
+                event.holdFrames <= TOUCH_TAP_MAX_FRAMES)
+            {
+                if (!_selectedItem)
+                {
+                    return true;
+                }
+
+                Rectangle selectedBounds = GetSelectedItemTapBounds();
+                if (selectedBounds.Contains(event.position) || selectedBounds.Contains(event.startPosition))
+                {
+                    if (_touchTapCallback && GetSelectedItem() >= 0)
+                    {
+                        _touchTapCallback(GetSelectedItem(), _touchTapCallbackArg);
+                    }
+                }
+                else
+                {
+                    int direction = event.position.x < selectedBounds.GetLeft() ? -1 : 1;
+                    int newIdx = std::clamp(GetSelectedItem() + direction, 0, (int)_itemCount - 1);
+                    if (newIdx != GetSelectedItem())
+                    {
+                        SetSelectedItem(newIdx, false);
+                        if (_selectedItem)
+                            focusManager.Focus(_selectedItem->view);
+                    }
+                }
+            }
+            else if (_touchDragging)
+            {
+                int velocityX = event.velocityX;
+                int absVelocity = velocityX > 0 ? velocityX : -velocityX;
+                if (absVelocity > TOUCH_MIN_FLING_VELOCITY)
+                {
+                    int extraItems = std::clamp(absVelocity / 18, 1, 3);
+                    int direction = velocityX > 0 ? -1 : 1; 
+                    int newIdx = std::clamp(GetSelectedItem() + direction * extraItems,
+                                            0, (int)_itemCount - 1);
+                    SetSelectedItem(newIdx, false);
+                    if (_selectedItem)
+                        focusManager.Focus(_selectedItem->view);
+                }
+            }
+            _touchDragging = false;
+            return true;
+        }
+    }
+    return false;
 }

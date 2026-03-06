@@ -2,6 +2,9 @@
 #include "ViewContainer.h"
 #include "DialogType.h"
 
+struct TouchEvent;
+class FocusManager;
+
 /// @brief View meant to be displayed as a dialog on top of other content.
 class DialogView : public ViewContainer
 {
@@ -22,4 +25,20 @@ public:
     ///        this dialog for the purpose of culling views behind it.
     /// @return A rectangle that is fully covered by the dialog.
     virtual Rectangle GetFullyCoveredArea() const = 0;
+
+    /// @brief Called when the dialog is dismissed by a touch gesture
+    ///        (swipe-down or scrim tap).
+    virtual void OnDismissed() { }
+
+    /// @brief Handles a touch event forwarded from the DialogPresenter
+    ///        when the user taps inside the dialog area.
+    /// @param event The touch event.
+    /// @param focusManager The focus manager.
+    /// @return True if the touch was handled.
+    bool HandleTouch(const TouchEvent& event, FocusManager& focusManager) override
+    {
+        (void)event;
+        (void)focusManager;
+        return false;
+    }
 };

@@ -13,6 +13,7 @@
 #include <nds/arm9/cache.h>
 #include "animation/Animator.h"
 #include "gui/materialDesign.h"
+#include "gui/input/TouchEvent.h"
 #include "themes/material/MaterialColorSchemeFactory.h"
 #include "core/math/ColorConverter.h"
 #include "core/math/RgbMixer.h"
@@ -621,6 +622,12 @@ void App::Update()
     if (isRomBrowserVisible && !_exit && curState != RomBrowserState::Launching)
     {
         _focusManager.Update(_inputRepeater);
+
+        _touchProvider.Update();
+        if (_touchProvider.HasEvent())
+        {
+            DispatchTouch(_touchProvider.GetEvent());
+        }
     }
 
     if (_topBackground)
@@ -714,6 +721,7 @@ void App::VBlank()
 {
     dma_ntrStopDirect(0); // stop hblank dma
     _inputProvider.Sample();
+    _touchProvider.Sample();
     _inputRepeater.Update();
     _mainOam.Apply(GFX_OAM_MAIN);
     _subOam.Apply(GFX_OAM_SUB);
@@ -757,4 +765,44 @@ void App::RestoreVramState(const VramState& vramState)
     _textureVram.SetState(vramState._texVramState);
     _texturePaletteVram.SetState(vramState._texPlttVramState);
     _subObjVram.SetState(vramState._subObjVramState);
+}
+
+void App::DispatchTouch(const TouchEvent& event)
+{
+    if (event.type == TouchEventType::Down)
+    {
+        _touchCapturedByDialog = false;
+        _touchCaptureTarget = nullptr;
+
+        if (_dialogPresenter.GetCurrentDialog())
+        {
+            if (_dialogPresenter.HandleTouch(event, _focusManager))
+            {
+                _touchCapturedByDialog = true;
+                return;
+            }
+        }
+
+        if (_romBrowserBottomScreenView &&
+            _romBrowserBottomScreenView->HandleTouch(event, _focusManager))
+        {
+            _touchCaptureTarget = _romBrowserBottomScreenView.get();
+            return;
+        }
+    }
+    else
+    {
+        if (_touchCapturedByDialog)
+        {
+            _dialogPresenter.HandleTouch(event, _focusManager);
+            if (event.type == TouchEventType::Up)
+                _touchCapturedByDialog = false;
+        }
+        else if (_touchCaptureTarget)
+        {
+            _touchCaptureTarget->HandleTouch(event, _focusManager);
+            if (event.type == TouchEventType::Up)
+                _touchCaptureTarget = nullptr;
+        }
+    }
 }

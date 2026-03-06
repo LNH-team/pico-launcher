@@ -15,6 +15,8 @@ public:
 
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
 
+    bool HandleTouch(const TouchEvent& event, FocusManager& focusManager) override;
+
     void InitVram(const VramContext& vramContext) override;
     void Update() override;
     void Draw(GraphicsContext& graphicsContext) override;
@@ -22,7 +24,7 @@ public:
 
     Rectangle GetBounds() const override
     {
-        return Rectangle(0, 0, 256, 192);
+        return _appBarView ? _appBarView->GetBounds() : Rectangle(0, 0, 0, 0);
     }
 
     View* MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source) override;

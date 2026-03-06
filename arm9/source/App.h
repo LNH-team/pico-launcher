@@ -14,6 +14,7 @@
 #include "gui/input/PadInputSource.h"
 #include "gui/input/SampledInputProvider.h"
 #include "gui/input/InputRepeater.h"
+#include "gui/input/TouchProvider.h"
 #include "gui/VBlankTextureLoader.h"
 #include "gui/Rgb6Palette.h"
 #include "core/task/TaskQueue.h"
@@ -79,6 +80,9 @@ private:
     PadInputSource _inputSource;
     SampledInputProvider _inputProvider;
     InputRepeater _inputRepeater;
+    TouchProvider _touchProvider;
+    View* _touchCaptureTarget = nullptr;
+    bool _touchCapturedByDialog = false;
 
     std::unique_ptr<RomBrowserBottomScreenView> _romBrowserBottomScreenView;
     std::unique_ptr<RomBrowserTopScreenView> _romBrowserTopScreenView;
@@ -131,6 +135,7 @@ private:
     void Update();
     void Draw();
     void VBlank();
+    void DispatchTouch(const TouchEvent& event);
 
     void StoreVramState(VramState& vramState) const;
     void RestoreVramState(const VramState& vramState);

@@ -33,6 +33,8 @@ private:
 
     void UpdateItemPosition(int viewPoolIndex, bool initial) override;
 
+    Rectangle GetSelectedItemTapBounds() const override;
+
     void SwapViewPoolEntry(int indexA, int indexB) override
     {
         CoverFlowRecyclerViewBase::SwapViewPoolEntry(indexA, indexB);

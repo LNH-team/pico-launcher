@@ -34,6 +34,9 @@ public:
     View* MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source) override;
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
 
+    void OnDismissed() override;
+    bool HandleTouch(const TouchEvent& event, FocusManager& focusManager) override;
+
     void Focus(FocusManager& focusManager) override
     {
         _cheatListRecycler->Focus(focusManager);
@@ -63,6 +66,7 @@ private:
     int _lastFocusedFolderIndex = 0;
     int _selectedModeReturnIndex = 0;
     bool _isDescriptionMode = false;
+    bool _descriptionTouchDownReceived = false;
     int _descriptionModeSelectedIndex = 0;
     char16_t _wrappedDescriptionBuffer[512] = { 0 };
     char _descriptionModeTitle[128] = { 0 };

@@ -10,6 +10,7 @@
 class IRomBrowserController;
 class MaterialColorScheme;
 class IFontRepository;
+struct TouchEvent;
 
 class DisplaySettingsBottomSheetView : public BottomSheetView
 {
@@ -22,6 +23,8 @@ public:
     void Update() override;
     void Draw(GraphicsContext& graphicsContext) override;
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
+    bool HandleTouch(const TouchEvent& event, FocusManager& focusManager) override;
+    void OnDismissed() override;
     View* MoveFocus(View* currentFocus,
         FocusMoveDirection direction, View* source) override;
 
@@ -83,4 +86,5 @@ private:
     u32 LoadIcon(IVramManager& vramManager, const unsigned int* tiles, u32 tilesLength) const;
 
     bool _settingsDirty = false;
+    bool _themeLongPressConsumed = false;
 };

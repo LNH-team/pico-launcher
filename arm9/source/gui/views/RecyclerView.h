@@ -6,6 +6,8 @@
 #include "animation/Animator.h"
 #include "RecyclerViewBase.h"
 
+struct TouchEvent;
+
 class RecyclerView : public RecyclerViewBase
 {
 public:
@@ -39,11 +41,30 @@ public:
 
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
 
+    bool HandleTouch(const TouchEvent& event, FocusManager& focusManager) override;
+
     void PageByShoulderButtons(bool useLBehavior, FocusManager& focusManager);
 
     void SetShoulderPagingEnabled(bool enabled)
     {
         _shoulderPagingEnabled = enabled;
+    }
+
+    void SetTouchTapCallback(touch_tap_callback_t callback, void* arg) override
+    {
+        _touchTapCallback = callback;
+        _touchTapCallbackArg = arg;
+    }
+
+    void SetTouchLongPressCallback(touch_long_press_callback_t callback, void* arg) override
+    {
+        _touchLongPressCallback = callback;
+        _touchLongPressCallbackArg = arg;
+    }
+
+    void SetTouchTapRequiresSelected(bool enabled) override
+    {
+        _touchTapRequiresSelected = enabled;
     }
 
     void Focus(FocusManager& focusManager) override
@@ -103,6 +124,24 @@ private:
     Animator<int> _scrollOffsetAnimator;
     bool _shoulderPagingEnabled = true;
 
+    bool _touchDragging = false;
+    bool _touchLongPressFired = false;
+    int _touchStartScrollOffset = 0;
+    Point _touchStartPos;
+    int _touchSelectedItemOnDown = -1;
+    bool _touchTapRequiresSelected = false;
+
+    touch_tap_callback_t _touchTapCallback = nullptr;
+    void* _touchTapCallbackArg = nullptr;
+    touch_long_press_callback_t _touchLongPressCallback = nullptr;
+    void* _touchLongPressCallbackArg = nullptr;
+
+    static constexpr int TOUCH_DRAG_THRESHOLD = 8;
+    static constexpr int TOUCH_MIN_FLING_VELOCITY = 4;
+    static constexpr int TOUCH_MOMENTUM_FRAMES = 45;
+    static constexpr int TOUCH_TAP_MAX_FRAMES = 24;
+    static constexpr int TOUCH_LONG_PRESS_FRAMES = 30;
+
     void UpdatePosition(ViewPoolEntry& viewPoolEntry);
     ViewPoolEntry* GetViewPoolEntryByItemIndex(int itemIdx);
     void BindRange(int start, int end);
@@ -117,4 +156,10 @@ private:
 
     View* MoveFocusHorizontal(View* currentFocus, FocusMoveDirection direction, View* source);
     View* MoveFocusVertical(View* currentFocus, FocusMoveDirection direction, View* source);
+
+    int FindItemAtScreenPosition(int screenX, int screenY) const;
+    bool IsHorizontalMode() const
+    {
+        return _mode == Mode::HorizontalList || _mode == Mode::HorizontalGrid;
+    }
 };

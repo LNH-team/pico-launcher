@@ -18,6 +18,7 @@
 #include "coverflowIcon.h"
 #include "../IRomBrowserController.h"
 #include "gui/input/InputProvider.h"
+#include "gui/input/TouchEvent.h"
 #include "themes/material/MaterialColorScheme.h"
 #include "themes/IFontRepository.h"
 #include "fat/Directory.h"
@@ -524,6 +525,142 @@ bool DisplaySettingsBottomSheetView::HandleInput(
         _viewModel->Close();
         return true;
     }
+    return false;
+}
+
+void DisplaySettingsBottomSheetView::OnDismissed()
+{
+    if (_selectedThemeIdx != _originalThemeIdx)
+    {
+        _appSettingsService->GetAppSettings().theme = _themeNames[_selectedThemeIdx].GetString();
+        _settingsDirty = true;
+        SaveIfDirty();
+    }
+    _viewModel->Close();
+}
+
+bool DisplaySettingsBottomSheetView::HandleTouch(const TouchEvent& event, FocusManager& focusManager)
+{
+    if (event.type == TouchEventType::Down)
+    {
+        _themeLongPressConsumed = false;
+        return false;
+    }
+
+    if (event.type == TouchEventType::Move)
+    {
+        if (!_themeLongPressConsumed &&
+            event.holdFrames >= 30 &&
+            _themeValueLabel.GetBounds().Contains(event.startPosition) &&
+            _themeValueLabel.GetBounds().Contains(event.position))
+        {
+            focusManager.Focus(&_themeValueLabel);
+            ApplyTheme();
+            _themeLongPressConsumed = true;
+            return true;
+        }
+
+        for (u32 i = 0; i < _layoutOptions.size(); i++)
+        {
+            if (_layoutOptions[i].GetBounds().Contains(event.position))
+            {
+                focusManager.Focus(&_layoutOptions[i]);
+                return true;
+            }
+        }
+        for (u32 i = 0; i < _sortOptions.size(); i++)
+        {
+            if (_sortOptions[i].GetBounds().Contains(event.position))
+            {
+                focusManager.Focus(&_sortOptions[i]);
+                return true;
+            }
+        }
+        if (_themeValueLabel.GetBounds().Contains(event.position))
+        {
+            focusManager.Focus(&_themeValueLabel);
+            return true;
+        }
+        if (_languageValueLabel.GetBounds().Contains(event.position))
+        {
+            focusManager.Focus(&_languageValueLabel);
+            return true;
+        }
+        return false;
+    }
+
+    if (_themeLongPressConsumed)
+    {
+        if (event.type == TouchEventType::Up)
+            _themeLongPressConsumed = false;
+        return true;
+    }
+
+    if (event.type != TouchEventType::Up || event.holdFrames > 24)
+        return false;
+
+    int deltaX = event.position.x - event.startPosition.x;
+    int deltaY = event.position.y - event.startPosition.y;
+    int absDeltaX = deltaX < 0 ? -deltaX : deltaX;
+    int absDeltaY = deltaY < 0 ? -deltaY : deltaY;
+    bool isHorizontalSwipe = absDeltaX >= 20 && absDeltaY <= 24;
+
+    for (u32 i = 0; i < _layoutOptions.size(); i++)
+    {
+        if (_layoutOptions[i].GetBounds().Contains(event.position))
+        {
+            focusManager.Focus(&_layoutOptions[i]);
+            _viewModel->SetRomBrowserDisplayMode(sRomBrowserDisplayModes[i]);
+            return true;
+        }
+    }
+
+    for (u32 i = 0; i < _sortOptions.size(); i++)
+    {
+        if (_sortOptions[i].GetBounds().Contains(event.position))
+        {
+            focusManager.Focus(&_sortOptions[i]);
+            _viewModel->SetRomBrowserSortMode(sRomBrowserSortModes[i]);
+            return true;
+        }
+    }
+
+    if (_themeValueLabel.GetBounds().Contains(event.position))
+    {
+        focusManager.Focus(&_themeValueLabel);
+        int newIdx;
+        if (isHorizontalSwipe)
+        {
+            newIdx = (deltaX > 0)
+                ? (_selectedThemeIdx - 1 + _themeCount) % _themeCount
+                : (_selectedThemeIdx + 1) % _themeCount;
+        }
+        else
+        {
+            newIdx = (_selectedThemeIdx + 1) % _themeCount;
+        }
+        ChangeTheme(newIdx);
+        return true;
+    }
+
+    if (_languageValueLabel.GetBounds().Contains(event.position))
+    {
+        focusManager.Focus(&_languageValueLabel);
+        int newIdx;
+        if (isHorizontalSwipe)
+        {
+            newIdx = (deltaX > 0)
+                ? (_selectedLanguageIdx - 1 + _languageCount) % _languageCount
+                : (_selectedLanguageIdx + 1) % _languageCount;
+        }
+        else
+        {
+            newIdx = (_selectedLanguageIdx + 1) % _languageCount;
+        }
+        ChangeLanguage(newIdx);
+        return true;
+    }
+
     return false;
 }
 

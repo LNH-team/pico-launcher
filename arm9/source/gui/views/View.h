@@ -8,6 +8,7 @@
 class GraphicsContext;
 class VramContext;
 class InputProvider;
+struct TouchEvent;
 
 /// @brief Base class for views.
 class View
@@ -54,6 +55,15 @@ public:
         if (_parent)
             return _parent->HandleInput(inputProvider, focusManager);
 
+        return false;
+    }
+
+    /// @brief Handles a touch event for the view.
+    /// @param event The touch event.
+    /// @param focusManager The focus manager.
+    /// @return True if the touch was handled, or false otherwise.
+    virtual bool HandleTouch(const TouchEvent& event, FocusManager& focusManager)
+    {
         return false;
     }
 

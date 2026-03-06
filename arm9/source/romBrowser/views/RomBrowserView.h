@@ -45,6 +45,8 @@ public:
 
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
 
+    bool HandleTouch(const TouchEvent& event, FocusManager& focusManager) override;
+
 private:
     SharedPtr<RomBrowserViewModel> _viewModel;
     std::unique_ptr<RecyclerViewBase> _fileGridView;

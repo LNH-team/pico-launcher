@@ -36,6 +36,8 @@ public:
     View* MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source) override;
     void Focus(FocusManager& focusManager, int button);
 
+    bool HandleTouch(const TouchEvent& event, FocusManager& focusManager) override;
+
     int GetButtonIndex(const View* view) const
     {
         return FindButtonIndex(view);
@@ -44,6 +46,10 @@ public:
     constexpr Orientation GetOrientation() const { return _orientation; }
 
 protected:
+    static constexpr int TOUCH_TAP_MAX_FRAMES = 30;
+    static constexpr int TOUCH_TAP_MAX_DRIFT = 22;
+    int _touchPressedButton = -1;
+
     Orientation _orientation;
     std::unique_ptr<IconButtonView*[]> _buttons;
     int _startButtonCount;

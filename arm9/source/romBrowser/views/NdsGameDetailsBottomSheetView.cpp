@@ -4,6 +4,7 @@
 #include "gui/VramContext.h"
 #include "gui/GraphicsContext.h"
 #include "gui/input/InputProvider.h"
+#include "gui/input/TouchEvent.h"
 #include "smallHeartIcon.h"
 #include "smallHeartIconFilled.h"
 #include "../IRomBrowserController.h"
@@ -419,6 +420,55 @@ bool NdsGameDetailsBottomSheetView::HandleInput(const InputProvider& inputProvid
     {
         _romBrowserController->HideGameInfo();
         return true;
+    }
+    return false;
+}
+
+void NdsGameDetailsBottomSheetView::OnDismissed()
+{
+    _romBrowserController->HideGameInfo();
+}
+
+bool NdsGameDetailsBottomSheetView::HandleTouch(const TouchEvent& event, FocusManager& focusManager)
+{
+    if (event.type == TouchEventType::Move)
+    {
+        if (_hasCheatsChip && _cheatsChip.GetBounds().Contains(event.position))
+        {
+            focusManager.Focus(&_cheatsChip);
+            return true;
+        }
+        if (_favoriteChip.GetBounds().Contains(event.position))
+        {
+            focusManager.Focus(&_favoriteChip);
+            return true;
+        }
+        return false;
+    }
+
+    if (event.type == TouchEventType::Up && event.holdFrames <= 15)
+    {
+        if (_hasCheatsChip && _cheatsChip.GetBounds().Contains(event.position))
+        {
+            focusManager.Focus(&_cheatsChip);
+            _romBrowserController->ShowCheats();
+            return true;
+        }
+
+        if (_favoriteChip.GetBounds().Contains(event.position))
+        {
+            focusManager.Focus(&_favoriteChip);
+            bool wasFavorite = _isFavorite;
+            _romBrowserController->ToggleSelectedFileFavorite();
+            _isFavorite = _romBrowserController->IsSelectedFileFavorite();
+            UpdateFavoriteChipIcon();
+
+            if (wasFavorite && !_isFavorite && _romBrowserController->IsFavoritesViewActive())
+            {
+                _romBrowserController->HideGameInfo();
+            }
+            return true;
+        }
     }
     return false;
 }

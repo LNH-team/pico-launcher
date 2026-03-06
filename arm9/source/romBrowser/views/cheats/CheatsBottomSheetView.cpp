@@ -3,6 +3,7 @@
 #include "themes/material/MaterialColorScheme.h"
 #include "themes/IFontRepository.h"
 #include "gui/input/InputProvider.h"
+#include "gui/input/TouchEvent.h"
 #include "gui/VramContext.h"
 #include "gui/palette/GradientPalette.h"
 #include "gui/OamBuilder.h"
@@ -45,6 +46,29 @@ CheatsBottomSheetView::CheatsBottomSheetView(std::unique_ptr<CheatsViewModel> vi
     , _focusManager(focusManager)
 {
     _cheatListRecycler->SetShoulderPagingEnabled(false);
+
+    _cheatListRecycler->SetTouchTapCallback([](int itemIdx, void* arg)
+    {
+        auto* self = static_cast<CheatsBottomSheetView*>(arg);
+        self->_viewModel->SetSelectedItem(itemIdx);
+        bool categoryChanged = self->_viewModel->ItemActivated();
+        if (categoryChanged)
+        {
+            self->UpdateCheatList(0);
+        }
+        else
+        {
+            self->UpdateTotalC();
+        }
+    }, this);
+
+    _cheatListRecycler->SetTouchLongPressCallback([](int itemIdx, void* arg)
+    {
+        auto* self = static_cast<CheatsBottomSheetView*>(arg);
+        self->_viewModel->SetSelectedItem(itemIdx);
+        self->EnterDescriptionMode(*self->_focusManager);
+    }, this);
+
     _titlePrefixLabel.SetEllipsis(false);
     _titleLabel.SetEllipsis(false);
     _totalCLabel.SetHorizontalAlignment(Alignment::Start);
@@ -400,6 +424,68 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
     return false;
 }
 
+void CheatsBottomSheetView::OnDismissed()
+{
+    _viewModel->Close();
+}
+
+bool CheatsBottomSheetView::HandleTouch(const TouchEvent& event, FocusManager& focusManager)
+{
+    if (_isDescriptionMode)
+    {
+        if (event.type == TouchEventType::Down)
+        {
+            _descriptionTouchDownReceived = true;
+        }
+        else if (event.type == TouchEventType::Up && _descriptionTouchDownReceived)
+        {
+            ExitDescriptionMode(focusManager);
+        }
+        return true;
+    }
+
+    if (event.type == TouchEventType::Up)
+    {
+        int deltaX = event.position.x - event.startPosition.x;
+        int deltaY = event.position.y - event.startPosition.y;
+        int absDeltaY = deltaY < 0 ? -deltaY : deltaY;
+        if (deltaX > 30 && deltaX > absDeltaY * 2)
+        {
+            if (_viewModel->GetIsSelectedOnlyMode())
+            {
+                _viewModel->SetSelectedOnlyMode(false);
+                UpdateCheatList(_selectedModeReturnIndex);
+                return true;
+            }
+            auto oldCategory = _viewModel->GetCurrentCheatCategory();
+            _viewModel->Back();
+            if (oldCategory != _viewModel->GetCurrentCheatCategory())
+            {
+                UpdateCheatList(_lastFocusedFolderIndex);
+            }
+            return true;
+        }
+        if (-deltaX > 30 && -deltaX > absDeltaY * 2 &&
+            _viewModel->GetState() == CheatsViewModel::State::DisplayCheats)
+        {
+            if (_viewModel->GetIsSelectedOnlyMode())
+            {
+                _viewModel->SetSelectedOnlyMode(false);
+                UpdateCheatList(_selectedModeReturnIndex);
+            }
+            else
+            {
+                _selectedModeReturnIndex = _cheatListRecycler->GetSelectedItem();
+                _viewModel->SetSelectedOnlyMode(true);
+                UpdateCheatList(0);
+            }
+            return true;
+        }
+    }
+
+    return _cheatListRecycler->HandleTouch(event, focusManager);
+}
+
 bool CheatsBottomSheetView::TryGetSelectedItemNameAndDescription(const char*& selectedName, const char*& selectedDescription) const
 {
     selectedName = nullptr;
@@ -469,6 +555,7 @@ bool CheatsBottomSheetView::EnterDescriptionMode(FocusManager& focusManager)
 
     _descriptionModeSelectedIndex = _cheatListRecycler->GetSelectedItem();
     _isDescriptionMode = true;
+    _descriptionTouchDownReceived = false;
     StringUtil::Copy(_descriptionModeTitle, selectedName, sizeof(_descriptionModeTitle));
 
     auto emptyAdapter = new CheatsAdapter(nullptr, 0, _materialColorScheme, _fontRepository, _vramOffsets);

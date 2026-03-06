@@ -10,6 +10,7 @@
 
 class IRomBrowserController;
 class IFontRepository;
+struct TouchEvent;
 
 class NdsGameDetailsBottomSheetView : public BottomSheetView {
 public:
@@ -47,6 +48,9 @@ public:
     View* MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source) override;
 
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
+
+    void OnDismissed() override;
+    bool HandleTouch(const TouchEvent& event, FocusManager& focusManager) override;
 
 private:
     Label2DView _titleLabel;

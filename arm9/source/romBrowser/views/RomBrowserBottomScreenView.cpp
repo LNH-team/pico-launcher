@@ -9,6 +9,7 @@
 #include "listIcon.h"
 #include "gui/IVramManager.h"
 #include "gui/input/InputProvider.h"
+#include "gui/input/TouchEvent.h"
 #include "RomBrowserBottomScreenView.h"
 
 RomBrowserBottomScreenView::RomBrowserBottomScreenView(
@@ -126,5 +127,96 @@ void RomBrowserBottomScreenView::RomBrowserViewModelInvalidated(const VramContex
     else
     {
         _romBrowserView.reset();
+    }
+}
+
+bool RomBrowserBottomScreenView::HandleTouch(const TouchEvent& event, FocusManager& focusManager)
+{
+    if (event.type == TouchEventType::Down)
+    {
+        _touchCaptureChild = nullptr;
+        _touchSwipeUpCandidate = false;
+
+        static constexpr int RECYCLER_START = 42;
+        bool inAppBarZone = _romBrowserDisplayMode->IsVertical()
+            ? (event.position.x < RECYCLER_START)
+            : (event.position.y < RECYCLER_START);
+
+        if (inAppBarZone)
+        {
+            _romBrowserAppBarView.HandleTouch(event, focusManager);
+            _touchCaptureChild = &_romBrowserAppBarView;
+            return true;
+        }
+
+        if (_romBrowserAppBarView.HandleTouch(event, focusManager))
+        {
+            _touchCaptureChild = &_romBrowserAppBarView;
+            return true;
+        }
+
+        _touchSwipeUpCandidate = event.position.y >= 170;
+
+        if (_romBrowserView && _viewModel->IsRomBrowserVisible())
+        {
+            if (_romBrowserView->HandleTouch(event, focusManager))
+            {
+                _touchCaptureChild = _romBrowserView.get();
+                return true;
+            }
+        }
+
+        return _touchSwipeUpCandidate;
+    }
+    else
+    {
+        if (_touchSwipeUpCandidate && event.type == TouchEventType::Move)
+        {
+            int deltaY = event.startPosition.y - event.position.y;
+            int deltaX = event.position.x - event.startPosition.x;
+            int absDeltaX = deltaX < 0 ? -deltaX : deltaX;
+
+            if (deltaY > 14 && deltaY > absDeltaX + 6)
+            {
+                _touchCaptureChild = nullptr;
+                return true;
+            }
+
+            if ((event.position.y - event.startPosition.y) > 8 || absDeltaX > 18)
+            {
+                _touchSwipeUpCandidate = false;
+            }
+        }
+
+        if (_touchSwipeUpCandidate && event.type == TouchEventType::Up)
+        {
+            _touchSwipeUpCandidate = false;
+            int deltaY = event.startPosition.y - event.position.y;
+            int deltaX = event.position.x - event.startPosition.x;
+            int absDeltaX = deltaX < 0 ? -deltaX : deltaX;
+            if (deltaY > 48 && deltaY > absDeltaX + 10)
+            {
+                _touchCaptureChild = nullptr;
+                _viewModel->TryShowDisplaySettings();
+                return true;
+            }
+        }
+
+        if (_touchCaptureChild)
+        {
+            _touchCaptureChild->HandleTouch(event, focusManager);
+            if (event.type == TouchEventType::Up)
+                _touchCaptureChild = nullptr;
+            return true;
+        }
+
+        if (_touchSwipeUpCandidate)
+        {
+            if (event.type == TouchEventType::Up)
+                _touchSwipeUpCandidate = false;
+            return true;
+        }
+
+        return false;
     }
 }

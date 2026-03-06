@@ -2,6 +2,7 @@
 #include <algorithm>
 #include "gui/materialDesign.h"
 #include "gui/input/InputProvider.h"
+#include "gui/input/TouchEvent.h"
 #include "RecyclerView.h"
 
 RecyclerView::RecyclerView(int x, int y, int width, int height, Mode mode)
@@ -567,4 +568,215 @@ void RecyclerView::EnsureVisible(int itemIdx, bool animate)
     {
         SetScrollOffset(targetScrollOffset, animate);
     }
+}
+
+int RecyclerView::FindItemAtScreenPosition(int screenX, int screenY) const
+{
+    int localX = screenX - _position.x - (IsHorizontalMode() ? _xOffset : 0);
+    int localY = screenY - _position.y - (IsHorizontalMode() ? 0 : _yOffset);
+
+    int itemIdx = -1;
+    switch (_mode)
+    {
+        case Mode::HorizontalList:
+        {
+            int cellX = localX - _xPadding;
+            int cellStep = _xSpacing + _itemWidth;
+            int col = cellX / cellStep;
+            int maxCols = (_itemCount + _rows - 1) / _rows;
+            if (col >= 0 && col < maxCols)
+            {
+                itemIdx = col;
+            }
+            break;
+        }
+        case Mode::HorizontalGrid:
+        {
+            int cellX = localX - _xPadding;
+            int cellY = localY - _yPadding;
+            int cellStepX = _xSpacing + _itemWidth;
+            int cellStepY = _ySpacing + _itemHeight;
+            int col = cellX / cellStepX;
+            int row = cellY / cellStepY;
+            int maxCols = (_itemCount + _rows - 1) / _rows;
+            if (col >= 0 && col < maxCols && row >= 0 && row < _rows)
+            {
+                itemIdx = col * _rows + row;
+            }
+            break;
+        }
+        case Mode::VerticalList:
+        {
+            int cellY = localY - _yPadding;
+            int cellStep = _ySpacing + _itemHeight;
+            int row = cellY / cellStep;
+            if (row >= 0 && row < (int)_itemCount)
+            {
+                itemIdx = row;
+            }
+            break;
+        }
+        case Mode::VerticalGrid:
+        {
+            int cellX = localX - _xPadding;
+            int cellY = localY - _yPadding;
+            int cellStepX = _xSpacing + _itemWidth;
+            int cellStepY = _ySpacing + _itemHeight;
+            int col = cellX / cellStepX;
+            int row = cellY / cellStepY;
+            if (col >= 0 && col < _columns && row >= 0)
+            {
+                itemIdx = row * _columns + col;
+            }
+            break;
+        }
+    }
+
+    if (itemIdx >= 0 && itemIdx < (int)_itemCount)
+        return itemIdx;
+    return -1;
+}
+
+bool RecyclerView::HandleTouch(const TouchEvent& event, FocusManager& focusManager)
+{
+    if (_itemCount == 0)
+        return false;
+
+    switch (event.type)
+    {
+        case TouchEventType::Down:
+        {
+            _scrollOffsetAnimator = Animator<int>(_scrollOffsetAnimator.GetValue());
+            _touchStartScrollOffset = _scrollOffsetAnimator.GetValue();
+            _touchDragging = false;
+            _touchLongPressFired = false;
+            _touchStartPos = event.position;
+            _touchSelectedItemOnDown = GetSelectedItem();
+
+            int itemIdx = FindItemAtScreenPosition(event.position.x, event.position.y);
+            if (itemIdx >= 0)
+            {
+                SetSelectedItem(itemIdx);
+                if (_selectedItem)
+                    focusManager.Focus(_selectedItem->view);
+            }
+            return true;
+        }
+        case TouchEventType::Move:
+        {
+            int primaryDelta = IsHorizontalMode()
+                ? (event.position.x - _touchStartPos.x)
+                : (event.position.y - _touchStartPos.y);
+
+            int crossDelta = IsHorizontalMode()
+                ? (event.position.y - _touchStartPos.y)
+                : (event.position.x - _touchStartPos.x);
+
+            int totalMovement = (primaryDelta > 0 ? primaryDelta : -primaryDelta)
+                              + (crossDelta > 0 ? crossDelta : -crossDelta);
+
+            if (!_touchDragging && totalMovement > TOUCH_DRAG_THRESHOLD)
+            {
+                _touchDragging = true;
+            }
+
+            if (_touchDragging)
+            {
+                int newOffset = _touchStartScrollOffset + primaryDelta;
+                int maxScroll = GetMaxScrollOffset();
+                if (newOffset > 0)
+                {
+                    newOffset = newOffset / 3;
+                }
+                else if (newOffset < maxScroll)
+                {
+                    int overshoot = maxScroll - newOffset;
+                    newOffset = maxScroll - overshoot / 3;
+                }
+                _scrollOffsetAnimator = Animator<int>(newOffset);
+            }
+
+            if (!_touchDragging && !_touchLongPressFired &&
+                event.holdFrames >= TOUCH_LONG_PRESS_FRAMES)
+            {
+                _touchLongPressFired = true;
+                int itemIdx = FindItemAtScreenPosition(event.startPosition.x, event.startPosition.y);
+                if (itemIdx >= 0 && _touchLongPressCallback)
+                {
+                    SetSelectedItem(itemIdx);
+                    if (_selectedItem)
+                        focusManager.Focus(_selectedItem->view);
+                    _touchLongPressCallback(itemIdx, _touchLongPressCallbackArg);
+                }
+            }
+            return true;
+        }
+        case TouchEventType::Up:
+        {
+            if (!_touchDragging && !_touchLongPressFired &&
+                event.holdFrames <= TOUCH_TAP_MAX_FRAMES)
+            {
+                int itemIdx = FindItemAtScreenPosition(event.startPosition.x, event.startPosition.y);
+                if (itemIdx >= 0)
+                {
+                    SetSelectedItem(itemIdx);
+                    if (_selectedItem)
+                        focusManager.Focus(_selectedItem->view);
+                    if (_touchTapCallback && (!_touchTapRequiresSelected || itemIdx == _touchSelectedItemOnDown))
+                        _touchTapCallback(itemIdx, _touchTapCallbackArg);
+                }
+            }
+            else if (_touchDragging)
+            {
+                int curOffset = _scrollOffsetAnimator.GetValue();
+                int maxScroll = GetMaxScrollOffset();
+                if (curOffset > 0 || curOffset < maxScroll)
+                {
+                    int target = std::clamp(curOffset, maxScroll, 0);
+                    _scrollOffsetAnimator.Goto(target,
+                        md::sys::motion::duration::medium2, &md::sys::motion::easing::emphasizedDecelerate);
+                }
+                else
+                {
+                    int velocity = IsHorizontalMode() ? event.velocityX : event.velocityY;
+                    int absVelocity = velocity > 0 ? velocity : -velocity;
+                    if (absVelocity > TOUCH_MIN_FLING_VELOCITY)
+                    {
+                        int momentumDistance = (velocity * TOUCH_MOMENTUM_FRAMES) >> 4;
+                        int targetOffset = curOffset + momentumDistance;
+                        targetOffset = std::clamp(targetOffset, maxScroll, 0);
+                        _scrollOffsetAnimator.Goto(targetOffset,
+                            TOUCH_MOMENTUM_FRAMES, &md::sys::motion::easing::emphasizedDecelerate);
+                    }
+                }
+
+                if (IsHorizontalMode())
+                {
+                    int centerX = _position.x + _width / 2;
+                    int itemIdx = FindItemAtScreenPosition(centerX, _position.y + _height / 2);
+                    if (itemIdx >= 0)
+                    {
+                        SetSelectedItem(itemIdx);
+                        if (_selectedItem)
+                            focusManager.Focus(_selectedItem->view);
+                    }
+                }
+                else
+                {
+                    int centerY = _position.y + _height / 2;
+                    int itemIdx = FindItemAtScreenPosition(_position.x + _width / 2, centerY);
+                    if (itemIdx >= 0)
+                    {
+                        SetSelectedItem(itemIdx);
+                        if (_selectedItem)
+                            focusManager.Focus(_selectedItem->view);
+                    }
+                }
+            }
+            _touchDragging = false;
+            _touchSelectedItemOnDown = -1;
+            return true;
+        }
+    }
+    return false;
 }

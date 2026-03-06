@@ -5,6 +5,7 @@
 
 class StackVramManager;
 class FocusManager;
+struct TouchEvent;
 
 /// @brief Class for displaying dialogs.
 class DialogPresenter
@@ -24,6 +25,12 @@ public:
 
     /// @brief Updates the dialog presenter.
     void Update();
+
+    /// @brief Handles a touch event for the dialog area.
+    /// @param event The touch event.
+    /// @param focusManager The focus manager.
+    /// @return True if the touch was handled (dialog is active).
+    bool HandleTouch(const TouchEvent& event, FocusManager& focusManager);
 
     /// @brief Applies the clip area of the currently displayed dialog,
     ///        or does nothing if no dialog is being shown.
@@ -79,4 +86,8 @@ private:
     Animator<int> _yAnimator;
     State _curState = State::Idle;
     State _newState = State::Idle;
+
+    bool _touchDraggingDialog = false;
+    bool _touchCapturedByDialogContent = false;
+    int _touchStartYAnimatorValue = 0;
 };
