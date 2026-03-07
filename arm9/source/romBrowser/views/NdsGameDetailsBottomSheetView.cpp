@@ -237,10 +237,10 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                         }
 
                         if (hasGameCode) {
-                            strncpy(_gameCode, gameCodeBuf, 4);
-                            _gameCode[4] = 0;
+                            memcpy(_gameCode, gameCodeBuf, 4);
+                            _gameCode[4] = '\0';
                         } else {
-                            _gameCode[0] = 0;
+                            _gameCode[0] = '\0';
                         }
 
                         if (crc32 != 0)
