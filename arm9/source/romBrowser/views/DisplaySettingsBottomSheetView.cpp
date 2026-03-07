@@ -192,11 +192,14 @@ void DisplaySettingsBottomSheetView::LoadThemes()
 void DisplaySettingsBottomSheetView::LoadLanguages()
 {
     _languageCount = 0;
-        Directory directory;
-        if (directory.Open("/_pico/extras/translations") != FR_OK) {
-            _languageValueLabel.SetText("No language");
-            return;
-        }
+    Directory directory;
+    if (directory.Open("/_pico/extras/translations") != FR_OK)
+    {
+        _languageEntries[0].fileName = "english";
+        StringUtil::Copy(_languageEntries[0].displayName, u"English", 64);
+        _languageCount = 1;
+        return;
+    }
 
     FILINFO fileInfo;
     while (true)
@@ -212,14 +215,12 @@ void DisplaySettingsBottomSheetView::LoadLanguages()
         if (_languageCount >= kMaxLanguageCount)
             break;
 
-        // Check if the file ends in .json
         const char* dot = strrchr(fileInfo.fname, '.');
-        if (!dot || strcasecmp(dot, ".json") != 0)
+        if (!dot || strcasecmp(dot, ".bin") != 0)
             continue;
 
-        // Extract filename without extension
         char baseName[64];
-        size_t len = dot - fileInfo.fname;
+        size_t len = (size_t)(dot - fileInfo.fname);
         if (len >= sizeof(baseName))
             len = sizeof(baseName) - 1;
         memcpy(baseName, fileInfo.fname, len);
@@ -228,7 +229,6 @@ void DisplaySettingsBottomSheetView::LoadLanguages()
         auto& entry = _languageEntries[_languageCount];
         entry.fileName = baseName;
 
-        // Default display name: filename (ASCII to UTF-16)
         for (size_t i = 0; i < len && i < 63; i++)
             entry.displayName[i] = (char16_t)baseName[i];
         entry.displayName[len < 63 ? len : 63] = 0;
@@ -240,51 +240,44 @@ void DisplaySettingsBottomSheetView::LoadLanguages()
             if (file.Open(path, FA_READ | FA_OPEN_EXISTING) == FR_OK)
             {
                 u32 fileSize = file.GetSize();
-                if (fileSize > 0 && fileSize <= 4096)
+                if (fileSize >= 7)
                 {
                     auto buf = std::make_unique<u8[]>(fileSize);
                     u32 bytesRead = 0;
                     if (file.Read(buf.get(), fileSize, bytesRead) == FR_OK && bytesRead == fileSize)
                     {
-                        // Skip UTF-8 BOM if present
-                        const u8* jsonData = buf.get();
-                        u32 jsonSize = fileSize;
-                        if (jsonSize >= 3 && jsonData[0] == 0xEF && jsonData[1] == 0xBB && jsonData[2] == 0xBF)
-                        {
-                            jsonData += 3;
-                            jsonSize -= 3;
-                        }
+                        const u8* p   = buf.get();
+                        const u8* end = p + fileSize;
 
-                        static const char key[] = "\"language_name\"";
-                        const char* p = (const char*)jsonData;
-                        const char* end = p + jsonSize;
-                        const char* found = nullptr;
-                        while (p + 15 <= end)
+                        if (p[0] == 'L' && p[1] == 'A' && p[2] == 'N' && p[3] == 'G' && p[4] == 1)
                         {
-                            if (memcmp(p, key, 15) == 0) { found = p + 15; break; }
-                            ++p;
-                        }
-                        if (found)
-                        {
-                            while (found < end && (*found == ' ' || *found == '\t' || *found == ':')) ++found;
-                            if (found < end && *found == '"')
+                            p += 5;
+                            u32 entryCount = (u32)p[0] | ((u32)p[1] << 8);
+                            p += 2;
+
+                            for (u32 e = 0; e < entryCount && p < end; e++)
                             {
-                                ++found;
-                                const char* langName = found;
-                                u32 si = 0, di = 0;
-                                while ((langName + si) < end && langName[si] && langName[si] != '"' && di < 63)
+                                if (p >= end) break;
+                                u8 keyLen = *p++;
+                                if (keyLen > 31 || p + keyLen > end) break;
+
+                                bool isLangName = (keyLen == 13 &&
+                                    memcmp(p, "language_name", 13) == 0);
+                                p += keyLen;
+
+                                if (p >= end) break;
+                                u8 valueLen = *p++;
+                                if (valueLen > 63 || p + (u32)valueLen * 2 > end) break;
+
+                                if (isLangName && valueLen > 0)
                                 {
-                                    u8 c = (u8)langName[si];
-                                    u32 cp;
-                                    if (c < 0x80) { cp = c; si++; }
-                                    else if ((c & 0xE0) == 0xC0) { cp = (c & 0x1F) << 6; cp |= ((u8)langName[si+1] & 0x3F); si += 2; }
-                                    else if ((c & 0xF0) == 0xE0) { cp = (c & 0x0F) << 12; cp |= ((u8)langName[si+1] & 0x3F) << 6; cp |= ((u8)langName[si+2] & 0x3F); si += 3; }
-                                    else { si++; continue; }
-                                    if (cp <= 0xFFFF)
-                                        entry.displayName[di++] = (char16_t)cp;
+                                    for (u8 j = 0; j < valueLen; j++)
+                                        entry.displayName[j] = (char16_t)((u32)p[j * 2] | ((u32)p[j * 2 + 1] << 8));
+                                    entry.displayName[valueLen] = 0;
+                                    p += (u32)valueLen * 2;
+                                    break;
                                 }
-                                if (di > 0)
-                                    entry.displayName[di] = 0;
+                                p += (u32)valueLen * 2;
                             }
                         }
                     }

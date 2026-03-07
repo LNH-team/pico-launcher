@@ -8,7 +8,7 @@ class Localization
 {
 public:
     /// @brief Initializes the localization system for the current language.
-    ///        Attempts to load translations from /_pico/extras/translations/{language}.json.
+    ///        Attempts to load translations from /_pico/extras/translations/{language}.bin.
     ///        Falls back to hardcoded English if the file is not found.
     /// @param appSettingsService The application settings service.
     static void Initialize(const IAppSettingsService* appSettingsService);
@@ -29,7 +29,7 @@ private:
     static int s_entryCount;
     static bool s_loaded;
 
-    static void LoadFromJson(const char* language);
+    static void LoadFromBin(const char* language);
     static void LoadFallbackEnglish();
     static void AddEntry(const char* key, const char16_t* value);
 };

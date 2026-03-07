@@ -1,73 +1,25 @@
-﻿#include "common.h"
+#include "common.h"
 #include <memory>
-#include "json/ArduinoJson.h"
 #include "fat/File.h"
 #include "core/mini-printf.h"
 #include "core/StringUtil.h"
 #include "Localization.h"
 
-#define TRANSLATION_JSON_SIZE 4096
+// Binary format for {language}.bin:
+//   magic:      u8[4]  = "LANG"
+//   version:    u8     = 1
+//   entryCount: u16 LE
+//   Per entry:
+//     keyLen:   u8     (byte length of key, without null terminator, max 31)
+//     key:      char[keyLen]  (ASCII, no null terminator)
+//     valueLen: u8     (number of char16_t units, without null terminator, max 63)
+//     value:    u8[valueLen * 2]  (UTF-16 LE, no null terminator)
 
 static char s_languageBuf[32] = "english";
 
 Localization::TranslationEntry Localization::s_entries[LOCALIZATION_MAX_KEYS];
 int Localization::s_entryCount = 0;
 bool Localization::s_loaded = false;
-
-static void Utf8ToUtf16(const char* utf8Value, char16_t* utf16Buf, u32 utf16BufLength)
-{
-    if (!utf16Buf || utf16BufLength == 0)
-        return;
-
-    utf16Buf[0] = 0;
-
-    if (!utf8Value)
-        return;
-
-    u32 i = 0;
-    u32 j = 0;
-
-    while (utf8Value[i] && j + 1 < utf16BufLength)
-    {
-        u8 c = (u8)utf8Value[i];
-        u32 codepoint = 0;
-
-        if (c < 0x80)
-        {
-            codepoint = c;
-            i++;
-        }
-        else if ((c & 0xE0) == 0xC0)
-        {
-            if (!utf8Value[i + 1])
-                break;
-
-            codepoint = (c & 0x1F) << 6;
-            codepoint |= ((u8)utf8Value[i + 1] & 0x3F);
-            i += 2;
-        }
-        else if ((c & 0xF0) == 0xE0)
-        {
-            if (!utf8Value[i + 1] || !utf8Value[i + 2])
-                break;
-
-            codepoint = (c & 0x0F) << 12;
-            codepoint |= ((u8)utf8Value[i + 1] & 0x3F) << 6;
-            codepoint |= ((u8)utf8Value[i + 2] & 0x3F);
-            i += 3;
-        }
-        else
-        {
-            i += 4;
-            continue;
-        }
-
-        if (codepoint <= 0xFFFF)
-            utf16Buf[j++] = (char16_t)codepoint;
-    }
-
-    utf16Buf[j] = 0;
-}
 
 static const char16_t* GetFallbackEnglishValue(const char* key)
 {
@@ -103,7 +55,7 @@ static const char16_t* GetFallbackEnglishValue(const char* key)
     if (!strcasecmp(key, "information_usrcheat_not_found")) return u"Not found";
     if (!strcasecmp(key, "information_themes")) return u"Themes";
     if (!strcasecmp(key, "information_languages")) return u"Languages";
-    
+
     if (!strcasecmp(key, "information_color_gray")) return u"Gray";
     if (!strcasecmp(key, "information_color_brown")) return u"Brown";
     if (!strcasecmp(key, "information_color_red")) return u"Red";
@@ -148,7 +100,7 @@ void Localization::Initialize(const IAppSettingsService* appSettingsService)
         s_languageBuf[i] = (char)tolower((unsigned char)lang[i]);
     s_languageBuf[i] = '\0';
 
-    LoadFromJson(s_languageBuf);
+    LoadFromBin(s_languageBuf);
     s_loaded = true;
 }
 
@@ -224,10 +176,10 @@ void Localization::LoadFallbackEnglish()
     AddEntry("information_language_unknown", GetFallbackEnglishValue("information_language_unknown"));
 }
 
-void Localization::LoadFromJson(const char* language)
+void Localization::LoadFromBin(const char* language)
 {
     char path[128];
-    mini_snprintf(path, sizeof(path), "/_pico/extras/translations/%s.json", language);
+    mini_snprintf(path, sizeof(path), "/_pico/extras/translations/%s.bin", language);
 
     auto file = std::make_unique<File>();
     if (file->Open(path, FA_READ | FA_OPEN_EXISTING) != FR_OK)
@@ -237,7 +189,7 @@ void Localization::LoadFromJson(const char* language)
     }
 
     u32 fileSize = file->GetSize();
-    if (fileSize == 0 || fileSize > TRANSLATION_JSON_SIZE)
+    if (fileSize < 7)
     {
         LoadFallbackEnglish();
         return;
@@ -245,79 +197,60 @@ void Localization::LoadFromJson(const char* language)
 
     std::unique_ptr<u8[]> fileData(new(cache_align) u8[fileSize]);
     u32 bytesRead = 0;
-    if (file->Read(fileData.get(), fileSize, bytesRead) != FR_OK)
+    if (file->Read(fileData.get(), fileSize, bytesRead) != FR_OK || bytesRead != fileSize)
     {
         LoadFallbackEnglish();
         return;
     }
 
-    // Skip UTF-8 BOM if present
-    const u8* jsonData = fileData.get();
-    u32 jsonSize = fileSize;
-    if (jsonSize >= 3 && jsonData[0] == 0xEF && jsonData[1] == 0xBB && jsonData[2] == 0xBF)
-    {
-        jsonData += 3;
-        jsonSize -= 3;
-    }
+    const u8* p   = fileData.get();
+    const u8* end = p + fileSize;
 
-    DynamicJsonDocument json(TRANSLATION_JSON_SIZE);
-    if (deserializeJson(json, jsonData, jsonSize) != DeserializationError::Ok)
+    if (p[0] != 'L' || p[1] != 'A' || p[2] != 'N' || p[3] != 'G')
     {
         LoadFallbackEnglish();
         return;
     }
+    p += 4;
+
+    if (*p++ != 1)
+    {
+        LoadFallbackEnglish();
+        return;
+    }
+
+    u32 entryCount = (u32)p[0] | ((u32)p[1] << 8);
+    p += 2;
 
     s_entryCount = 0;
-    for (JsonPairConst kv : json.as<JsonObjectConst>())
+
+    for (u32 e = 0; e < entryCount && p < end; e++)
     {
         if (s_entryCount >= LOCALIZATION_MAX_KEYS)
             break;
 
-        const char* key = kv.key().c_str();
-        const char* utf8Value = kv.value().as<const char*>();
-        if (!key || !utf8Value)
-            continue;
+        if (p >= end) break;
+        u8 keyLen = *p++;
+        if (keyLen > 31 || p + keyLen > end) break;
 
-        char16_t utf16Buf[64];
-        Utf8ToUtf16(utf8Value, utf16Buf, sizeof(utf16Buf) / sizeof(utf16Buf[0]));
+        char key[32];
+        memcpy(key, p, keyLen);
+        key[keyLen] = '\0';
+        p += keyLen;
 
-        AddEntry(key, utf16Buf);
-    }
+        if (p >= end) break;
+        u8 valueLen = *p++;
+        if (valueLen > 63 || p + (u32)valueLen * 2 > end) break;
 
-    JsonArrayConst colorsList = json["information_colors_list"].as<JsonArrayConst>();
-    for (JsonVariantConst item : colorsList)
-    {
-        JsonObjectConst obj = item.as<JsonObjectConst>();
-        const char* key = obj["key"].as<const char*>();
-        const char* label = obj["label"].as<const char*>();
+        char16_t value[64];
+        for (u8 j = 0; j < valueLen; j++)
+        {
+            value[j] = (char16_t)((u32)p[j * 2] | ((u32)p[j * 2 + 1] << 8));
+        }
+        value[valueLen] = 0;
+        p += (u32)valueLen * 2;
 
-        if (!key || !label)
-            continue;
-
-        char generatedKey[32];
-        mini_snprintf(generatedKey, sizeof(generatedKey), "information_color_%s", key);
-
-        char16_t utf16Buf[64];
-        Utf8ToUtf16(label, utf16Buf, sizeof(utf16Buf) / sizeof(utf16Buf[0]));
-        AddEntry(generatedKey, utf16Buf);
-    }
-
-    JsonArrayConst languagesList = json["information_languages_list"].as<JsonArrayConst>();
-    for (JsonVariantConst item : languagesList)
-    {
-        JsonObjectConst obj = item.as<JsonObjectConst>();
-        const char* key = obj["key"].as<const char*>();
-        const char* label = obj["label"].as<const char*>();
-
-        if (!key || !label)
-            continue;
-
-        char generatedKey[32];
-        mini_snprintf(generatedKey, sizeof(generatedKey), "information_language_%s", key);
-
-        char16_t utf16Buf[64];
-        Utf8ToUtf16(label, utf16Buf, sizeof(utf16Buf) / sizeof(utf16Buf[0]));
-        AddEntry(generatedKey, utf16Buf);
+        AddEntry(key, value);
     }
 
     if (s_entryCount == 0)

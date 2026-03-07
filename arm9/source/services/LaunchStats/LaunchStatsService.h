@@ -33,5 +33,5 @@ private:
     std::unique_ptr<Info[]> _infos;
     u32 _count = 0;
     bool _loaded = false;
-    const char* _filePath = "/_pico/extras/stats.json";
+    const char* _filePath = "/_pico/extras/stats.bin";
 };

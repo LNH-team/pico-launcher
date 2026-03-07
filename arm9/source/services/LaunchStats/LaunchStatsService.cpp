@@ -1,20 +1,38 @@
 #include "common.h"
 #include "core/mini-printf.h"
 #include "LaunchStatsService.h"
-#include "json/ArduinoJson.h"
 #include "fat/File.h"
 #include "rtcIpc.h"
 
-#define JSON_RESERVED_SIZE 4096
+// Binary format for stats.bin:
+//   magic:   u8[4]  = "STAT"
+//   version: u8     = 1
+//   count:   u32 LE
+//   Per entry:
+//     pathLen:          u8   (string byte length, without null terminator)
+//     path:             char[pathLen]
+//     launchCount:      u32 LE
+//     hasCheatStats:    u8  (0 or 1)
+//     cheatActiveCount: u32 LE
+//     dateLen:          u8
+//     date:             char[dateLen]
+//     timeLen:          u8
+//     time:             char[timeLen]
 
-/// @brief Calculates a safe JSON buffer size based on entry count.
-/// Each entry is ~320 bytes in pretty-printed JSON (256-byte path + overhead).
-static u32 calcJsonBufferSize(u32 entryCount)
+static const u8  STATS_MAGIC[4] = { 'S', 'T', 'A', 'T' };
+static const u8  STATS_VERSION  = 1;
+
+static u32 readU32LE(const u8* p)
 {
-    u32 size = 512 + entryCount * 320;
-    if (size < JSON_RESERVED_SIZE)
-        size = JSON_RESERVED_SIZE;
-    return size;
+    return (u32)p[0] | ((u32)p[1] << 8) | ((u32)p[2] << 16) | ((u32)p[3] << 24);
+}
+
+static void writeU32LE(u8* p, u32 val)
+{
+    p[0] = (u8)(val);
+    p[1] = (u8)(val >> 8);
+    p[2] = (u8)(val >> 16);
+    p[3] = (u8)(val >> 24);
 }
 
 static u8 bcdToDecimal(u8 bcd)
@@ -86,54 +104,93 @@ void LaunchStatsService::EnsureLoaded()
 void LaunchStatsService::Load()
 {
     _loaded = true;
+
     const auto file = std::make_unique<File>();
     if (file->Open(_filePath, FA_READ | FA_OPEN_EXISTING) != FR_OK)
         return;
 
     u32 fileSize = file->GetSize();
-    if (fileSize == 0)
+    if (fileSize < 9)
         return;
 
     std::unique_ptr<u8[]> fileData(new(cache_align) u8[fileSize]);
-    u8* fileDataPtr = fileData.get();
-
     u32 bytesRead = 0;
-    if (file->Read(fileDataPtr, fileSize, bytesRead) != FR_OK)
+    if (file->Read(fileData.get(), fileSize, bytesRead) != FR_OK || bytesRead != fileSize)
         return;
 
-    DynamicJsonDocument json(calcJsonBufferSize(fileSize / 20));
-    if (deserializeJson(json, fileDataPtr, fileSize) != DeserializationError::Ok)
+    const u8* p   = fileData.get();
+    const u8* end = p + fileSize;
+
+    if (p[0] != 'S' || p[1] != 'T' || p[2] != 'A' || p[3] != 'T')
+        return;
+    p += 4;
+
+    if (*p++ != STATS_VERSION)
         return;
 
-    auto arr = json.as<JsonArrayConst>();
-    _infos = std::make_unique_for_overwrite<Info[]>(arr.size());
+    u32 count = readU32LE(p);
+    p += 4;
+
+    if (count == 0)
+        return;
+
+    _infos = std::make_unique_for_overwrite<Info[]>(count);
     u32 i = 0;
-    for (auto item : arr)
+
+    while (i < count && p < end)
     {
-        const char* path = item["path"].as<const char*>();
-        if (!path || path[0] == 0)
-            continue;
-        const char* colon = strchr(path, ':');
-        if (colon && colon < path + 6) 
-        {
+        if (p >= end) break;
+        u8 pathLen = *p++;
+        if (p + pathLen > end) break;
+        char pathBuf[256];
+        if (pathLen > 0)
+            memcpy(pathBuf, p, pathLen);
+        pathBuf[pathLen] = '\0';
+        p += pathLen;
+
+        const char* colon = strchr(pathBuf, ':');
+        if (colon && colon < pathBuf + 6)
             _infos[i].path = colon;
-        }
         else
+            _infos[i].path = pathBuf;
+
+        if (p + 4 > end) break;
+        _infos[i].launchCount = readU32LE(p);
+        p += 4;
+
+        if (p >= end) break;
+        _infos[i].hasCheatStats = (*p++ != 0);
+
+        if (p + 4 > end) break;
+        _infos[i].cheatActiveCount = readU32LE(p);
+        p += 4;
+
+        if (p >= end) break;
+        u8 dateLen = *p++;
+        if (p + dateLen > end) break;
+        if (dateLen > 0)
         {
-            _infos[i].path = path;
+            char dateBuf[11];
+            u8 copyLen = dateLen < 10 ? dateLen : 10;
+            memcpy(dateBuf, p, copyLen);
+            dateBuf[copyLen] = '\0';
+            _infos[i].lastLaunchDate = dateBuf;
         }
-        _infos[i].launchCount = item["count"] | 0;
-        const char* lastLaunchDate = item["last_launch_date"].as<const char*>();
-        if (lastLaunchDate && lastLaunchDate[0] != 0)
-            _infos[i].lastLaunchDate = lastLaunchDate;
-        const char* lastLaunchTime = item["last_launch_time"].as<const char*>();
-        if (lastLaunchTime && lastLaunchTime[0] != 0)
-            _infos[i].lastLaunchTime = lastLaunchTime;
-        _infos[i].hasCheatStats = item.containsKey("cheat_active_count");
-        if (_infos[i].hasCheatStats)
+        p += dateLen;
+
+        if (p >= end) break;
+        u8 timeLen = *p++;
+        if (p + timeLen > end) break;
+        if (timeLen > 0)
         {
-            _infos[i].cheatActiveCount = item["cheat_active_count"] | 0;
+            char timeBuf[9];
+            u8 copyLen = timeLen < 8 ? timeLen : 8;
+            memcpy(timeBuf, p, copyLen);
+            timeBuf[copyLen] = '\0';
+            _infos[i].lastLaunchTime = timeBuf;
         }
+        p += timeLen;
+
         i++;
     }
     _count = i;
@@ -141,36 +198,62 @@ void LaunchStatsService::Load()
 
 void LaunchStatsService::Save() const
 {
-    DynamicJsonDocument json(calcJsonBufferSize(_count));
-    auto arr = json.to<JsonArray>();
+    u32 outputSize = 4 + 1 + 4;
     for (u32 i = 0; i < _count; i++)
     {
-        auto obj = arr.createNestedObject();
-        if (obj.isNull())
-        {
-            LOG_ERROR("Stats JSON buffer overflow at entry %d\n", i);
-            break;
-        }
-        obj["path"] = _infos[i].path.GetString();
-        obj["count"] = _infos[i].launchCount;
-        if (_infos[i].lastLaunchDate.GetString()[0] != 0)
-            obj["last_launch_date"] = _infos[i].lastLaunchDate.GetString();
-        if (_infos[i].lastLaunchTime.GetString()[0] != 0)
-            obj["last_launch_time"] = _infos[i].lastLaunchTime.GetString();
-        if (_infos[i].hasCheatStats)
-        {
-            obj["cheat_active_count"] = _infos[i].cheatActiveCount;
-        }
+        u8 pathLen = (u8)strlen(_infos[i].path.GetString());
+        u8 dateLen = (u8)strlen(_infos[i].lastLaunchDate.GetString());
+        u8 timeLen = (u8)strlen(_infos[i].lastLaunchTime.GetString());
+        outputSize += 1u + pathLen   // pathLen field + path bytes
+                    + 4u             // launchCount
+                    + 1u             // hasCheatStats
+                    + 4u             // cheatActiveCount
+                    + 1u + dateLen   // dateLen field + date bytes
+                    + 1u + timeLen;  // timeLen field + time bytes
     }
-    
-    u32 outputSize = measureJsonPretty(json);
-    if (outputSize == 0)
-    {
-        LOG_ERROR("Failed to measure stats JSON output\n");
-        return;
-    }
+
     std::unique_ptr<u8[]> fileData(new(cache_align) u8[outputSize]);
-    serializeJsonPretty(json, fileData.get(), outputSize);
+    u8* p = fileData.get();
+
+    p[0] = 'S'; p[1] = 'T'; p[2] = 'A'; p[3] = 'T';
+    p += 4;
+
+    *p++ = STATS_VERSION;
+
+    writeU32LE(p, _count);
+    p += 4;
+
+    for (u32 i = 0; i < _count; i++)
+    {
+        const char* path = _infos[i].path.GetString();
+        u8 pathLen = (u8)strlen(path);
+        *p++ = pathLen;
+        if (pathLen > 0)
+            memcpy(p, path, pathLen);
+        p += pathLen;
+
+        writeU32LE(p, _infos[i].launchCount);
+        p += 4;
+
+        *p++ = _infos[i].hasCheatStats ? 1u : 0u;
+
+        writeU32LE(p, _infos[i].cheatActiveCount);
+        p += 4;
+
+        const char* date = _infos[i].lastLaunchDate.GetString();
+        u8 dateLen = (u8)strlen(date);
+        *p++ = dateLen;
+        if (dateLen > 0)
+            memcpy(p, date, dateLen);
+        p += dateLen;
+
+        const char* time = _infos[i].lastLaunchTime.GetString();
+        u8 timeLen = (u8)strlen(time);
+        *p++ = timeLen;
+        if (timeLen > 0)
+            memcpy(p, time, timeLen);
+        p += timeLen;
+    }
 
     const auto file = std::make_unique<File>();
     if (file->Open(_filePath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK)
@@ -218,7 +301,7 @@ void LaunchStatsService::Increment(const char* path)
         newInfos[i] = _infos[i];
     const char* colon2 = strchr(path, ':');
     if (colon2 && colon2 < path + 6)
-        newInfos[newCount - 1].path = colon2; 
+        newInfos[newCount - 1].path = colon2;
     else
         newInfos[newCount - 1].path = path;
     newInfos[newCount - 1].launchCount = 1;
