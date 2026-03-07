@@ -511,6 +511,12 @@ void App::HandleFolderLoadDoneTrigger()
 {
     DrainTaskQueues();
 
+    if (_romBrowserBottomScreenView
+        && _focusManager.IsFocusInside(_romBrowserBottomScreenView.get()))
+    {
+        _focusManager.Unfocus();
+    }
+
     _romBrowserTopScreenView.reset();
     RestoreVramState(_vramStateAfterMakeBottomScreenView);
     auto displayMode = RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
@@ -532,6 +538,12 @@ void App::HandleFolderLoadDoneTrigger()
 void App::HandleRomBrowserViewModelInvalidated()
 {
     DrainTaskQueues();
+
+    if (_romBrowserBottomScreenView
+        && _focusManager.IsFocusInside(_romBrowserBottomScreenView.get()))
+    {
+        _focusManager.Unfocus();
+    }
 
     bool wasFavoritesAppBarFocused = _romBrowserBottomScreenView->IsAppBarFocused(_focusManager)
         && _romBrowserBottomScreenView->GetFocusedAppBarButton(_focusManager)
@@ -586,6 +598,14 @@ void App::HandleRomBrowserViewModelInvalidated()
 void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)
 {
     DrainTaskQueues();
+
+    if (_romBrowserBottomScreenView
+        && _focusManager.IsFocusInside(_romBrowserBottomScreenView.get()))
+    {
+        _focusManager.Unfocus();
+    }
+
+    _touchCaptureTarget = nullptr;
 
     bool wasAppBarFocused = _romBrowserBottomScreenView->IsAppBarFocused(_focusManager);
     auto focusedAppBarButton = wasAppBarFocused

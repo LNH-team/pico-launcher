@@ -61,6 +61,12 @@ View* RomBrowserBottomScreenView::MoveFocus(View* currentFocus, FocusMoveDirecti
     {
         return nullptr;
     }
+
+    if (!_romBrowserView)
+    {
+        return nullptr;
+    }
+
     if (source == &_romBrowserAppBarView)
     {
         if (_romBrowserDisplayMode->IsVertical())
@@ -116,6 +122,9 @@ bool RomBrowserBottomScreenView::HandleInput(const InputProvider& inputProvider,
 
 void RomBrowserBottomScreenView::RomBrowserViewModelInvalidated(const VramContext& vramContext)
 {
+    _touchCaptureChild = nullptr;
+    _touchSwipeUpCandidate = false;
+
     if (_viewModel->GetRomBrowserViewModel().IsValid())
     {
         _romBrowserView = std::make_unique<RomBrowserView>(
