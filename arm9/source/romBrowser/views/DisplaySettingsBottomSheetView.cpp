@@ -1,5 +1,4 @@
 #include "common.h"
-#include <memory>
 #include "gui/GraphicsContext.h"
 #include "gui/VramContext.h"
 #include "gui/IVramManager.h"
@@ -82,8 +81,10 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     LoadLanguages();
     const char* currLang = _appSettingsService->GetAppSettings().language.GetString();
     _selectedLanguageIdx = 0;
-    for (int i = 0; i < _languageCount; ++i) {
-        if (strcasecmp(currLang, _languageEntries[i].fileName.GetString()) == 0) {
+    for (int i = 0; i < _languageCount; ++i)
+    {
+        if (strcasecmp(currLang, _languageEntries[i].fileName.GetString()) == 0)
+        {
             _selectedLanguageIdx = i;
             break;
         }
@@ -118,11 +119,13 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     // _sortingLabel.SetText(Localization::Translate("filters"));
     // AddChildTail(&_filtersLabel);
 
-    for (auto& layoutOption : _layoutOptions) {
+    for (auto& layoutOption : _layoutOptions)
+    {
         layoutOption = CreateLayoutOptionIconButton();
         AddChildTail(&layoutOption);
     }
-    for (auto& sortOption : _sortOptions) {
+    for (auto& sortOption : _sortOptions)
+    {
         sortOption = CreateSortOptionIconButton();
         AddChildTail(&sortOption);
     }
@@ -195,103 +198,49 @@ void DisplaySettingsBottomSheetView::LoadLanguages()
     Directory directory;
     if (directory.Open("/_pico/extras/translations") != FR_OK)
     {
-        _languageEntries[0].fileName = "english";
-        StringUtil::Copy(_languageEntries[0].displayName, u"English", 64);
+        _languageEntries[0].fileName = "English";
         _languageCount = 1;
-        return;
     }
-
-    FILINFO fileInfo;
-    while (true)
+    else
     {
-        if (directory.Read(&fileInfo) != FR_OK)
-            break;
-        if (fileInfo.fname[0] == 0)
-            break;
-        if (fileInfo.fname[0] == '.')
-            continue;
-        if (fileInfo.fattrib & AM_DIR)
-            continue;
-        if (_languageCount >= kMaxLanguageCount)
-            break;
-
-        const char* dot = strrchr(fileInfo.fname, '.');
-        if (!dot || strcasecmp(dot, ".bin") != 0)
-            continue;
-
-        char baseName[64];
-        size_t len = (size_t)(dot - fileInfo.fname);
-        if (len >= sizeof(baseName))
-            len = sizeof(baseName) - 1;
-        memcpy(baseName, fileInfo.fname, len);
-        baseName[len] = '\0';
-
-        auto& entry = _languageEntries[_languageCount];
-        entry.fileName = baseName;
-
-        for (size_t i = 0; i < len && i < 63; i++)
-            entry.displayName[i] = (char16_t)baseName[i];
-        entry.displayName[len < 63 ? len : 63] = 0;
-
-        char path[128];
-        mini_snprintf(path, sizeof(path), "/_pico/extras/translations/%s", fileInfo.fname);
+        FILINFO fileInfo;
+        while (true)
         {
-            File file;
-            if (file.Open(path, FA_READ | FA_OPEN_EXISTING) == FR_OK)
-            {
-                u32 fileSize = file.GetSize();
-                if (fileSize >= 7)
-                {
-                    auto buf = std::make_unique<u8[]>(fileSize);
-                    u32 bytesRead = 0;
-                    if (file.Read(buf.get(), fileSize, bytesRead) == FR_OK && bytesRead == fileSize)
-                    {
-                        const u8* p   = buf.get();
-                        const u8* end = p + fileSize;
+            if (directory.Read(&fileInfo) != FR_OK)
+                break;
+            if (fileInfo.fname[0] == 0)
+                break;
+            if (fileInfo.fname[0] == '.')
+                continue;
+            if (fileInfo.fattrib & AM_DIR)
+                continue;
+            if (_languageCount >= kMaxLanguageCount)
+                break;
 
-                        if (p[0] == 'L' && p[1] == 'A' && p[2] == 'N' && p[3] == 'G' && p[4] == 1)
-                        {
-                            p += 5;
-                            u32 entryCount = (u32)p[0] | ((u32)p[1] << 8);
-                            p += 2;
+            const char* dot = strrchr(fileInfo.fname, '.');
+            if (!dot || strcasecmp(dot, ".bin") != 0)
+                continue;
 
-                            for (u32 e = 0; e < entryCount && p < end; e++)
-                            {
-                                if (p >= end) break;
-                                u8 keyLen = *p++;
-                                if (keyLen > 31 || p + keyLen > end) break;
+            char baseName[64];
+            size_t len = (size_t)(dot - fileInfo.fname);
+            if (len >= sizeof(baseName))
+                len = sizeof(baseName) - 1;
+            memcpy(baseName, fileInfo.fname, len);
+            baseName[len] = '\0';
 
-                                bool isLangName = (keyLen == 13 &&
-                                    memcmp(p, "language_name", 13) == 0);
-                                p += keyLen;
-
-                                if (p >= end) break;
-                                u8 valueLen = *p++;
-                                if (valueLen > 63 || p + (u32)valueLen * 2 > end) break;
-
-                                if (isLangName && valueLen > 0)
-                                {
-                                    for (u8 j = 0; j < valueLen; j++)
-                                        entry.displayName[j] = (char16_t)((u32)p[j * 2] | ((u32)p[j * 2 + 1] << 8));
-                                    entry.displayName[valueLen] = 0;
-                                    p += (u32)valueLen * 2;
-                                    break;
-                                }
-                                p += (u32)valueLen * 2;
-                            }
-                        }
-                    }
-                }
-            }
+            auto& entry = _languageEntries[_languageCount];
+            entry.fileName = baseName;
+            for (size_t i = 0; i < len && i < 63; ++i)
+                entry.displayName[i] = (char16_t)baseName[i];
+            entry.displayName[len < 63 ? len : 63] = 0;
+            _languageCount++;
         }
-
-        _languageCount++;
     }
 
     // If no languages found, add a default English entry
     if (_languageCount == 0)
     {
-        _languageEntries[0].fileName = "english";
+        _languageEntries[0].fileName = "English";
         StringUtil::Copy(_languageEntries[0].displayName, u"English", 64);
         _languageCount = 1;
     }

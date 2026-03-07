@@ -63,8 +63,8 @@ private:
     static constexpr int kMaxLanguageCount = 16;
     struct LanguageEntry
     {
-        String<char, 64> fileName;      // e.g. "italian"
-        char16_t displayName[64];       // e.g. u"Italiano"
+        String<char, 64> fileName;
+        char16_t displayName[64];
     };
     std::array<LanguageEntry, kMaxLanguageCount> _languageEntries;
     int _languageCount = 0;
