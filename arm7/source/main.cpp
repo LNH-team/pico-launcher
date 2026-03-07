@@ -52,6 +52,9 @@ static u8 sLidClosedFrames = 0;
 
 static void enterSleepMode()
 {
+    SHARED_SYSTEM_FLAGS |= SHARED_FLAG_SLEEP_MODE;
+
+    pmic_setPowerLedBlink(PMIC_CONTROL_POWER_LED_BLINK_SLOW);
     pmic_setTopBacklightEnable(false);
     pmic_setBottomBacklightEnable(false);
     pmic_setAmplifierEnable(false);
@@ -61,6 +64,9 @@ static void enterSleepMode()
 
 static void leaveSleepMode()
 {
+    SHARED_SYSTEM_FLAGS &= ~SHARED_FLAG_SLEEP_MODE;
+
+    pmic_setPowerLedBlink(PMIC_CONTROL_POWER_LED_BLINK_NONE);
     pmic_setTopBacklightEnable(true);
     pmic_setBottomBacklightEnable(true);
     pmic_setAmplifierEnable(true);
@@ -330,6 +336,14 @@ static bool touchReadDsi()
 
 static void vcountIrq(u32 irqMask)
 {
+    if (sSleepModeActive)
+    {
+        SHARED_KEY_XY = RCNT0_H_DATA_PEN;
+        SHARED_TOUCH_X = 0;
+        SHARED_TOUCH_Y = 0;
+        return;
+    }
+
     SHARED_KEY_XY = REG_RCNT0_H;
 
     if (isDSiMode())
@@ -420,6 +434,7 @@ static void initializeArm7()
     sys_setSoundPower(true);
 
     readUserSettings();
+    SHARED_SYSTEM_FLAGS = 0;
     pmic_setPowerLedBlink(PMIC_CONTROL_POWER_LED_BLINK_NONE);
 
     sio_setGpioSiIrq(false);

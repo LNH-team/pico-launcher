@@ -17,6 +17,16 @@ TouchProvider::TouchProvider()
 
 void TouchProvider::Sample()
 {
+    if (SHARED_SYSTEM_FLAGS & SHARED_FLAG_SLEEP_MODE)
+    {
+        auto& sample = _sampleBuffer[_sampleWritePtr];
+        sample.penDown = false;
+        sample.x = 0;
+        sample.y = 0;
+        _sampleWritePtr = (_sampleWritePtr + 1) & 3;
+        return;
+    }
+
     bool penDown = !(SHARED_KEY_XY & (1 << 6));
 
     auto& sample = _sampleBuffer[_sampleWritePtr];

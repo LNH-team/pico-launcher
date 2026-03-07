@@ -658,6 +658,19 @@ bool App::IsRomBrowserVisible() const
 
 void App::Update()
 {
+    constexpr int kSleepResumeBgmDelayFrames = 6;
+
+    bool sleepModeActive = (SHARED_SYSTEM_FLAGS & SHARED_FLAG_SLEEP_MODE) != 0;
+    if (sleepModeActive != _sleepModeWasActive)
+    {
+        _inputProvider.Reset();
+        _inputRepeater.Reset();
+        _touchProvider.Reset();
+        _touchCaptureTarget = nullptr;
+        _touchCapturedByDialog = false;
+        _sleepModeWasActive = sleepModeActive;
+    }
+
     const auto& stateMachine = _romBrowserController.GetStateMachine();
     _romBrowserController.Update();
     auto curState = stateMachine.GetCurrentState();
