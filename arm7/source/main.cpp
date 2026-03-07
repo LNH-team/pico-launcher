@@ -47,6 +47,46 @@ static rtos_event_t sVBlankEvent;
 static ExitMode sExitMode;
 static Arm7State sState;
 static volatile u8 sMcuIrqFlag = false;
+static bool sSleepModeActive = false;
+static u8 sLidClosedFrames = 0;
+
+static void enterSleepMode()
+{
+    pmic_setTopBacklightEnable(false);
+    pmic_setBottomBacklightEnable(false);
+    pmic_setAmplifierEnable(false);
+    snd_setMasterVolume(0);
+    sSleepModeActive = true;
+}
+
+static void leaveSleepMode()
+{
+    pmic_setTopBacklightEnable(true);
+    pmic_setBottomBacklightEnable(true);
+    pmic_setAmplifierEnable(true);
+    snd_setMasterVolume(127);
+    sSleepModeActive = false;
+}
+
+static void updateSleepMode()
+{
+    const bool lidClosed = (REG_RCNT0_H & RCNT0_H_DATA_LID) != 0;
+
+    if (lidClosed)
+    {
+        if (sLidClosedFrames < 8)
+            sLidClosedFrames++;
+
+        if (!sSleepModeActive && sLidClosedFrames >= 8)
+            enterSleepMode();
+    }
+    else
+    {
+        sLidClosedFrames = 0;
+        if (sSleepModeActive)
+            leaveSleepMode();
+    }
+}
 
 static void vblankIrq(u32 irqMask)
 {
@@ -419,6 +459,8 @@ static void initializeArm7()
 
 static void updateArm7IdleState()
 {
+    updateSleepMode();
+
     if (pload_shouldStart())
     {
         sExitMode = ExitMode::PicoLoader;
