@@ -115,27 +115,6 @@ static u32 ComputeCrc32(const void* buffer, u32 length)
     return crc;
 }
 
-static u32 CountCheatsRecursive(const ICheatCategory* category)
-{
-    if (!category)
-    {
-        return 0;
-    }
-
-    u32 total = 0;
-    u32 numberOfCategories = 0;
-    auto categories = category->GetCategories(numberOfCategories);
-    for (u32 i = 0; i < numberOfCategories; i++)
-    {
-        total += CountCheatsRecursive(&categories[i]);
-    }
-
-    u32 numberOfCheats = 0;
-    category->GetCheats(numberOfCheats);
-    total += numberOfCheats;
-    return total;
-}
-
 static u32 CountActiveCheatsRecursive(const ICheatCategory* category)
 {
     if (!category)
@@ -197,7 +176,6 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     bool isNds = false;
 
     u32 cheatActiveCount = 0;
-    u32 cheatTotalCount = 0;
 
     if (_romBrowserController) {
         const auto& viewModel = _romBrowserController->GetRomBrowserViewModel();
@@ -222,13 +200,12 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                         auto gameCheats = _romBrowserController->GetCheatRepository().GetCheatsForGame(fileInfo.GetFastFileRef());
                         if (gameCheats)
                         {
-                            cheatTotalCount = CountCheatsRecursive(gameCheats.get());
                             cheatActiveCount = CountActiveCheatsRecursive(gameCheats.get());
                         }
 
                         if (hasStatsPath)
                         {
-                            LaunchStatsService::Instance().SetCheatStats(statsPath, cheatActiveCount, cheatTotalCount);
+                            LaunchStatsService::Instance().SetCheatStats(statsPath, cheatActiveCount);
                         }
 
                         std::unique_ptr<InternalFileInfo> internalInfo(fileInfo.CreateInternalFileInfo());

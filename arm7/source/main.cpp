@@ -7,7 +7,6 @@
 #include <libtwl/rtos/rtosThread.h>
 #include <libtwl/rtos/rtosEvent.h>
 #include <libtwl/timer/timer.h>
-#include <libtwl/sound/sound.h>
 #include <libtwl/ipc/ipcSync.h>
 #include <libtwl/ipc/ipcFifoSystem.h>
 #include <libtwl/sys/sysPower.h>
@@ -109,19 +108,40 @@ static s32 clampS32(s32 val, s32 minVal, s32 maxVal)
     return val;
 }
 
+static u32 touchAbs(s32 x)
+{
+    return x >= 0 ? (u32)x : (u32)(-x);
+}
+
+static u16 sNtrLatchX = 0;
+static u16 sNtrLatchY = 0;
+static bool sNtrHasLatch = false;
+
 static void touchReadNtr()
 {
     u32 xSum = 0, ySum = 0;
     for (int i = 0; i < 4; i++)
     {
-        xSum += touchSpiReadAxis(0xD1); 
+        xSum += touchSpiReadAxis(0xD1);
         ySum += touchSpiReadAxis(0x91);
     }
-    u16 rawX = xSum >> 2;
-    u16 rawY = ySum >> 2;
+    u16 rawX = (u16)(xSum >> 2);
+    u16 rawY = (u16)(ySum >> 2);
 
-    s32 px = (sTouchCalibration.xScale * (s32)rawX + sTouchCalibration.xOffset) >> 12;
-    s32 py = (sTouchCalibration.yScale * (s32)rawY + sTouchCalibration.yOffset) >> 12;
+    static const u32 DIFF_THRESHOLD = 20;
+    bool valid = !sNtrHasLatch ||
+        (touchAbs((s32)rawX - (s32)sNtrLatchX) < DIFF_THRESHOLD &&
+         touchAbs((s32)rawY - (s32)sNtrLatchY) < DIFF_THRESHOLD);
+
+    if (valid)
+    {
+        sNtrLatchX = rawX;
+        sNtrLatchY = rawY;
+        sNtrHasLatch = true;
+    }
+
+    s32 px = (sTouchCalibration.xScale * (s32)sNtrLatchX + sTouchCalibration.xOffset) >> 12;
+    s32 py = (sTouchCalibration.yScale * (s32)sNtrLatchY + sTouchCalibration.yOffset) >> 12;
     SHARED_TOUCH_X = (u16)clampS32(px, 0, 255);
     SHARED_TOUCH_Y = (u16)clampS32(py, 0, 191);
 }
@@ -143,11 +163,6 @@ static bool sDsiTscInitialized = false;
 static u16 sDsiLatchX = 0;
 static u16 sDsiLatchY = 0;
 static bool sDsiHasLatch = false;
-
-static u32 touchAbs(s32 x)
-{
-    return x >= 0 ? (u32)x : (u32)(-x);
-}
 
 static void codec_writeRegisterMask(u8 reg, u8 mask, u8 value)
 {
@@ -311,6 +326,10 @@ static void vcountIrq(u32 irqMask)
             touchInitCalibration();
 
         touchReadNtr();
+    }
+    else
+    {
+        sNtrHasLatch = false;
     }
 }
 

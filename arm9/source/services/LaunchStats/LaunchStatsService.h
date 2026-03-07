@@ -24,8 +24,7 @@ public:
     u32 GetCount(const char* path) const;
     bool TryGetLastLaunchDate(const char* path, char* outValue, u32 outValueSize) const;
     bool TryGetLastLaunchTime(const char* path, char* outValue, u32 outValueSize) const;
-    bool TryGetCheatStats(const char* path, u32& activeCount, u32& totalCount) const;
-    void SetCheatStats(const char* path, u32 activeCount, u32 totalCount);
+    void SetCheatStats(const char* path, u32 activeCount);
 
 private:
     LaunchStatsService();

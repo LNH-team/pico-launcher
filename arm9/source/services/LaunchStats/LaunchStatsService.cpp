@@ -134,7 +134,6 @@ void LaunchStatsService::Load()
         {
             _infos[i].cheatActiveCount = item["cheat_active_count"] | 0;
         }
-        (void)0;
         i++;
     }
     _count = i;
@@ -316,40 +315,8 @@ bool LaunchStatsService::TryGetLastLaunchTime(const char* path, char* outValue, 
     return false;
 }
 
-bool LaunchStatsService::TryGetCheatStats(const char* path, u32& activeCount, u32& totalCount) const
+void LaunchStatsService::SetCheatStats(const char* path, u32 activeCount)
 {
-    activeCount = 0;
-    totalCount = 0;
-
-    if (!path)
-        return false;
-
-    const_cast<LaunchStatsService*>(this)->EnsureLoaded();
-
-    const char* normalized = path;
-    const char* colon = strchr(path, ':');
-    if (colon && colon < path + 6)
-        normalized = colon;
-
-    for (u32 i = 0; i < _count; i++)
-    {
-        if (!strcasecmp(_infos[i].path.GetString(), normalized))
-        {
-            if (!_infos[i].hasCheatStats)
-                return false;
-
-            activeCount = _infos[i].cheatActiveCount;
-            return true;
-        }
-    }
-
-    return false;
-}
-
-void LaunchStatsService::SetCheatStats(const char* path, u32 activeCount, u32 totalCount)
-{
-    (void)totalCount;
-
     if (!path || path[0] == 0)
         return;
 

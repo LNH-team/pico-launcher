@@ -368,5 +368,5 @@ void CheatsViewModel::SaveRomCheatStatsToStats() const
         return;
 
     LaunchStatsService::Instance().SetCheatStats(
-        _statsPath.GetString(), _romActiveCheatCount, _romTotalCheatCount);
+        _statsPath.GetString(), _romActiveCheatCount);
 }
