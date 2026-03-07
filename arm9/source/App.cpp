@@ -479,6 +479,8 @@ void App::HandleNavigateTrigger()
 
 void App::HandleFolderLoadDoneTrigger()
 {
+    DrainTaskQueues();
+
     _romBrowserTopScreenView.reset();
     RestoreVramState(_vramStateAfterMakeBottomScreenView);
     auto displayMode = RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
@@ -499,6 +501,8 @@ void App::HandleFolderLoadDoneTrigger()
 
 void App::HandleRomBrowserViewModelInvalidated()
 {
+    DrainTaskQueues();
+
     bool wasFavoritesAppBarFocused = _romBrowserBottomScreenView->IsAppBarFocused(_focusManager)
         && _romBrowserBottomScreenView->GetFocusedAppBarButton(_focusManager)
             == RomBrowserAppBarView::APP_BAR_BUTTON_FAVORITES;
@@ -551,6 +555,8 @@ void App::HandleRomBrowserViewModelInvalidated()
 
 void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)
 {
+    DrainTaskQueues();
+
     bool wasAppBarFocused = _romBrowserBottomScreenView->IsAppBarFocused(_focusManager);
     auto focusedAppBarButton = wasAppBarFocused
         ? _romBrowserBottomScreenView->GetFocusedAppBarButton(_focusManager)
@@ -765,6 +771,14 @@ void App::RestoreVramState(const VramState& vramState)
     _textureVram.SetState(vramState._texVramState);
     _texturePaletteVram.SetState(vramState._texPlttVramState);
     _subObjVram.SetState(vramState._subObjVramState);
+}
+
+void App::DrainTaskQueues()
+{
+    _ioTaskQueue.StopThread();
+    _bgTaskQueue.StopThread();
+    _ioTaskQueue.StartThread(1, _ioTaskThreadStack, sizeof(_ioTaskThreadStack));
+    _bgTaskQueue.StartThread(2, _bgTaskThreadStack, sizeof(_bgTaskThreadStack));
 }
 
 void App::DispatchTouch(const TouchEvent& event)

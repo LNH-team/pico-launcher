@@ -128,6 +128,7 @@ private:
     void HandleFolderLoadDoneTrigger();
     void HandleRomBrowserViewModelInvalidated();
     void HandleChangeDisplayModeTrigger(RomBrowserState newState);
+    void DrainTaskQueues();
 
     bool IsRomBrowserVisible() const;
 
