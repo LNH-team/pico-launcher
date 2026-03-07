@@ -6,7 +6,7 @@
 
 // Binary format for stats.bin:
 //   magic:   u8[4]  = "STAT"
-//   version: u8     = 1
+//   version: u8     = 2
 //   count:   u32 LE
 //   Per entry:
 //     pathLen:          u8   (string byte length, without null terminator)
@@ -18,9 +18,14 @@
 //     date:             char[dateLen]
 //     timeLen:          u8
 //     time:             char[timeLen]
+//     hasGameCode:      u8  (0 or 1)
+//     gameCodeLen:      u8  (0..4)
+//     gameCode:         char[gameCodeLen]
+//     hasHeaderCrc:     u8  (0 or 1)
+//     headerCrc:        u32 LE
 
 static const u8  STATS_MAGIC[4] = { 'S', 'T', 'A', 'T' };
-static const u8  STATS_VERSION  = 1;
+static const u8  STATS_VERSION  = 2;
 
 static u32 readU32LE(const u8* p)
 {
@@ -125,7 +130,8 @@ void LaunchStatsService::Load()
         return;
     p += 4;
 
-    if (*p++ != STATS_VERSION)
+    u8 fileVersion = *p++;
+    if (fileVersion != 1 && fileVersion != STATS_VERSION)
         return;
 
     u32 count = readU32LE(p);
@@ -191,6 +197,44 @@ void LaunchStatsService::Load()
         }
         p += timeLen;
 
+        if (fileVersion >= 2)
+        {
+            if (p >= end) break;
+            _infos[i].hasGameCode = (*p++ != 0);
+
+            if (p >= end) break;
+            u8 gameCodeLen = *p++;
+            if (p + gameCodeLen > end) break;
+
+            if (gameCodeLen > 0)
+            {
+                char gameCodeBuf[5];
+                u8 copyLen = gameCodeLen < 4 ? gameCodeLen : 4;
+                memcpy(gameCodeBuf, p, copyLen);
+                gameCodeBuf[copyLen] = '\0';
+                _infos[i].gameCode = gameCodeBuf;
+            }
+            else
+            {
+                _infos[i].gameCode = "";
+            }
+            p += gameCodeLen;
+
+            if (p >= end) break;
+            _infos[i].hasHeaderCrc = (*p++ != 0);
+
+            if (p + 4 > end) break;
+            _infos[i].headerCrc = readU32LE(p);
+            p += 4;
+        }
+        else
+        {
+            _infos[i].gameCode = "";
+            _infos[i].hasGameCode = false;
+            _infos[i].headerCrc = 0;
+            _infos[i].hasHeaderCrc = false;
+        }
+
         i++;
     }
     _count = i;
@@ -204,12 +248,17 @@ void LaunchStatsService::Save() const
         u8 pathLen = (u8)strlen(_infos[i].path.GetString());
         u8 dateLen = (u8)strlen(_infos[i].lastLaunchDate.GetString());
         u8 timeLen = (u8)strlen(_infos[i].lastLaunchTime.GetString());
+        u8 gameCodeLen = (u8)strlen(_infos[i].gameCode.GetString());
         outputSize += 1u + pathLen   // pathLen field + path bytes
                     + 4u             // launchCount
                     + 1u             // hasCheatStats
                     + 4u             // cheatActiveCount
                     + 1u + dateLen   // dateLen field + date bytes
-                    + 1u + timeLen;  // timeLen field + time bytes
+                    + 1u + timeLen   // timeLen field + time bytes
+                    + 1u             // hasGameCode
+                    + 1u + gameCodeLen // gameCodeLen field + gameCode bytes
+                    + 1u             // hasHeaderCrc
+                    + 4u;            // headerCrc
     }
 
     std::unique_ptr<u8[]> fileData(new(cache_align) u8[outputSize]);
@@ -253,19 +302,30 @@ void LaunchStatsService::Save() const
         if (timeLen > 0)
             memcpy(p, time, timeLen);
         p += timeLen;
+
+        *p++ = _infos[i].hasGameCode ? 1u : 0u;
+
+        const char* gameCode = _infos[i].gameCode.GetString();
+        u8 gameCodeLen = (u8)strlen(gameCode);
+        *p++ = gameCodeLen;
+        if (gameCodeLen > 0)
+            memcpy(p, gameCode, gameCodeLen);
+        p += gameCodeLen;
+
+        *p++ = _infos[i].hasHeaderCrc ? 1u : 0u;
+        writeU32LE(p, _infos[i].headerCrc);
+        p += 4;
     }
 
     const auto file = std::make_unique<File>();
     if (file->Open(_filePath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK)
     {
-        LOG_ERROR("Failed to open stats file for writing\n");
         return;
     }
 
     u32 bytesWritten = 0;
     if (file->Write(fileData.get(), outputSize, bytesWritten) != FR_OK || bytesWritten != outputSize)
     {
-        LOG_ERROR("Failed to write stats file\n");
     }
 }
 
@@ -396,6 +456,203 @@ bool LaunchStatsService::TryGetLastLaunchTime(const char* path, char* outValue, 
     }
 
     return false;
+}
+
+bool LaunchStatsService::TryGetInfo(const char* path, u32* outLaunchCount,
+    char* outDate, u32 outDateSize,
+    char* outTime, u32 outTimeSize,
+    u32* outCheatActiveCount, bool* outHasCheatStats) const
+{
+    if (!path)
+        return false;
+
+    const_cast<LaunchStatsService*>(this)->EnsureLoaded();
+
+    if (outLaunchCount)
+        *outLaunchCount = 0;
+    if (outDate && outDateSize > 0)
+        outDate[0] = 0;
+    if (outTime && outTimeSize > 0)
+        outTime[0] = 0;
+    if (outCheatActiveCount)
+        *outCheatActiveCount = 0;
+    if (outHasCheatStats)
+        *outHasCheatStats = false;
+
+    const char* normalized = path;
+    const char* colon = strchr(path, ':');
+    if (colon && colon < path + 6)
+        normalized = colon;
+
+    for (u32 i = 0; i < _count; i++)
+    {
+        if (!strcasecmp(_infos[i].path.GetString(), normalized))
+        {
+            if (outLaunchCount)
+                *outLaunchCount = _infos[i].launchCount;
+
+            const char* date = _infos[i].lastLaunchDate.GetString();
+            if (outDate && outDateSize > 0 && date[0] != 0)
+            {
+                if (strlen(date) == 10 && date[4] == '-' && date[7] == '-')
+                {
+                    mini_snprintf(outDate, outDateSize, "%c%c/%c%c/%c%c%c%c",
+                        date[8], date[9], date[5], date[6], date[0], date[1], date[2], date[3]);
+                }
+                else
+                {
+                    mini_snprintf(outDate, outDateSize, "%s", date);
+                }
+            }
+
+            const char* time = _infos[i].lastLaunchTime.GetString();
+            if (outTime && outTimeSize > 0 && time[0] != 0)
+            {
+                mini_snprintf(outTime, outTimeSize, "%s", time);
+            }
+
+            if (outCheatActiveCount)
+                *outCheatActiveCount = _infos[i].cheatActiveCount;
+            if (outHasCheatStats)
+                *outHasCheatStats = _infos[i].hasCheatStats;
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool LaunchStatsService::TryGetGameIdentity(const char* path,
+    char* outGameCode, u32 outGameCodeSize, bool* outHasGameCode,
+    u32* outHeaderCrc, bool* outHasHeaderCrc) const
+{
+    if (!path)
+        return false;
+
+    const_cast<LaunchStatsService*>(this)->EnsureLoaded();
+
+    if (outGameCode && outGameCodeSize > 0)
+        outGameCode[0] = 0;
+    if (outHasGameCode)
+        *outHasGameCode = false;
+    if (outHeaderCrc)
+        *outHeaderCrc = 0;
+    if (outHasHeaderCrc)
+        *outHasHeaderCrc = false;
+
+    const char* normalized = path;
+    const char* colon = strchr(path, ':');
+    if (colon && colon < path + 6)
+        normalized = colon;
+
+    for (u32 i = 0; i < _count; i++)
+    {
+        if (!strcasecmp(_infos[i].path.GetString(), normalized))
+        {
+            if (outHasGameCode)
+                *outHasGameCode = _infos[i].hasGameCode;
+
+            if (outGameCode && outGameCodeSize > 0)
+            {
+                if (_infos[i].hasGameCode)
+                    mini_snprintf(outGameCode, outGameCodeSize, "%s", _infos[i].gameCode.GetString());
+                else
+                    outGameCode[0] = 0;
+            }
+
+            if (outHeaderCrc)
+                *outHeaderCrc = _infos[i].headerCrc;
+            if (outHasHeaderCrc)
+                *outHasHeaderCrc = _infos[i].hasHeaderCrc;
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void LaunchStatsService::SetGameIdentity(const char* path,
+    const char* gameCode, bool hasGameCode,
+    u32 headerCrc, bool hasHeaderCrc)
+{
+    if (!path || path[0] == 0)
+        return;
+
+    EnsureLoaded();
+
+    const char* normalized = path;
+    const char* colon = strchr(path, ':');
+    if (colon && colon < path + 6)
+        normalized = colon;
+
+    char normalizedGameCode[5] = { 0 };
+    if (hasGameCode && gameCode)
+    {
+        for (u32 i = 0; i < 4 && gameCode[i] != 0; i++)
+            normalizedGameCode[i] = gameCode[i];
+    }
+
+    for (u32 i = 0; i < _count; i++)
+    {
+        if (!strcasecmp(_infos[i].path.GetString(), normalized))
+        {
+            bool changed = false;
+
+            if (_infos[i].hasGameCode != hasGameCode)
+            {
+                _infos[i].hasGameCode = hasGameCode;
+                changed = true;
+            }
+
+            if (hasGameCode)
+            {
+                if (strcasecmp(_infos[i].gameCode.GetString(), normalizedGameCode) != 0)
+                {
+                    _infos[i].gameCode = normalizedGameCode;
+                    changed = true;
+                }
+            }
+            else if (_infos[i].gameCode.GetString()[0] != 0)
+            {
+                _infos[i].gameCode = "";
+                changed = true;
+            }
+
+            if (_infos[i].hasHeaderCrc != hasHeaderCrc)
+            {
+                _infos[i].hasHeaderCrc = hasHeaderCrc;
+                changed = true;
+            }
+
+            if (_infos[i].headerCrc != headerCrc)
+            {
+                _infos[i].headerCrc = headerCrc;
+                changed = true;
+            }
+
+            if (changed)
+                Save();
+            return;
+        }
+    }
+
+    u32 newCount = _count + 1;
+    auto newInfos = std::make_unique_for_overwrite<Info[]>(newCount);
+    for (u32 i = 0; i < _count; i++)
+        newInfos[i] = _infos[i];
+
+    auto& info = newInfos[newCount - 1];
+    info.path = normalized;
+    info.hasGameCode = hasGameCode;
+    info.gameCode = hasGameCode ? normalizedGameCode : "";
+    info.hasHeaderCrc = hasHeaderCrc;
+    info.headerCrc = headerCrc;
+
+    _infos = std::move(newInfos);
+    _count = newCount;
+    Save();
 }
 
 void LaunchStatsService::SetCheatStats(const char* path, u32 activeCount)

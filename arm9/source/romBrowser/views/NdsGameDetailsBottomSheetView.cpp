@@ -14,10 +14,6 @@
 #include "../viewModels/RomBrowserViewModel.h"
 #include "services/localization/Localization.h"
 #include "services/launchStats/LaunchStatsService.h"
-#include "cheats/ICheatCategory.h"
-#include "cheats/ICheatRepository.h"
-#include "cheats/CheatCategory.h"
-#include "cheats/Cheat.h"
 #include "../FileType/Nds/NdsFileType.h"
 #include "../FileType/Nds/NdsInternalFileInfo.h"
 #include "core/mini-printf.h"
@@ -115,34 +111,6 @@ static u32 ComputeCrc32(const void* buffer, u32 length)
     return crc;
 }
 
-static u32 CountActiveCheatsRecursive(const ICheatCategory* category)
-{
-    if (!category)
-    {
-        return 0;
-    }
-
-    u32 total = 0;
-    u32 numberOfCategories = 0;
-    auto categories = category->GetCategories(numberOfCategories);
-    for (u32 i = 0; i < numberOfCategories; i++)
-    {
-        total += CountActiveCheatsRecursive(&categories[i]);
-    }
-
-    u32 numberOfCheats = 0;
-    auto cheats = category->GetCheats(numberOfCheats);
-    for (u32 i = 0; i < numberOfCheats; i++)
-    {
-        if (cheats[i].GetIsCheatActive())
-        {
-            total++;
-        }
-    }
-
-    return total;
-}
-
 NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     IRomBrowserController* romBrowserController,
     const MaterialColorScheme* materialColorScheme,
@@ -197,39 +165,84 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                     if (isNds) {
                         char statsPath[256];
                         bool hasStatsPath = BuildStatsPath(fileInfo, statsPath, sizeof(statsPath));
-                        auto gameCheats = _romBrowserController->GetCheatRepository().GetCheatsForGame(fileInfo.GetFastFileRef());
-                        if (gameCheats)
+                        if (hasStatsPath)
                         {
-                            cheatActiveCount = CountActiveCheatsRecursive(gameCheats.get());
+                            bool hasCheatStats = false;
+                            LaunchStatsService::Instance().TryGetInfo(statsPath,
+                                nullptr,
+                                nullptr, 0,
+                                nullptr, 0,
+                                &cheatActiveCount, &hasCheatStats);
+                            if (!hasCheatStats)
+                            {
+                                cheatActiveCount = 0;
+                            }
                         }
+
+                        char gameCodeBuf[5] = { 0 };
+                        bool hasCachedGameCode = false;
+                        u32 crc32 = 0;
+                        bool hasCachedCrc = false;
 
                         if (hasStatsPath)
                         {
-                            LaunchStatsService::Instance().SetCheatStats(statsPath, cheatActiveCount);
+                            LaunchStatsService::Instance().TryGetGameIdentity(statsPath,
+                                gameCodeBuf, sizeof(gameCodeBuf), &hasCachedGameCode,
+                                &crc32, &hasCachedCrc);
                         }
 
-                        std::unique_ptr<InternalFileInfo> internalInfo(fileInfo.CreateInternalFileInfo());
-                        const char* gameCode = nullptr;
-                        if (internalInfo) {
-                            gameCode = internalInfo->GetGameCode();
-                        }
-                        u32 crc32 = 0;
+                        bool hasGameCode = hasCachedGameCode;
+                        if (!hasCachedGameCode)
                         {
+                            std::unique_ptr<InternalFileInfo> internalInfo(fileInfo.CreateInternalFileInfo());
+                            const char* gameCode = internalInfo ? internalInfo->GetGameCode() : nullptr;
+
+                            if (gameCode && gameCode[0] != 0)
+                            {
+                                strncpy(gameCodeBuf, gameCode, 4);
+                                gameCodeBuf[4] = 0;
+                                hasGameCode = true;
+                            }
+                            else
+                            {
+                                gameCodeBuf[0] = 0;
+                                hasGameCode = false;
+                            }
+                        }
+
+                        bool hasCrc = hasCachedCrc;
+                        if (!hasCachedCrc)
+                        {
+                            crc32 = 0;
                             File romFile;
                             romFile.Open(fileInfo.GetFastFileRef(), FA_READ);
-                            if (romFile.GetSize() >= 512) {
+                            if (romFile.GetSize() >= 512)
+                            {
                                 u8 header[512];
-                                if (romFile.ReadExact(header, sizeof(header))) {
+                                if (romFile.ReadExact(header, sizeof(header)))
+                                {
                                     crc32 = ComputeCrc32(header, sizeof(header));
                                 }
                             }
+
+                            // Memorizza anche il caso CRC non disponibile (0) per evitare ricalcoli a ogni apertura.
+                            hasCrc = true;
                         }
-                        if (gameCode) {
-                            strncpy(_gameCode, gameCode, 4);
+
+                        if (hasStatsPath && (!hasCachedGameCode || !hasCachedCrc))
+                        {
+                            LaunchStatsService::Instance().SetGameIdentity(statsPath,
+                                gameCodeBuf, hasGameCode,
+                                crc32, hasCrc);
+                        }
+
+                        if (hasGameCode) {
+                            strncpy(_gameCode, gameCodeBuf, 4);
                             _gameCode[4] = 0;
                         } else {
                             _gameCode[0] = 0;
                         }
+
                         if (crc32 != 0)
                         {
                             _crc = crc32;
@@ -243,8 +256,8 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
 
                         char16_t wc[16];
                         int i = 0;
-                        if (gameCode) {
-                            for (; gameCode[i] && i < 4; ++i) wc[i] = (char16_t)(unsigned char)gameCode[i];
+                        if (_gameCode[0] != 0) {
+                            for (; _gameCode[i] && i < 4; ++i) wc[i] = (char16_t)(unsigned char)_gameCode[i];
                         }
                         wc[i] = 0;
                         _gameCodeLabel.SetText(wc);
@@ -482,11 +495,11 @@ void NdsGameDetailsBottomSheetView::InitLaunchCountLabel(const MaterialColorSche
                 if (pathBuf[0] != 0) {
                     const char* normalizedPath = strchr(pathBuf, ':');
                     if (normalizedPath) {
-                        launchCount = LaunchStatsService::Instance().GetCount(normalizedPath);
-                        LaunchStatsService::Instance().TryGetLastLaunchDate(
-                            normalizedPath, lastLaunchDate, sizeof(lastLaunchDate));
-                        LaunchStatsService::Instance().TryGetLastLaunchTime(
-                            normalizedPath, lastLaunchTime, sizeof(lastLaunchTime));
+                        LaunchStatsService::Instance().TryGetInfo(normalizedPath,
+                            &launchCount,
+                            lastLaunchDate, sizeof(lastLaunchDate),
+                            lastLaunchTime, sizeof(lastLaunchTime),
+                            nullptr, nullptr);
                     }
                 }
             }
