@@ -164,7 +164,7 @@ static int countLanguages()
 
         const char* dot = strrchr(fileInfo.fname, '.');
 
-        if (!dot || strcasecmp(dot, ".json") != 0)
+        if (!dot || strcasecmp(dot, ".bin") != 0)
             continue;
 
         count++;
