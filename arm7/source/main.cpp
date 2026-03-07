@@ -108,15 +108,6 @@ static s32 clampS32(s32 val, s32 minVal, s32 maxVal)
     return val;
 }
 
-static u32 touchAbs(s32 x)
-{
-    return x >= 0 ? (u32)x : (u32)(-x);
-}
-
-static u16 sNtrLatchX = 0;
-static u16 sNtrLatchY = 0;
-static bool sNtrHasLatch = false;
-
 static void touchReadNtr()
 {
     u32 xSum = 0, ySum = 0;
@@ -125,25 +116,18 @@ static void touchReadNtr()
         xSum += touchSpiReadAxis(0xD1);
         ySum += touchSpiReadAxis(0x91);
     }
-    u16 rawX = (u16)(xSum >> 2);
-    u16 rawY = (u16)(ySum >> 2);
+    u16 rawX = xSum >> 2;
+    u16 rawY = ySum >> 2;
 
-    static const u32 DIFF_THRESHOLD = 20;
-    bool valid = !sNtrHasLatch ||
-        (touchAbs((s32)rawX - (s32)sNtrLatchX) < DIFF_THRESHOLD &&
-         touchAbs((s32)rawY - (s32)sNtrLatchY) < DIFF_THRESHOLD);
-
-    if (valid)
-    {
-        sNtrLatchX = rawX;
-        sNtrLatchY = rawY;
-        sNtrHasLatch = true;
-    }
-
-    s32 px = (sTouchCalibration.xScale * (s32)sNtrLatchX + sTouchCalibration.xOffset) >> 12;
-    s32 py = (sTouchCalibration.yScale * (s32)sNtrLatchY + sTouchCalibration.yOffset) >> 12;
+    s32 px = (sTouchCalibration.xScale * (s32)rawX + sTouchCalibration.xOffset) >> 12;
+    s32 py = (sTouchCalibration.yScale * (s32)rawY + sTouchCalibration.yOffset) >> 12;
     SHARED_TOUCH_X = (u16)clampS32(px, 0, 255);
     SHARED_TOUCH_Y = (u16)clampS32(py, 0, 191);
+}
+
+static u32 touchAbs(s32 x)
+{
+    return x >= 0 ? (u32)x : (u32)(-x);
 }
 
 #define CDC_TSC_REG_SAR_ADC_CTRL       0x02
@@ -326,10 +310,6 @@ static void vcountIrq(u32 irqMask)
             touchInitCalibration();
 
         touchReadNtr();
-    }
-    else
-    {
-        sNtrHasLatch = false;
     }
 }
 

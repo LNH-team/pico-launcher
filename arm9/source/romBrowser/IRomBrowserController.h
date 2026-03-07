@@ -22,6 +22,8 @@ public:
     virtual void HideGameInfo() = 0;
     virtual void ShowDisplaySettings() = 0;
     virtual void HideDisplaySettings() = 0;
+    virtual void ShowDisplayInfo() = 0;
+    virtual void HideDisplayInfo() = 0;
     virtual void ToggleFavoritesView() = 0;
     virtual bool IsFavoritesViewActive() const = 0;
     virtual void ToggleSelectedFileFavorite() = 0;

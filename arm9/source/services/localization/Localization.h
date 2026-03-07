@@ -2,7 +2,7 @@
 #include "services/settings/IAppSettingsService.h"
 
 /// @brief Maximum number of translation keys that can be loaded.
-#define LOCALIZATION_MAX_KEYS 16
+#define LOCALIZATION_MAX_KEYS 104
 
 class Localization
 {

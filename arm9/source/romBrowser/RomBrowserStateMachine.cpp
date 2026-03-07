@@ -33,7 +33,10 @@ bool RomBrowserStateMachine::FireDirect(RomBrowserStateTrigger trigger)
             .Trigger(RomBrowserStateTrigger::FolderLoadDone).GoesTo(RomBrowserState::Browser)
         .In(RomBrowserState::DisplaySettings)
             .Trigger(RomBrowserStateTrigger::ChangeDisplayMode).GoesTo(RomBrowserState::DisplaySettings)
+            .Trigger(RomBrowserStateTrigger::ShowDisplayInfo).GoesTo(RomBrowserState::DisplayInfo)
             .Trigger(RomBrowserStateTrigger::HideDisplaySettings).GoesTo(RomBrowserState::Browser)
+        .In(RomBrowserState::DisplayInfo)
+            .Trigger(RomBrowserStateTrigger::HideDisplayInfo).GoesTo(RomBrowserState::DisplaySettings)
         .Check(newState))
     {
         _prevState = _curState;

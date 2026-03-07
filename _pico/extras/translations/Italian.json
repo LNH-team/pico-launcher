@@ -1,17 +1,61 @@
-{
+﻿{
     "language_name": "Italiano",
+
     "display_settings": "Impostazioni schermo",
     "layout": "Disposizione",
     "sorting": "Ordinamento",
     "theme": "Tema",
     "language": "Lingua",
-    "favorites": "Preferiti",
+
+    "game_details": "Dettagli gioco",
     "total_launches": "Avvii totali",
     "last_launch": "Ultimo avvio",
-    "cheats": "Trucchi",
+    "cheats": "Trucchi",    
+    "favorites": "Preferiti",
+    
     "cheats_not_found": "Nessun trucco trovato per questo gioco",
     "cheats_dat_missing": "usrcheat.dat non trovato",
-    "game_details": "Dettagli Gioco",
-    "cheats_no_description_available": "Nessuna descrizione disponibile.",
-    "selected_cheats": "Trucchi Selezionati"
+    "selected_cheats": "Trucchi selezionati",
+
+    "information": "Informazioni",
+    "information_user": "Utente",
+    "information_birthdate": "Data di nascita",
+    "information_favorite_color": "Colore preferito",
+    "information_message": "Messaggio",
+    "information_console_language": "Lingua della console",
+    "information_mode": "Modalità",
+    "information_console": "Console",
+    "information_usrcheat_found": "Trovato",
+    "information_usrcheat_not_found": "Non trovato",
+    "information_themes": "Temi",
+    "information_languages": "Lingue",
+
+    "information_colors_list": [
+        { "id": 0, "key": "gray", "label": "Grigio" },
+        { "id": 1, "key": "brown", "label": "Marrone" },
+        { "id": 2, "key": "red", "label": "Rosso" },
+        { "id": 3, "key": "pink", "label": "Rosa" },
+        { "id": 4, "key": "orange", "label": "Arancione" },
+        { "id": 5, "key": "yellow", "label": "Giallo" },
+        { "id": 6, "key": "yellow_green", "label": "Giallo-Verde" },
+        { "id": 7, "key": "green", "label": "Verde" },
+        { "id": 8, "key": "dark_green", "label": "Verde scuro" },
+        { "id": 9, "key": "green_blue", "label": "Verde-Blu" },
+        { "id": 10, "key": "light_blue", "label": "Azzurro" },
+        { "id": 11, "key": "blue", "label": "Blu" },
+        { "id": 12, "key": "dark_blue", "label": "Blu scuro" },
+        { "id": 13, "key": "dark_purple", "label": "Viola scuro" },
+        { "id": 14, "key": "purple", "label": "Viola" },
+        { "id": 15, "key": "purple_red", "label": "Viola-Rosso" }
+    ],
+
+    "information_languages_list": [
+        { "id": 0, "key": "english", "label": "Inglese" },
+        { "id": 1, "key": "french", "label": "Francese" },
+        { "id": 2, "key": "italian", "label": "Italiano" },
+        { "id": 3, "key": "german", "label": "Tedesco" },
+        { "id": 4, "key": "spanish", "label": "Spagnolo" },
+        { "id": 5, "key": "japanese", "label": "Giapponese" },
+        { "id": 6, "key": "unknown", "label": "Sconosciuto" }
+    ]
 }

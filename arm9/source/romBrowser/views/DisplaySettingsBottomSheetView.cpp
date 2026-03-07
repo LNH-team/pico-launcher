@@ -240,7 +240,7 @@ void DisplaySettingsBottomSheetView::LoadLanguages()
             if (file.Open(path, FA_READ | FA_OPEN_EXISTING) == FR_OK)
             {
                 u32 fileSize = file.GetSize();
-                if (fileSize > 0 && fileSize < 2048)
+                if (fileSize > 0 && fileSize <= 4096)
                 {
                     auto buf = std::make_unique<u8[]>(fileSize);
                     u32 bytesRead = 0;
@@ -509,6 +509,12 @@ void DisplaySettingsBottomSheetView::SaveIfDirty()
 bool DisplaySettingsBottomSheetView::HandleInput(
     const InputProvider& inputProvider, FocusManager& focusManager)
 {
+    if (inputProvider.Triggered(InputKey::R))
+    {
+        _viewModel->ShowInfo();
+        return true;
+    }
+
     if (_themeValueLabel.IsFocused() && inputProvider.Triggered(InputKey::A))
     {
         ApplyTheme();

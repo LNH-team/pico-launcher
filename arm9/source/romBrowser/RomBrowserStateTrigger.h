@@ -11,6 +11,8 @@ enum class RomBrowserStateTrigger
     Launch,
     ShowDisplaySettings,
     HideDisplaySettings,
+    ShowDisplayInfo,
+    HideDisplayInfo,
     ShowCheats,
     HideCheats,
     ShowCheatDescription,

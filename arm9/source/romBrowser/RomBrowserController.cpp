@@ -123,6 +123,16 @@ void RomBrowserController::HideDisplaySettings()
     _stateMachine.Fire(RomBrowserStateTrigger::HideDisplaySettings);
 }
 
+void RomBrowserController::ShowDisplayInfo()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::ShowDisplayInfo);
+}
+
+void RomBrowserController::HideDisplayInfo()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::HideDisplayInfo);
+}
+
 void RomBrowserController::SetRomBrowserDisplaySettings(
     const RomBrowserDisplaySettings& romBrowserDisplaySettings)
 {

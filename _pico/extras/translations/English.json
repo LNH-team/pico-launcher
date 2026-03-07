@@ -1,17 +1,61 @@
-{
+﻿{
     "language_name": "English",
+
     "display_settings": "Display Settings",
     "layout": "Layout",
     "sorting": "Sorting",
     "theme": "Theme",
     "language": "Language",
-    "favorites": "Favorites",
+
+    "game_details": "Game Details",
     "total_launches": "Total Launches",
     "last_launch": "Last Launch",
-    "cheats": "Cheats",
+    "cheats": "Cheats",    
+    "favorites": "Favorites",
+    
     "cheats_not_found": "No cheats found for this game",
     "cheats_dat_missing": "usrcheat.dat not found",
-    "game_details": "Game Details",
-    "cheats_no_description_available": "No description available.",
-    "selected_cheats": "Selected Cheats"
+    "selected_cheats": "Selected Cheats",
+
+    "information": "Information",
+    "information_user": "User",
+    "information_birthdate": "Birthdate",
+    "information_favorite_color": "Favorite color",
+    "information_message": "Message",
+    "information_console_language": "Console language",
+    "information_mode": "Mode",
+    "information_console": "Console",
+    "information_usrcheat_found": "Found",
+    "information_usrcheat_not_found": "Not found",
+    "information_themes": "Themes",
+    "information_languages": "Languages",
+
+    "information_colors_list": [
+        { "id": 0, "key": "gray", "label": "Gray" },
+        { "id": 1, "key": "brown", "label": "Brown" },
+        { "id": 2, "key": "red", "label": "Red" },
+        { "id": 3, "key": "pink", "label": "Pink" },
+        { "id": 4, "key": "orange", "label": "Orange" },
+        { "id": 5, "key": "yellow", "label": "Yellow" },
+        { "id": 6, "key": "yellow_green", "label": "Yellow-Green" },
+        { "id": 7, "key": "green", "label": "Green" },
+        { "id": 8, "key": "dark_green", "label": "Dark Green" },
+        { "id": 9, "key": "green_blue", "label": "Green-Blue" },
+        { "id": 10, "key": "light_blue", "label": "Light Blue" },
+        { "id": 11, "key": "blue", "label": "Blue" },
+        { "id": 12, "key": "dark_blue", "label": "Dark Blue" },
+        { "id": 13, "key": "dark_purple", "label": "Dark Purple" },
+        { "id": 14, "key": "purple", "label": "Purple" },
+        { "id": 15, "key": "purple_red", "label": "Purple-Red" }
+    ],
+
+    "information_languages_list": [
+        { "id": 0, "key": "english", "label": "English" },
+        { "id": 1, "key": "french", "label": "French" },
+        { "id": 2, "key": "italian", "label": "Italian" },
+        { "id": 3, "key": "german", "label": "German" },
+        { "id": 4, "key": "spanish", "label": "Spanish" },
+        { "id": 5, "key": "japanese", "label": "Japanese" },
+        { "id": 6, "key": "unknown", "label": "Unknown" }
+    ]
 }

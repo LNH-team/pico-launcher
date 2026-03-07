@@ -33,6 +33,11 @@ void pload_setBootDrive(PicoLoaderBootDrive bootDrive)
     sBootDrive = bootDrive;
 }
 
+PicoLoaderBootDrive pload_getBootDrive()
+{
+    return sBootDrive;
+}
+
 void pload_setLauncherPath(const char* launcherPath)
 {
     StringUtil::Copy(sLauncherPath, launcherPath, sizeof(sLauncherPath));

@@ -124,6 +124,8 @@ private:
     void HandleHideCheatDescriptionTrigger();
     void HandleShowDisplaySettingsTrigger();
     void HandleHideDisplaySettingsTrigger();
+    void HandleShowDisplayInfoTrigger();
+    void HandleHideDisplayInfoTrigger();
     void HandleNavigateTrigger();
     void HandleFolderLoadDoneTrigger();
     void HandleRomBrowserViewModelInvalidated();

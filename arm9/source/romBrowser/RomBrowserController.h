@@ -31,6 +31,8 @@ public:
     void HideCheatDescription() override;
     void ShowDisplaySettings() override;
     void HideDisplaySettings() override;
+    void ShowDisplayInfo() override;
+    void HideDisplayInfo() override;
     void ToggleFavoritesView() override;
     bool IsFavoritesViewActive() const override { return _favoritesViewActive; }
     void ToggleSelectedFileFavorite() override;

@@ -26,6 +26,7 @@
 #include "romBrowser/views/NdsGameDetailsBottomSheetView.h"
 #include "romBrowser/views/cheats/CheatsBottomSheetView.h"
 #include "romBrowser/views/DisplaySettingsBottomSheetView.h"
+#include "romBrowser/views/InfoBottomSheetView.h"
 #include "bgm/AudioStreamPlayer.h"
 #include "bgm/BgmService.h"
 #include "themes/ThemeInfoFactory.h"
@@ -345,6 +346,16 @@ void App::HandleTrigger(RomBrowserStateTrigger trigger, RomBrowserState newState
             HandleHideDisplaySettingsTrigger();
             break;
         }
+        case RomBrowserStateTrigger::ShowDisplayInfo:
+        {
+            HandleShowDisplayInfoTrigger();
+            break;
+        }
+        case RomBrowserStateTrigger::HideDisplayInfo:
+        {
+            HandleHideDisplayInfoTrigger();
+            break;
+        }
         case RomBrowserStateTrigger::ShowCheats:
         {
             HandleShowCheatsTrigger();
@@ -469,6 +480,25 @@ void App::HandleHideDisplaySettingsTrigger()
 
     if (!_dialogPresenter.GetOldFocus())
         _romBrowserBottomScreenView->Focus(_focusManager);
+}
+
+void App::HandleShowDisplayInfoTrigger()
+{
+    _dialogPresenter.CloseDialog();
+
+    auto displayInfoDialog = std::make_unique<SettingsInfoBottomSheetView>(
+        &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository());
+    _dialogPresenter.ShowDialog(std::move(displayInfoDialog));
+}
+
+void App::HandleHideDisplayInfoTrigger()
+{
+    _dialogPresenter.CloseDialog();
+
+    auto displaySettingsDialog = std::make_unique<DisplaySettingsBottomSheetView>(
+        &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository(), &_appSettingsService);
+    displaySettingsDialog->SetGraphics(_iconButtonViewVram);
+    _dialogPresenter.ShowDialog(std::move(displaySettingsDialog));
 }
 
 void App::HandleNavigateTrigger()
@@ -602,6 +632,7 @@ bool App::IsRomBrowserVisible() const
         || curState == RomBrowserState::Cheats
         || curState == RomBrowserState::CheatDescription
         || curState == RomBrowserState::DisplaySettings
+        || curState == RomBrowserState::DisplayInfo
         || curState == RomBrowserState::Launching;
 }
 
@@ -627,7 +658,11 @@ void App::Update()
     bool isRomBrowserVisible = IsRomBrowserVisible();
     if (isRomBrowserVisible && !_exit && curState != RomBrowserState::Launching)
     {
-        _focusManager.Update(_inputRepeater);
+        auto* currentDialog = _dialogPresenter.GetCurrentDialog();
+        if (currentDialog && !_focusManager.GetCurrentFocus())
+            currentDialog->HandleInput(_inputRepeater, _focusManager);
+        else
+            _focusManager.Update(_inputRepeater);
 
         _touchProvider.Update();
         if (_touchProvider.HasEvent())
