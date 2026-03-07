@@ -1,0 +1,18 @@
+{
+    "language_name": "Français",
+    "display_settings": "Paramètres d'affichage",
+    "layout": "Disposition",
+    "sorting": "Tri",
+    "theme": "Thème",
+    "language": "Langue",
+    "favorites": "Favoris",
+    "total_launches": "Lancements totaux",
+    "last_launch": "Dernier lancement",
+    "cheats": "Codes",
+    "cheats_not_found": "Aucun code trouvé pour ce jeu",
+    "cheats_dat_missing": "usrcheat.dat introuvable",
+    "game_details": "Détails du jeu",
+    "cheats_no_description_available": "Aucune description disponible.",
+    "selected_cheats": "Codes sélectionnés"
+}
+}

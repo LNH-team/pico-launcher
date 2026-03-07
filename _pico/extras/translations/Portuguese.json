@@ -1,0 +1,18 @@
+{
+    "language_name": "Português",
+    "display_settings": "Configurações de exibição",
+    "layout": "Layout",
+    "sorting": "Ordenação",
+    "theme": "Tema",
+    "language": "Idioma",
+    "favorites": "Favoritos",
+    "total_launches": "Lançamentos totais",
+    "last_launch": "Último lançamento",
+    "cheats": "Códigos",
+    "cheats_not_found": "Nenhum código encontrado para este jogo",
+    "cheats_dat_missing": "usrcheat.dat não encontrado",
+    "game_details": "Detalhes do jogo",
+    "cheats_no_description_available": "Nenhuma descrição disponível.",
+    "selected_cheats": "Códigos selecionados"
+}
+}

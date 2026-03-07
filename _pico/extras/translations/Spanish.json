@@ -1,0 +1,18 @@
+{
+    "language_name": "Español",
+    "display_settings": "Configuración de pantalla",
+    "layout": "Diseño",
+    "sorting": "Ordenación",
+    "theme": "Tema",
+    "language": "Idioma",
+    "favorites": "Favoritos",
+    "total_launches": "Lanzamientos totales",
+    "last_launch": "Último lanzamiento",
+    "cheats": "Trucos",
+    "cheats_not_found": "No se encontraron trucos para este juego",
+    "cheats_dat_missing": "usrcheat.dat no encontrado",
+    "game_details": "Detalles del juego",
+    "cheats_no_description_available": "No hay descripción disponible.",
+    "selected_cheats": "Trucos seleccionados"
+}
+}
