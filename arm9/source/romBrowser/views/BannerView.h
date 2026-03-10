@@ -18,21 +18,33 @@ public:
         int romNameRow1X = 70;
         int romNameRow1Y = 122;
         u8 romNameRow1Font = LAYOUT_FONT_MEDIUM11;
+        u8 romNameRow1ColorR = 0;
+        u8 romNameRow1ColorG = 0;
+        u8 romNameRow1ColorB = 0;
 
         bool romNameRow2Visible = true;
         int romNameRow2X = 70;
         int romNameRow2Y = 137;
         u8 romNameRow2Font = LAYOUT_FONT_REGULAR10;
+        u8 romNameRow2ColorR = 0;
+        u8 romNameRow2ColorG = 0;
+        u8 romNameRow2ColorB = 0;
 
         bool romNameRow3Visible = true;
         int romNameRow3X = 70;
         int romNameRow3Y = 151;
         u8 romNameRow3Font = LAYOUT_FONT_REGULAR10;
+        u8 romNameRow3ColorR = 0;
+        u8 romNameRow3ColorG = 0;
+        u8 romNameRow3ColorB = 0;
 
         bool fileNameVisible = true;
         int fileNameX = 18;
         int fileNameY = 168;
         u8 fileNameFont = LAYOUT_FONT_MEDIUM7_5;
+        u8 fileNameColorR = 0;
+        u8 fileNameColorG = 0;
+        u8 fileNameColorB = 0;
         bool fileNameScrollEnabled = false;
         u8 fileNameScrollSpeed = 3;
     };

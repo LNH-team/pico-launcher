@@ -11,10 +11,10 @@ public:
         u32 launchCount = 0;
         String<char, 11> lastLaunchDate;
         String<char, 9> lastLaunchTime;
-        u32 cheatActiveCount = 0;
-        bool hasCheatStats = false;
-        String<char, 4> gameCode;
-        bool hasGameCode = false;
+        u8 romVersion = 0;
+        bool hasRomVersion = false;
+        String<char, 16> id;
+        bool hasID = false;
         u32 headerCrc = 0;
         bool hasHeaderCrc = false;
     };
@@ -30,13 +30,14 @@ public:
     bool TryGetLastLaunchTime(const char* path, char* outValue, u32 outValueSize) const;
     bool TryGetInfo(const char* path, u32* outLaunchCount,
         char* outDate, u32 outDateSize,
-        char* outTime, u32 outTimeSize,
-        u32* outCheatActiveCount, bool* outHasCheatStats) const;
-    bool TryGetGameIdentity(const char* path,
-        char* outGameCode, u32 outGameCodeSize, bool* outHasGameCode,
+        char* outTime, u32 outTimeSize) const;
+    bool TryGetCachedData(const char* path,
+        u8* outRomVersion, bool* outHasRomVersion,
+        char* outId, u32 outIdSize, bool* outHasID,
         u32* outHeaderCrc, bool* outHasHeaderCrc) const;
-    void SetGameIdentity(const char* path,
-        const char* gameCode, bool hasGameCode,
+    void SetCachedData(const char* path,
+        u8 romVersion, bool hasRomVersion,
+        const char* id, bool hasID,
         u32 headerCrc, bool hasHeaderCrc);
 
 private:

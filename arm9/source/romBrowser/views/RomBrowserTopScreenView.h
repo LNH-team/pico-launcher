@@ -45,7 +45,13 @@ private:
 
     Label2DView _dateTime1Label;
     Label2DView _dateTime2Label;
-    Label2DView _romIdCodeLabel;
+    Label2DView _prefixLabel;
+    Label2DView _gameIdTagLabel;
+    Label2DView _gameIdLabel;
+    Label2DView _regionLabel;
+    Label2DView _versionLabel;
+    Label2DView _crcLabel;
+    Label2DView _usernameLabel;
 
     bool _iconGraphicsUploaded = false;
     bool _coverGraphicsUploaded = false;
@@ -69,8 +75,27 @@ private:
     u8 _lastDt2Sep    = 0xFF;
     u8 _lastDt1Font   = 0xFF;
     u8 _lastDt2Font   = 0xFF;
-    u8 _lastIdFont    = 0xFF;
+    u8 _lastPrefixFont = 0xFF;
+    u8 _lastGameIdTagFont = 0xFF;
+    u8 _lastGameIdFont = 0xFF;
+    u8 _lastRegionFont = 0xFF;
+    u8 _lastVersionFont = 0xFF;
+    u8 _lastCrcFont   = 0xFF;
+    u8 _lastUsernameFont = 0xFF;
+
+    char _cachedIdPrefix[24] = { 0 };
+    char _cachedIdGameId[5] = { 0 };
+    char _cachedIdRegion[4] = { 0 };
+    bool _hasCachedIdPrefix = false;
+    bool _hasCachedIdGameId = false;
+    bool _hasCachedIdRegion = false;
+    u8 _cachedRomVersion = 0;
+    bool _hasCachedRomVersion = false;
+
+    char16_t _cachedUserName[24] = { 0 };
 
     void UpdateDateTimeLabels(bool forceUpdate);
     void UpdateLayoutFonts();
+    void UpdateIdAndVersionLabels();
+    void UpdateStaticLabels();
 };

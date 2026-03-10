@@ -10,15 +10,19 @@
 //   version[1] = 1
 
 #define LAYOUT_HEADER_SIZE  5u   // magic(4) + version(1)
-#define LAYOUT_DATA_SIZE    58u
-#define LAYOUT_FILE_SIZE    (LAYOUT_HEADER_SIZE + LAYOUT_DATA_SIZE)
+#define LAYOUT_PACKED_DATA_SIZE 139u
+#define LAYOUT_MAX_DATA_SIZE LAYOUT_PACKED_DATA_SIZE
+#define LAYOUT_FILE_SIZE    (LAYOUT_HEADER_SIZE + LAYOUT_MAX_DATA_SIZE)
 
 static void PackLayoutData(const LayoutData& d, u8* buf)
 {
     u32 i = 0;
 
-    auto writeU8  = [&](u8  v) { buf[i++] = v; };
-    auto writeS16 = [&](s16 v) { buf[i++] = (u8)(v & 0xFF); buf[i++] = (u8)((v >> 8) & 0xFF); };
+    auto writeU8 = [&](u8 value) { buf[i++] = value; };
+    auto writeS16 = [&](s16 value) {
+        buf[i++] = (u8)(value & 0xFF);
+        buf[i++] = (u8)((value >> 8) & 0xFF);
+    };
 
     // DateTime1
     writeU8(d.dateTime1.visible);
@@ -27,6 +31,9 @@ static void PackLayoutData(const LayoutData& d, u8* buf)
     writeU8(d.dateTime1.format);
     writeU8(d.dateTime1.separator);
     writeU8(d.dateTime1.font);
+    writeU8(d.dateTime1.colorR);
+    writeU8(d.dateTime1.colorG);
+    writeU8(d.dateTime1.colorB);
 
     // DateTime2
     writeU8(d.dateTime2.visible);
@@ -35,12 +42,76 @@ static void PackLayoutData(const LayoutData& d, u8* buf)
     writeU8(d.dateTime2.format);
     writeU8(d.dateTime2.separator);
     writeU8(d.dateTime2.font);
+    writeU8(d.dateTime2.colorR);
+    writeU8(d.dateTime2.colorG);
+    writeU8(d.dateTime2.colorB);
 
-    // ROM IdCode
-    writeU8(d.romIdCode.visible);
-    writeS16(d.romIdCode.y);
-    writeS16(d.romIdCode.x);
-    writeU8(d.romIdCode.font);
+    // Prefix
+    writeU8(d.prefix.visible);
+    writeS16(d.prefix.y);
+    writeS16(d.prefix.x);
+    writeU8(d.prefix.font);
+    writeU8(d.prefix.trailingDash);
+    writeU8(d.prefix.colorR);
+    writeU8(d.prefix.colorG);
+    writeU8(d.prefix.colorB);
+    writeU8(d.prefix.gbaPrefixMode);
+    writeU8(d.prefix.ntrPrefixMode);
+    writeU8(d.prefix.twlPrefixMode);
+
+    // Game ID
+    writeU8(d.gameId.visible);
+    writeS16(d.gameId.y);
+    writeS16(d.gameId.x);
+    writeU8(d.gameId.font);
+    writeU8(d.gameId.trailingDash);
+    writeU8(d.gameId.colorR);
+    writeU8(d.gameId.colorG);
+    writeU8(d.gameId.colorB);
+    writeU8(d.gameId.showLabelText);
+    writeU8(d.gameId.labelFont);
+    writeS16(d.gameId.labelY);
+    writeS16(d.gameId.labelX);
+    writeU8(d.gameId.labelColorR);
+    writeU8(d.gameId.labelColorG);
+    writeU8(d.gameId.labelColorB);
+
+    // Region
+    writeU8(d.region.visible);
+    writeS16(d.region.y);
+    writeS16(d.region.x);
+    writeU8(d.region.font);
+    writeU8(d.region.trailingDash);
+    writeU8(d.region.colorR);
+    writeU8(d.region.colorG);
+    writeU8(d.region.colorB);
+
+    // Version
+    writeU8(d.version.visible);
+    writeS16(d.version.y);
+    writeS16(d.version.x);
+    writeU8(d.version.font);
+    writeU8(d.version.colorR);
+    writeU8(d.version.colorG);
+    writeU8(d.version.colorB);
+
+    // CRC
+    writeU8(d.crc.visible);
+    writeS16(d.crc.y);
+    writeS16(d.crc.x);
+    writeU8(d.crc.font);
+    writeU8(d.crc.colorR);
+    writeU8(d.crc.colorG);
+    writeU8(d.crc.colorB);
+
+    // Username
+    writeU8(d.username.visible);
+    writeS16(d.username.y);
+    writeS16(d.username.x);
+    writeU8(d.username.font);
+    writeU8(d.username.colorR);
+    writeU8(d.username.colorG);
+    writeU8(d.username.colorB);
 
     // Box Art
     writeU8(d.boxArt.visible);
@@ -57,18 +128,27 @@ static void PackLayoutData(const LayoutData& d, u8* buf)
     writeS16(d.romNameRow1.y);
     writeS16(d.romNameRow1.x);
     writeU8(d.romNameRow1.font);
+    writeU8(d.romNameRow1.colorR);
+    writeU8(d.romNameRow1.colorG);
+    writeU8(d.romNameRow1.colorB);
 
     // ROM Name Row 2
     writeU8(d.romNameRow2.visible);
     writeS16(d.romNameRow2.y);
     writeS16(d.romNameRow2.x);
     writeU8(d.romNameRow2.font);
+    writeU8(d.romNameRow2.colorR);
+    writeU8(d.romNameRow2.colorG);
+    writeU8(d.romNameRow2.colorB);
 
     // ROM Name Row 3
     writeU8(d.romNameRow3.visible);
     writeS16(d.romNameRow3.y);
     writeS16(d.romNameRow3.x);
     writeU8(d.romNameRow3.font);
+    writeU8(d.romNameRow3.colorR);
+    writeU8(d.romNameRow3.colorG);
+    writeU8(d.romNameRow3.colorB);
 
     // File Name
     writeU8(d.fileName.visible);
@@ -77,89 +157,212 @@ static void PackLayoutData(const LayoutData& d, u8* buf)
     writeU8(d.fileName.font);
     writeU8(d.fileName.scroll);
     writeU8(d.fileName.scrollSpeed);
+    writeU8(d.fileName.colorR);
+    writeU8(d.fileName.colorG);
+    writeU8(d.fileName.colorB);
 }
 
 static void UnpackLayoutData(const u8* buf, u32 dataSize, LayoutData& d)
 {
+    if (dataSize == 0)
+        return;
+
     u32 i = 0;
 
-    auto readU8  = [&]() -> u8  { return buf[i++]; };
+    auto readU8  = [&](u8& out) -> bool {
+        if (i + 1 > dataSize)
+            return false;
+        out = buf[i++];
+        return true;
+    };
     auto readS16 = [&]() -> s16 {
         u8 lo = buf[i++];
         u8 hi = buf[i++];
         return (s16)(lo | (hi << 8));
     };
 
+    auto readS16Safe = [&](s16& out) -> bool {
+        if (i + 2 > dataSize)
+            return false;
+        out = readS16();
+        return true;
+    };
+
+    auto readU8OrReturn = [&](u8& out) {
+        if (!readU8(out))
+            return false;
+        return true;
+    };
+
+    auto readS16OrReturn = [&](s16& out) {
+        if (!readS16Safe(out))
+            return false;
+        return true;
+    };
+
     // DateTime1
-    d.dateTime1.visible   = readU8();
-    d.dateTime1.y         = readS16();
-    d.dateTime1.x         = readS16();
-    d.dateTime1.format    = readU8();
-    d.dateTime1.separator = readU8();
-    d.dateTime1.font      = readU8();
+    if (!readU8OrReturn(d.dateTime1.visible)) return;
+    if (!readS16OrReturn(d.dateTime1.y)) return;
+    if (!readS16OrReturn(d.dateTime1.x)) return;
+    if (!readU8OrReturn(d.dateTime1.format)) return;
+    if (!readU8OrReturn(d.dateTime1.separator)) return;
+    if (!readU8OrReturn(d.dateTime1.font)) return;
+    if (!readU8OrReturn(d.dateTime1.colorR)) return;
+    if (!readU8OrReturn(d.dateTime1.colorG)) return;
+    if (!readU8OrReturn(d.dateTime1.colorB)) return;
 
     // DateTime2
-    d.dateTime2.visible   = readU8();
-    d.dateTime2.y         = readS16();
-    d.dateTime2.x         = readS16();
-    d.dateTime2.format    = readU8();
-    d.dateTime2.separator = readU8();
-    d.dateTime2.font      = readU8();
+    if (!readU8OrReturn(d.dateTime2.visible)) return;
+    if (!readS16OrReturn(d.dateTime2.y)) return;
+    if (!readS16OrReturn(d.dateTime2.x)) return;
+    if (!readU8OrReturn(d.dateTime2.format)) return;
+    if (!readU8OrReturn(d.dateTime2.separator)) return;
+    if (!readU8OrReturn(d.dateTime2.font)) return;
+    if (!readU8OrReturn(d.dateTime2.colorR)) return;
+    if (!readU8OrReturn(d.dateTime2.colorG)) return;
+    if (!readU8OrReturn(d.dateTime2.colorB)) return;
 
-    // ROM IdCode
-    d.romIdCode.visible = readU8();
-    d.romIdCode.y       = readS16();
-    d.romIdCode.x       = readS16();
-    d.romIdCode.font    = readU8();
+    // PREFIX
+    if (!readU8OrReturn(d.prefix.visible)) return;
+    if (!readS16OrReturn(d.prefix.y)) return;
+    if (!readS16OrReturn(d.prefix.x)) return;
+    if (!readU8OrReturn(d.prefix.font)) return;
+    if (!readU8OrReturn(d.prefix.trailingDash)) return;
+    if (!readU8OrReturn(d.prefix.colorR)) return;
+    if (!readU8OrReturn(d.prefix.colorG)) return;
+    if (!readU8OrReturn(d.prefix.colorB)) return;
+    if (!readU8OrReturn(d.prefix.gbaPrefixMode)) return;
+    if (!readU8OrReturn(d.prefix.ntrPrefixMode)) return;
+    if (!readU8OrReturn(d.prefix.twlPrefixMode)) return;
+
+    // GAME ID
+    if (!readU8OrReturn(d.gameId.visible)) return;
+    if (!readS16OrReturn(d.gameId.y)) return;
+    if (!readS16OrReturn(d.gameId.x)) return;
+    if (!readU8OrReturn(d.gameId.font)) return;
+    if (!readU8OrReturn(d.gameId.trailingDash)) return;
+    if (!readU8OrReturn(d.gameId.colorR)) return;
+    if (!readU8OrReturn(d.gameId.colorG)) return;
+    if (!readU8OrReturn(d.gameId.colorB)) return;
+    if (!readU8OrReturn(d.gameId.showLabelText)) return;
+    if (!readU8OrReturn(d.gameId.labelFont)) return;
+    if (!readS16OrReturn(d.gameId.labelY)) return;
+    if (!readS16OrReturn(d.gameId.labelX)) return;
+    if (!readU8OrReturn(d.gameId.labelColorR)) return;
+    if (!readU8OrReturn(d.gameId.labelColorG)) return;
+    if (!readU8OrReturn(d.gameId.labelColorB)) return;
+
+    // Region
+    if (!readU8OrReturn(d.region.visible)) return;
+    if (!readS16OrReturn(d.region.y)) return;
+    if (!readS16OrReturn(d.region.x)) return;
+    if (!readU8OrReturn(d.region.font)) return;
+    if (!readU8OrReturn(d.region.trailingDash)) return;
+    if (!readU8OrReturn(d.region.colorR)) return;
+    if (!readU8OrReturn(d.region.colorG)) return;
+    if (!readU8OrReturn(d.region.colorB)) return;
+
+    // Version
+    if (!readU8OrReturn(d.version.visible)) return;
+    if (!readS16OrReturn(d.version.y)) return;
+    if (!readS16OrReturn(d.version.x)) return;
+    if (!readU8OrReturn(d.version.font)) return;
+    if (!readU8OrReturn(d.version.colorR)) return;
+    if (!readU8OrReturn(d.version.colorG)) return;
+    if (!readU8OrReturn(d.version.colorB)) return;
+
+    // CRC
+    if (!readU8OrReturn(d.crc.visible)) return;
+    if (!readS16OrReturn(d.crc.y)) return;
+    if (!readS16OrReturn(d.crc.x)) return;
+    if (!readU8OrReturn(d.crc.font)) return;
+    if (!readU8OrReturn(d.crc.colorR)) return;
+    if (!readU8OrReturn(d.crc.colorG)) return;
+    if (!readU8OrReturn(d.crc.colorB)) return;
+
+    // Username
+    if (!readU8OrReturn(d.username.visible)) return;
+    if (!readS16OrReturn(d.username.y)) return;
+    if (!readS16OrReturn(d.username.x)) return;
+    if (!readU8OrReturn(d.username.font)) return;
+    if (!readU8OrReturn(d.username.colorR)) return;
+    if (!readU8OrReturn(d.username.colorG)) return;
+    if (!readU8OrReturn(d.username.colorB)) return;
 
     // Box Art
-    d.boxArt.visible = readU8();
-    d.boxArt.y       = readS16();
-    d.boxArt.x       = readS16();
+    if (!readU8OrReturn(d.boxArt.visible)) return;
+    if (!readS16OrReturn(d.boxArt.y)) return;
+    if (!readS16OrReturn(d.boxArt.x)) return;
 
     // Icon
-    d.icon.visible = readU8();
-    d.icon.y       = readS16();
-    d.icon.x       = readS16();
+    if (!readU8OrReturn(d.icon.visible)) return;
+    if (!readS16OrReturn(d.icon.y)) return;
+    if (!readS16OrReturn(d.icon.x)) return;
 
     // ROM Name Row 1
-    d.romNameRow1.visible = readU8();
-    d.romNameRow1.y       = readS16();
-    d.romNameRow1.x       = readS16();
-    d.romNameRow1.font    = readU8();
+    if (!readU8OrReturn(d.romNameRow1.visible)) return;
+    if (!readS16OrReturn(d.romNameRow1.y)) return;
+    if (!readS16OrReturn(d.romNameRow1.x)) return;
+    if (!readU8OrReturn(d.romNameRow1.font)) return;
+    if (!readU8OrReturn(d.romNameRow1.colorR)) return;
+    if (!readU8OrReturn(d.romNameRow1.colorG)) return;
+    if (!readU8OrReturn(d.romNameRow1.colorB)) return;
 
     // ROM Name Row 2
-    d.romNameRow2.visible = readU8();
-    d.romNameRow2.y       = readS16();
-    d.romNameRow2.x       = readS16();
-    d.romNameRow2.font    = readU8();
+    if (!readU8OrReturn(d.romNameRow2.visible)) return;
+    if (!readS16OrReturn(d.romNameRow2.y)) return;
+    if (!readS16OrReturn(d.romNameRow2.x)) return;
+    if (!readU8OrReturn(d.romNameRow2.font)) return;
+    if (!readU8OrReturn(d.romNameRow2.colorR)) return;
+    if (!readU8OrReturn(d.romNameRow2.colorG)) return;
+    if (!readU8OrReturn(d.romNameRow2.colorB)) return;
 
     // ROM Name Row 3
-    d.romNameRow3.visible = readU8();
-    d.romNameRow3.y       = readS16();
-    d.romNameRow3.x       = readS16();
-    d.romNameRow3.font    = readU8();
+    if (!readU8OrReturn(d.romNameRow3.visible)) return;
+    if (!readS16OrReturn(d.romNameRow3.y)) return;
+    if (!readS16OrReturn(d.romNameRow3.x)) return;
+    if (!readU8OrReturn(d.romNameRow3.font)) return;
+    if (!readU8OrReturn(d.romNameRow3.colorR)) return;
+    if (!readU8OrReturn(d.romNameRow3.colorG)) return;
+    if (!readU8OrReturn(d.romNameRow3.colorB)) return;
 
     // File Name
-    d.fileName.visible = readU8();
-    d.fileName.y       = readS16();
-    d.fileName.x       = readS16();
-    d.fileName.font    = readU8();
-    d.fileName.scroll  = readU8();
-    if (dataSize >= 58u)
-        d.fileName.scrollSpeed = readU8();
-    if (dataSize >= 59u)
-        readU8();
-    if (dataSize >= 60u)
-        readU8();
+    if (!readU8OrReturn(d.fileName.visible)) return;
+    if (!readS16OrReturn(d.fileName.y)) return;
+    if (!readS16OrReturn(d.fileName.x)) return;
+    if (!readU8OrReturn(d.fileName.font)) return;
+    if (!readU8OrReturn(d.fileName.scroll)) return;
+    if (!readU8OrReturn(d.fileName.scrollSpeed)) return;
+    if (!readU8OrReturn(d.fileName.colorR)) return;
+    if (!readU8OrReturn(d.fileName.colorG)) return;
+    if (!readU8OrReturn(d.fileName.colorB)) return;
 
+    // Sanitize values
     d.dateTime1.format    %= LAYOUT_FORMAT_COUNT;
     d.dateTime1.separator %= LAYOUT_SEP_COUNT;
     d.dateTime1.font      %= LAYOUT_FONT_COUNT;
     d.dateTime2.format    %= LAYOUT_FORMAT_COUNT;
     d.dateTime2.separator %= LAYOUT_SEP_COUNT;
     d.dateTime2.font      %= LAYOUT_FONT_COUNT;
-    d.romIdCode.font      %= LAYOUT_FONT_COUNT;
+    d.prefix.font %= LAYOUT_FONT_COUNT;
+    d.gameId.font %= LAYOUT_FONT_COUNT;
+    d.region.font %= LAYOUT_FONT_COUNT;
+    d.version.font %= LAYOUT_FONT_COUNT;
+    d.username.font %= LAYOUT_FONT_COUNT;
+    d.prefix.trailingDash = d.prefix.trailingDash ? 1u : 0u;
+    d.gameId.trailingDash = d.gameId.trailingDash ? 1u : 0u;
+    d.region.trailingDash = d.region.trailingDash ? 1u : 0u;
+    d.prefix.gbaPrefixMode %= LAYOUT_PREFIX_GBA_COUNT;
+    d.prefix.ntrPrefixMode %= LAYOUT_PREFIX_NTR_COUNT;
+    d.prefix.twlPrefixMode %= LAYOUT_PREFIX_TWL_COUNT;
+    d.gameId.showLabelText = d.gameId.showLabelText ? 1u : 0u;
+    d.gameId.labelFont %= LAYOUT_FONT_COUNT;
+    if (d.gameId.labelX < -30) d.gameId.labelX = -30;
+    if (d.gameId.labelX > 260) d.gameId.labelX = 260;
+    if (d.gameId.labelY < -20) d.gameId.labelY = -20;
+    if (d.gameId.labelY > 200) d.gameId.labelY = 200;
+
+    d.crc.font            %= LAYOUT_FONT_COUNT;
     d.romNameRow1.font    %= LAYOUT_FONT_COUNT;
     d.romNameRow2.font    %= LAYOUT_FONT_COUNT;
     d.romNameRow3.font    %= LAYOUT_FONT_COUNT;
@@ -187,11 +390,11 @@ void LayoutService::ScanSlots()
         FILINFO fi;
         if (f_stat(path, &fi) == FR_OK && (fi.fattrib & AM_DIR) == 0)
         {
-            _slotCount = slot;   
+            _slotCount = slot;
         }
     }
     if (_slotCount == 0)
-        _slotCount = 1;   
+        _slotCount = 1;
 }
 
 bool LayoutService::LoadSlot(u32 slot)
@@ -208,8 +411,8 @@ bool LayoutService::LoadSlot(u32 slot)
         return false;
 
     u32 dataSize = fileSize - LAYOUT_HEADER_SIZE;
-    if (dataSize > LAYOUT_DATA_SIZE)
-        dataSize = LAYOUT_DATA_SIZE;
+    if (dataSize > LAYOUT_MAX_DATA_SIZE)
+        dataSize = LAYOUT_MAX_DATA_SIZE;
 
     u8 buf[LAYOUT_FILE_SIZE] = { 0 };
     u32 bytesRead = 0;
@@ -221,7 +424,6 @@ bool LayoutService::LoadSlot(u32 slot)
     if (buf[0] != 'L' || buf[1] != 'Y' || buf[2] != 'O' || buf[3] != 'T')
         return false;
 
-    // Version check (accept version 1)
     if (buf[4] != LAYOUT_FILE_VERSION)
         return false;
 
@@ -237,7 +439,7 @@ bool LayoutService::SaveSlot(u32 slot, const LayoutData& data)
     char path[64];
     mini_snprintf(path, sizeof(path), LAYOUT_FILE_PATH_FMT, slot);
 
-    u8 buf[LAYOUT_FILE_SIZE];
+    u8 buf[LAYOUT_FILE_SIZE] = { 0 };
     buf[0] = 'L'; buf[1] = 'Y'; buf[2] = 'O'; buf[3] = 'T';
     buf[4] = LAYOUT_FILE_VERSION;
     PackLayoutData(data, buf + LAYOUT_HEADER_SIZE);
@@ -295,6 +497,7 @@ void LayoutService::SetCurrentSlot(u32 slot)
     if (!LoadSlot(_currentSlot))
     {
         _currentLayout = LayoutData_Default();
+        SaveSlot(_currentSlot, _currentLayout);
     }
 
     ScanSlots();

@@ -90,7 +90,6 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
 
                     if (isNds) {
                         char gameCodeBuf[5] = { 0 };
-                        bool hasCachedGameCode = false;
                         u32 crc32 = 0;
                         bool hasCachedCrc = false;
 
@@ -124,17 +123,36 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                             }
                         }
 
+                        char cachedId[16] = { 0 };
+                        bool hasCachedID = false;
+                        u8 cachedRomVersion = 0;
+                        bool hasCachedRomVersion = false;
+
                         if (hasStatsPath)
                         {
-                            LaunchStatsService::Instance().TryGetGameIdentity(statsPath,
-                                gameCodeBuf, sizeof(gameCodeBuf), &hasCachedGameCode,
+                            LaunchStatsService::Instance().TryGetCachedData(statsPath,
+                                &cachedRomVersion, &hasCachedRomVersion,
+                                cachedId, sizeof(cachedId), &hasCachedID,
                                 &crc32, &hasCachedCrc);
                         }
 
-                        bool hasGameCode = hasCachedGameCode;
-                        if (!hasCachedGameCode)
+                        bool hasGameCode = false;
+                        std::unique_ptr<InternalFileInfo> internalInfo;
+
+                        if (hasCachedID && cachedId[0] != 0)
                         {
-                            std::unique_ptr<InternalFileInfo> internalInfo(fileInfo.CreateInternalFileInfo());
+                            const char* dash1 = strchr(cachedId, '-');
+                            if (dash1 && dash1[1] != 0)
+                            {
+                                strncpy(gameCodeBuf, dash1 + 1, 4);
+                                gameCodeBuf[4] = 0;
+                                hasGameCode = true;
+                            }
+                        }
+
+                        if (!hasCachedID)
+                        {
+                            internalInfo.reset(fileInfo.CreateInternalFileInfo());
                             const char* gameCode = internalInfo ? internalInfo->GetGameCode() : nullptr;
 
                             if (gameCode && gameCode[0] != 0)
@@ -143,14 +161,8 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                                 gameCodeBuf[4] = 0;
                                 hasGameCode = true;
                             }
-                            else
-                            {
-                                gameCodeBuf[0] = 0;
-                                hasGameCode = false;
-                            }
                         }
 
-                        bool hasCrc = hasCachedCrc;
                         if (!hasCachedCrc)
                         {
                             crc32 = 0;
@@ -164,15 +176,69 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                                     crc32 = ComputeCrc32(header, sizeof(header));
                                 }
                             }
-                            
-                            hasCrc = true;
+                            hasCachedCrc = true;
                         }
 
-                        if (hasStatsPath && (!hasCachedGameCode || !hasCachedCrc))
+                        if (hasStatsPath && (!hasCachedID || !hasCachedCrc))
                         {
-                            LaunchStatsService::Instance().SetGameIdentity(statsPath,
-                                gameCodeBuf, hasGameCode,
-                                crc32, hasCrc);
+                            char idBuf[16] = { 0 };
+                            bool hasID = false;
+                            u8 romVersion = 0;
+                            bool hasRomVersion = false;
+
+                            if (hasCachedID)
+                            {
+                                mini_snprintf(idBuf, sizeof(idBuf), "%s", cachedId);
+                                hasID = true;
+                            }
+                            else if (hasGameCode)
+                            {
+                                if (!internalInfo)
+                                    internalInfo.reset(fileInfo.CreateInternalFileInfo());
+                                if (internalInfo)
+                                {
+                                    auto* ndsInfo = static_cast<NdsInternalFileInfo*>(internalInfo.get());
+                                    const u8 unitCode = ndsInfo->GetUnitCode();
+                                    const char* platform = (unitCode == 0x02 || unitCode == 0x03) ? "TWL" : "NTR";
+                                    const char* region = "UNK";
+                                    if (gameCodeBuf[3]) {
+                                        switch (gameCodeBuf[3]) {
+                                            case 'J': region = "JPN"; break;
+                                            case 'E': region = "USA"; break;
+                                            case 'P': region = "EUR"; break;
+                                            case 'D': region = "NOE"; break;
+                                            case 'F': region = "FRA"; break;
+                                            case 'S': region = "SPA"; break;
+                                            case 'I': region = "ITA"; break;
+                                            case 'K': region = "KOR"; break;
+                                            case 'C': region = "CHN"; break;
+                                            case 'W': region = "TWN"; break;
+                                            case 'H': region = "NLD"; break;
+                                            case 'R': region = "RUS"; break;
+                                            case 'U': region = "AUS"; break;
+                                            case 'V': region = "EUR"; break;
+                                            default: break;
+                                        }
+                                    }
+                                    mini_snprintf(idBuf, sizeof(idBuf), "%s-%c%c%c%c-%s",
+                                        platform, gameCodeBuf[0], gameCodeBuf[1],
+                                        gameCodeBuf[2], gameCodeBuf[3], region);
+                                    hasID = true;
+                                    romVersion = ndsInfo->GetRomVersion();
+                                    hasRomVersion = true;
+                                }
+                            }
+
+                            if (hasCachedRomVersion)
+                            {
+                                romVersion = cachedRomVersion;
+                                hasRomVersion = true;
+                            }
+
+                            LaunchStatsService::Instance().SetCachedData(statsPath,
+                                romVersion, hasRomVersion,
+                                idBuf, hasID,
+                                crc32, hasCachedCrc);
                         }
 
                         if (hasGameCode) {
@@ -434,8 +500,7 @@ void NdsGameDetailsBottomSheetView::InitLaunchCountLabel(const MaterialColorSche
                         LaunchStatsService::Instance().TryGetInfo(normalizedPath,
                             &launchCount,
                             lastLaunchDate, sizeof(lastLaunchDate),
-                            lastLaunchTime, sizeof(lastLaunchTime),
-                            nullptr, nullptr);
+                            lastLaunchTime, sizeof(lastLaunchTime));
                     }
                 }
             }

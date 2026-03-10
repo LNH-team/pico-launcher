@@ -38,6 +38,7 @@ private:
     Label2DView _slotLabel;
     Label2DView _saveLabel;
     Label2DView _resetLabel;
+    Label2DView _resetMenuLabel;
     Label2DView _subMenuLabel;
     Label2DView _itemName0;
     Label2DView _itemName1;
@@ -62,9 +63,10 @@ private:
     static constexpr int kFocusSlot       = 0;
     static constexpr int kFocusSave       = 1;
     static constexpr int kFocusReset      = 2;
-    static constexpr int kFocusSubMenu    = 3;
-    static constexpr int kFocusItem0      = 4;
-    static constexpr int kNumVisibleItems = 9;
+    static constexpr int kFocusResetMenu  = 3;
+    static constexpr int kFocusSubMenu    = 4;
+    static constexpr int kFocusItem0      = 5;
+    static constexpr int kNumVisibleItems = 8;
 
     enum class ChoiceKind : u8
     {
@@ -73,10 +75,14 @@ private:
         SubMenu,
         Format,
         Separator,
-        Font
+        Font,
+        PrefixGbaMode,
+        PrefixNtrMode,
+        PrefixTwlMode,
     };
 
     int  _focusRow         = kFocusSlot;
+    int  _topActionFocus   = kFocusSlot;
     int  _itemScrollOffset = 0;
     int  _currentSubMenu   = 0;
     int  _romNameSelectedLine = 0;

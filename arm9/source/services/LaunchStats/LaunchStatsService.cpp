@@ -4,26 +4,27 @@
 #include "fat/File.h"
 #include "rtcIpc.h"
 
-// Binary format for stats.bin:
+// Binary format for stats.bin (version 1):
 //   magic:   u8[4]  = "STAT"
-//   version: u8     = 2
+//   version: u8     = 1
 //   count:   u32 LE
 //   Per entry:
-//     pathLen:          u8   (string byte length, without null terminator)
-//     path:             char[pathLen]
-//     launchCount:      u32 LE
-//     dateLen:          u8
-//     date:             char[dateLen]
-//     timeLen:          u8
-//     time:             char[timeLen]
-//     hasGameCode:      u8  (0 or 1)
-//     gameCodeLen:      u8  (0..4)
-//     gameCode:         char[gameCodeLen]
-//     hasHeaderCrc:     u8  (0 or 1)
-//     headerCrc:        u32 LE
+//     pathLen:       u8
+//     path:          char[pathLen]
+//     launchCount:   u32 LE
+//     dateLen:       u8
+//     date:          char[dateLen]
+//     timeLen:       u8
+//     time:          char[timeLen]
+//     hasRomVersion: u8  (0 or 1)
+//     romVersion:    u8
+//     hasID:         u8  (0 or 1)
+//     idLen:         u8  (0..16)
+//     id:            char[idLen]
+//     hasHeaderCrc:  u8  (0 or 1)
+//     headerCrc:     u32 LE
 
-static const u8  STATS_MAGIC[4] = { 'S', 'T', 'A', 'T' };
-static const u8  STATS_VERSION  = 2;
+static const u8  STATS_VERSION  = 1;
 
 static u32 readU32LE(const u8* p)
 {
@@ -129,7 +130,7 @@ void LaunchStatsService::Load()
     p += 4;
 
     u8 fileVersion = *p++;
-    if (fileVersion != 1 && fileVersion != STATS_VERSION)
+    if (fileVersion != STATS_VERSION)
         return;
 
     u32 count = readU32LE(p);
@@ -143,7 +144,6 @@ void LaunchStatsService::Load()
 
     while (i < count && p < end)
     {
-        if (p >= end) break;
         u8 pathLen = *p++;
         if (p + pathLen > end) break;
         char pathBuf[256];
@@ -160,13 +160,6 @@ void LaunchStatsService::Load()
 
         if (p + 4 > end) break;
         _infos[i].launchCount = readU32LE(p);
-        p += 4;
-
-        if (p >= end) break;
-        _infos[i].hasCheatStats = (*p++ != 0);
-
-        if (p + 4 > end) break;
-        _infos[i].cheatActiveCount = readU32LE(p);
         p += 4;
 
         if (p >= end) break;
@@ -195,43 +188,35 @@ void LaunchStatsService::Load()
         }
         p += timeLen;
 
-        if (fileVersion >= 2)
+        if (p >= end) break;
+        _infos[i].hasRomVersion = (*p++ != 0);
+        if (p >= end) break;
+        _infos[i].romVersion = *p++;
+
+        if (p >= end) break;
+        _infos[i].hasID = (*p++ != 0);
+        if (p >= end) break;
+        u8 idLen = *p++;
+        if (p + idLen > end) break;
+        if (idLen > 0)
         {
-            if (p >= end) break;
-            _infos[i].hasGameCode = (*p++ != 0);
-
-            if (p >= end) break;
-            u8 gameCodeLen = *p++;
-            if (p + gameCodeLen > end) break;
-
-            if (gameCodeLen > 0)
-            {
-                char gameCodeBuf[5];
-                u8 copyLen = gameCodeLen < 4 ? gameCodeLen : 4;
-                memcpy(gameCodeBuf, p, copyLen);
-                gameCodeBuf[copyLen] = '\0';
-                _infos[i].gameCode = gameCodeBuf;
-            }
-            else
-            {
-                _infos[i].gameCode = "";
-            }
-            p += gameCodeLen;
-
-            if (p >= end) break;
-            _infos[i].hasHeaderCrc = (*p++ != 0);
-
-            if (p + 4 > end) break;
-            _infos[i].headerCrc = readU32LE(p);
-            p += 4;
+            char idBuf[17];
+            u8 copyLen = idLen < 16 ? idLen : 16;
+            memcpy(idBuf, p, copyLen);
+            idBuf[copyLen] = '\0';
+            _infos[i].id = idBuf;
         }
         else
         {
-            _infos[i].gameCode = "";
-            _infos[i].hasGameCode = false;
-            _infos[i].headerCrc = 0;
-            _infos[i].hasHeaderCrc = false;
+            _infos[i].id = "";
         }
+        p += idLen;
+
+        if (p >= end) break;
+        _infos[i].hasHeaderCrc = (*p++ != 0);
+        if (p + 4 > end) break;
+        _infos[i].headerCrc = readU32LE(p);
+        p += 4;
 
         i++;
     }
@@ -246,15 +231,14 @@ void LaunchStatsService::Save() const
         u8 pathLen = (u8)strlen(_infos[i].path.GetString());
         u8 dateLen = (u8)strlen(_infos[i].lastLaunchDate.GetString());
         u8 timeLen = (u8)strlen(_infos[i].lastLaunchTime.GetString());
-        u8 gameCodeLen = (u8)strlen(_infos[i].gameCode.GetString());
-        outputSize += 1u + pathLen   // pathLen field + path bytes
+        u8 idLen = (u8)strlen(_infos[i].id.GetString());
+        outputSize += 1u + pathLen
                     + 4u             // launchCount
-                    + 1u             // hasCheatStats
-                    + 4u             // cheatActiveCount
-                    + 1u + dateLen   // dateLen field + date bytes
-                    + 1u + timeLen   // timeLen field + time bytes
-                    + 1u             // hasGameCode
-                    + 1u + gameCodeLen // gameCodeLen field + gameCode bytes
+                    + 1u + dateLen
+                    + 1u + timeLen
+                    + 1u + 1u       // hasRomVersion + romVersion
+                    + 1u             // hasID
+                    + 1u + idLen     // idLen + id bytes
                     + 1u             // hasHeaderCrc
                     + 4u;            // headerCrc
     }
@@ -282,11 +266,6 @@ void LaunchStatsService::Save() const
         writeU32LE(p, _infos[i].launchCount);
         p += 4;
 
-        *p++ = _infos[i].hasCheatStats ? 1u : 0u;
-
-        writeU32LE(p, _infos[i].cheatActiveCount);
-        p += 4;
-
         const char* date = _infos[i].lastLaunchDate.GetString();
         u8 dateLen = (u8)strlen(date);
         *p++ = dateLen;
@@ -301,15 +280,20 @@ void LaunchStatsService::Save() const
             memcpy(p, time, timeLen);
         p += timeLen;
 
-        *p++ = _infos[i].hasGameCode ? 1u : 0u;
+        // romVersion
+        *p++ = _infos[i].hasRomVersion ? 1u : 0u;
+        *p++ = _infos[i].romVersion;
 
-        const char* gameCode = _infos[i].gameCode.GetString();
-        u8 gameCodeLen = (u8)strlen(gameCode);
-        *p++ = gameCodeLen;
-        if (gameCodeLen > 0)
-            memcpy(p, gameCode, gameCodeLen);
-        p += gameCodeLen;
+        // ID
+        *p++ = _infos[i].hasID ? 1u : 0u;
+        const char* id = _infos[i].id.GetString();
+        u8 idLen = (u8)strlen(id);
+        *p++ = idLen;
+        if (idLen > 0)
+            memcpy(p, id, idLen);
+        p += idLen;
 
+        // headerCrc
         *p++ = _infos[i].hasHeaderCrc ? 1u : 0u;
         writeU32LE(p, _infos[i].headerCrc);
         p += 4;
@@ -458,8 +442,7 @@ bool LaunchStatsService::TryGetLastLaunchTime(const char* path, char* outValue, 
 
 bool LaunchStatsService::TryGetInfo(const char* path, u32* outLaunchCount,
     char* outDate, u32 outDateSize,
-    char* outTime, u32 outTimeSize,
-    u32* outCheatActiveCount, bool* outHasCheatStats) const
+    char* outTime, u32 outTimeSize) const
 {
     if (!path)
         return false;
@@ -472,10 +455,6 @@ bool LaunchStatsService::TryGetInfo(const char* path, u32* outLaunchCount,
         outDate[0] = 0;
     if (outTime && outTimeSize > 0)
         outTime[0] = 0;
-    if (outCheatActiveCount)
-        *outCheatActiveCount = 0;
-    if (outHasCheatStats)
-        *outHasCheatStats = false;
 
     const char* normalized = path;
     const char* colon = strchr(path, ':');
@@ -509,11 +488,6 @@ bool LaunchStatsService::TryGetInfo(const char* path, u32* outLaunchCount,
                 mini_snprintf(outTime, outTimeSize, "%s", time);
             }
 
-            if (outCheatActiveCount)
-                *outCheatActiveCount = _infos[i].cheatActiveCount;
-            if (outHasCheatStats)
-                *outHasCheatStats = _infos[i].hasCheatStats;
-
             return true;
         }
     }
@@ -521,8 +495,9 @@ bool LaunchStatsService::TryGetInfo(const char* path, u32* outLaunchCount,
     return false;
 }
 
-bool LaunchStatsService::TryGetGameIdentity(const char* path,
-    char* outGameCode, u32 outGameCodeSize, bool* outHasGameCode,
+bool LaunchStatsService::TryGetCachedData(const char* path,
+    u8* outRomVersion, bool* outHasRomVersion,
+    char* outId, u32 outIdSize, bool* outHasID,
     u32* outHeaderCrc, bool* outHasHeaderCrc) const
 {
     if (!path)
@@ -530,14 +505,12 @@ bool LaunchStatsService::TryGetGameIdentity(const char* path,
 
     const_cast<LaunchStatsService*>(this)->EnsureLoaded();
 
-    if (outGameCode && outGameCodeSize > 0)
-        outGameCode[0] = 0;
-    if (outHasGameCode)
-        *outHasGameCode = false;
-    if (outHeaderCrc)
-        *outHeaderCrc = 0;
-    if (outHasHeaderCrc)
-        *outHasHeaderCrc = false;
+    if (outRomVersion) *outRomVersion = 0;
+    if (outHasRomVersion) *outHasRomVersion = false;
+    if (outId && outIdSize > 0) outId[0] = 0;
+    if (outHasID) *outHasID = false;
+    if (outHeaderCrc) *outHeaderCrc = 0;
+    if (outHasHeaderCrc) *outHasHeaderCrc = false;
 
     const char* normalized = path;
     const char* colon = strchr(path, ':');
@@ -548,21 +521,15 @@ bool LaunchStatsService::TryGetGameIdentity(const char* path,
     {
         if (!strcasecmp(_infos[i].path.GetString(), normalized))
         {
-            if (outHasGameCode)
-                *outHasGameCode = _infos[i].hasGameCode;
+            if (outHasRomVersion) *outHasRomVersion = _infos[i].hasRomVersion;
+            if (outRomVersion) *outRomVersion = _infos[i].romVersion;
 
-            if (outGameCode && outGameCodeSize > 0)
-            {
-                if (_infos[i].hasGameCode)
-                    mini_snprintf(outGameCode, outGameCodeSize, "%s", _infos[i].gameCode.GetString());
-                else
-                    outGameCode[0] = 0;
-            }
+            if (outHasID) *outHasID = _infos[i].hasID;
+            if (outId && outIdSize > 0 && _infos[i].hasID)
+                mini_snprintf(outId, outIdSize, "%s", _infos[i].id.GetString());
 
-            if (outHeaderCrc)
-                *outHeaderCrc = _infos[i].headerCrc;
-            if (outHasHeaderCrc)
-                *outHasHeaderCrc = _infos[i].hasHeaderCrc;
+            if (outHasHeaderCrc) *outHasHeaderCrc = _infos[i].hasHeaderCrc;
+            if (outHeaderCrc) *outHeaderCrc = _infos[i].headerCrc;
 
             return true;
         }
@@ -571,8 +538,9 @@ bool LaunchStatsService::TryGetGameIdentity(const char* path,
     return false;
 }
 
-void LaunchStatsService::SetGameIdentity(const char* path,
-    const char* gameCode, bool hasGameCode,
+void LaunchStatsService::SetCachedData(const char* path,
+    u8 romVersion, bool hasRomVersion,
+    const char* id, bool hasID,
     u32 headerCrc, bool hasHeaderCrc)
 {
     if (!path || path[0] == 0)
@@ -585,50 +553,26 @@ void LaunchStatsService::SetGameIdentity(const char* path,
     if (colon && colon < path + 6)
         normalized = colon;
 
-    char normalizedGameCode[5] = { 0 };
-    if (hasGameCode && gameCode)
-    {
-        for (u32 i = 0; i < 4 && gameCode[i] != 0; i++)
-            normalizedGameCode[i] = gameCode[i];
-    }
-
     for (u32 i = 0; i < _count; i++)
     {
         if (!strcasecmp(_infos[i].path.GetString(), normalized))
         {
             bool changed = false;
 
-            if (_infos[i].hasGameCode != hasGameCode)
-            {
-                _infos[i].hasGameCode = hasGameCode;
-                changed = true;
-            }
+            if (_infos[i].hasRomVersion != hasRomVersion)
+            { _infos[i].hasRomVersion = hasRomVersion; changed = true; }
+            if (_infos[i].romVersion != romVersion)
+            { _infos[i].romVersion = romVersion; changed = true; }
 
-            if (hasGameCode)
-            {
-                if (strcasecmp(_infos[i].gameCode.GetString(), normalizedGameCode) != 0)
-                {
-                    _infos[i].gameCode = normalizedGameCode;
-                    changed = true;
-                }
-            }
-            else if (_infos[i].gameCode.GetString()[0] != 0)
-            {
-                _infos[i].gameCode = "";
-                changed = true;
-            }
+            if (_infos[i].hasID != hasID)
+            { _infos[i].hasID = hasID; changed = true; }
+            if (hasID && id && strcasecmp(_infos[i].id.GetString(), id) != 0)
+            { _infos[i].id = id; changed = true; }
 
             if (_infos[i].hasHeaderCrc != hasHeaderCrc)
-            {
-                _infos[i].hasHeaderCrc = hasHeaderCrc;
-                changed = true;
-            }
-
+            { _infos[i].hasHeaderCrc = hasHeaderCrc; changed = true; }
             if (_infos[i].headerCrc != headerCrc)
-            {
-                _infos[i].headerCrc = headerCrc;
-                changed = true;
-            }
+            { _infos[i].headerCrc = headerCrc; changed = true; }
 
             if (changed)
                 Save();
@@ -638,13 +582,15 @@ void LaunchStatsService::SetGameIdentity(const char* path,
 
     u32 newCount = _count + 1;
     auto newInfos = std::make_unique_for_overwrite<Info[]>(newCount);
-    for (u32 i = 0; i < _count; i++)
-        newInfos[i] = _infos[i];
+    for (u32 j = 0; j < _count; j++)
+        newInfos[j] = _infos[j];
 
     auto& info = newInfos[newCount - 1];
     info.path = normalized;
-    info.hasGameCode = hasGameCode;
-    info.gameCode = hasGameCode ? normalizedGameCode : "";
+    info.hasRomVersion = hasRomVersion;
+    info.romVersion = romVersion;
+    info.hasID = hasID;
+    info.id = (hasID && id) ? id : "";
     info.hasHeaderCrc = hasHeaderCrc;
     info.headerCrc = headerCrc;
 
@@ -652,4 +598,3 @@ void LaunchStatsService::SetGameIdentity(const char* path,
     _count = newCount;
     Save();
 }
-

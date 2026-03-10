@@ -31,6 +31,7 @@
 #define LE_SLOT_X       15
 #define LE_SAVE_X       72
 #define LE_RESET_X      124
+#define LE_RESET_MENU_X 172
 #define LE_SUBMENU_X    15
 #define LE_ITEMNAME_X   20
 #define LE_ITEMVALUE_X  120
@@ -41,18 +42,28 @@
 // submenus.
 #define UI_SUBMENU_DATETIME1  0
 #define UI_SUBMENU_DATETIME2  1
-#define UI_SUBMENU_ROM_IDCODE 2
-#define UI_SUBMENU_BOXART     3
-#define UI_SUBMENU_ICON       4
-#define UI_SUBMENU_ROMNAME    5
-#define UI_SUBMENU_FILENAME   6
-#define UI_SUBMENU_THEMECOLOR 7
-#define UI_SUBMENU_COUNT      8
+#define UI_SUBMENU_PREFIX     2
+#define UI_SUBMENU_GAME_ID    3
+#define UI_SUBMENU_REGION     4
+#define UI_SUBMENU_VERSION    5
+#define UI_SUBMENU_CRC        6
+#define UI_SUBMENU_USERNAME   7
+#define UI_SUBMENU_BOXART     8
+#define UI_SUBMENU_ICON       9
+#define UI_SUBMENU_ROMNAME    10
+#define UI_SUBMENU_FILENAME   11
+#define UI_SUBMENU_THEMECOLOR 12
+#define UI_SUBMENU_COUNT      13
 
 static const char* const kUiSubMenuNames[UI_SUBMENU_COUNT] = {
     "DateTime1",
     "DateTime2",
-    "ROM IdCode",
+    "PREFIX",
+    "GAME ID",
+    "Region",
+    "Version",
+    "CRC",
+    "Username",
     "Box Art",
     "Icon",
     "ROM Name",
@@ -61,33 +72,47 @@ static const char* const kUiSubMenuNames[UI_SUBMENU_COUNT] = {
 };
 
 static const char* const kItemNamesDateTime[] = {
-    "Visible", "Y", "X", "Format", "Separator", "Font"
+    "Visible", "Y", "X", "Format", "Separator", "Font", "Color R", "Color G", "Color B"
+};
+static const char* const kItemNamesPrefix[] = {
+    "Visible", "X", "Y", "Font", "Trailing -", "GBA Text", "NTR Text", "TWL Text", "Color R", "Color G", "Color B"
+};
+static const char* const kItemNamesGameId[] = {
+    "Visible", "X", "Y", "Font", "Trailing -", "Show TID", "TID Font", "TID X", "TID Y", "TID Color R", "TID Color G", "TID Color B", "Color R", "Color G", "Color B"
+};
+static const char* const kItemNamesRegion[] = {
+    "Visible", "X", "Y", "Font", "Trailing -", "Color R", "Color G", "Color B"
 };
 static const char* const kItemNamesElement[] = {
-    "Visible", "Y", "X", "Font"
+    "Visible", "Y", "X", "Font", "Color R", "Color G", "Color B"
 };
 static const char* const kItemNamesNoFont[] = {
     "Visible", "Y", "X"
 };
 static const char* const kItemNamesFileName[] = {
-    "Visible", "Y", "X", "Font", "Scroll", "Speed"
+    "Visible", "Y", "X", "Font", "Scroll", "Speed", "Color R", "Color G", "Color B"
 };
 static const char* const kItemNamesRomName[] = {
-    "Line N", "Visible", "X", "Y", "Font"
+    "Line", "Visible", "X", "Y", "Font", "Color R", "Color G", "Color B"
 };
 static const char* const kItemNamesThemeColor[] = {
-    "R", "G", "B", "Apply now"
+    "R", "G", "B", "Dark", "Preview"
 };
 
 static const u8 kSubMenuItemCounts[UI_SUBMENU_COUNT] = {
-    6,
-    6,
-    4,
+    9,
+    9,
+    11,
+    15,
+    8,
+    7,
+    7,
+    7,
     3,
     3,
+    8,
+    9,
     5,
-    6,
-    4,
 };
 
 #define THEME_COLOR_JSON_RESERVED_SIZE 3072
@@ -127,6 +152,32 @@ static int WrapRange(int value, int minValue, int maxValue)
     if (n < 0)
         n += range;
     return minValue + n;
+}
+
+static void ResetSubMenuToDefaults(LayoutData& data, int subMenu)
+{
+    const LayoutData defaults = LayoutData_Default();
+    switch (subMenu)
+    {
+        case UI_SUBMENU_DATETIME1: data.dateTime1 = defaults.dateTime1; break;
+        case UI_SUBMENU_DATETIME2: data.dateTime2 = defaults.dateTime2; break;
+        case UI_SUBMENU_PREFIX: data.prefix = defaults.prefix; break;
+        case UI_SUBMENU_GAME_ID: data.gameId = defaults.gameId; break;
+        case UI_SUBMENU_REGION: data.region = defaults.region; break;
+        case UI_SUBMENU_VERSION: data.version = defaults.version; break;
+        case UI_SUBMENU_CRC: data.crc = defaults.crc; break;
+        case UI_SUBMENU_USERNAME: data.username = defaults.username; break;
+        case UI_SUBMENU_BOXART: data.boxArt = defaults.boxArt; break;
+        case UI_SUBMENU_ICON: data.icon = defaults.icon; break;
+        case UI_SUBMENU_ROMNAME:
+            data.romNameRow1 = defaults.romNameRow1;
+            data.romNameRow2 = defaults.romNameRow2;
+            data.romNameRow3 = defaults.romNameRow3;
+            break;
+        case UI_SUBMENU_FILENAME: data.fileName = defaults.fileName; break;
+        default:
+            break;
+    }
 }
 
 int LayoutEditorBottomSheetView::ClampInt(int value, int minValue, int maxValue)
@@ -234,6 +285,7 @@ bool LayoutEditorBottomSheetView::SaveThemeColorToFile() const
     color[THEME_COLOR_KEY_R] = ClampInt(_themeColorR, 0, 255);
     color[THEME_COLOR_KEY_G] = ClampInt(_themeColorG, 0, 255);
     color[THEME_COLOR_KEY_B] = ClampInt(_themeColorB, 0, 255);
+    json[THEME_COLOR_KEY_DARK_THEME] = _themeDarkMode;
 
     u32 outputSize = measureJsonPretty(json);
     if (outputSize == 0)
@@ -280,32 +332,46 @@ int LayoutEditorBottomSheetView::GetChildIndentX(int subMenu, int itemIdx) const
 
 void LayoutEditorBottomSheetView::EnsureItemFocusVisible()
 {
-    if (_focusRow < kFocusItem0)
-        return;
-
-    int visRow = _focusRow - kFocusItem0;
-    int itemIdx = _itemScrollOffset + visRow;
-    int count = GetSubMenuItemCount(_currentSubMenu);
-    if (count <= 0)
+    auto focusToVisualRow = [&](int focusRow) -> int
     {
-        _focusRow = kFocusSubMenu;
+        if (focusRow <= kFocusResetMenu)
+            return 0;
+        if (focusRow == kFocusSubMenu)
+            return 1;
+        return 2 + (focusRow - kFocusItem0);
+    };
+
+    auto visualRowToFocus = [&](int visualRow) -> int
+    {
+        if (visualRow <= 0)
+            return _topActionFocus;
+        if (visualRow == 1)
+            return kFocusSubMenu;
+        return kFocusItem0 + (visualRow - 2);
+    };
+
+    const int totalVisualRows = 2 + GetSubMenuItemCount(_currentSubMenu);
+    if (totalVisualRows <= 0)
+    {
+        _focusRow = 0;
+        _topActionFocus = kFocusSlot;
         _itemScrollOffset = 0;
         return;
     }
 
-    if (itemIdx < 0)
-        itemIdx = 0;
-    if (itemIdx >= count)
-        itemIdx = count - 1;
+    if (_focusRow <= kFocusResetMenu)
+        _topActionFocus = ClampInt(_focusRow, kFocusSlot, kFocusResetMenu);
 
-    if (itemIdx < _itemScrollOffset)
-        _itemScrollOffset = itemIdx;
-    else if (itemIdx >= _itemScrollOffset + kNumVisibleItems)
-        _itemScrollOffset = itemIdx - (kNumVisibleItems - 1);
+    int focusVisual = focusToVisualRow(_focusRow);
+    focusVisual = ClampInt(focusVisual, 0, totalVisualRows - 1);
+
+    if (focusVisual < _itemScrollOffset)
+        _itemScrollOffset = focusVisual;
+    else if (focusVisual >= _itemScrollOffset + kNumVisibleItems)
+        _itemScrollOffset = focusVisual - (kNumVisibleItems - 1);
 
     ClampItemScroll();
-
-    _focusRow = kFocusItem0 + (itemIdx - _itemScrollOffset);
+    _focusRow = visualRowToFocus(focusVisual);
 }
 
 LayoutEditorBottomSheetView::LayoutEditorBottomSheetView(
@@ -322,6 +388,7 @@ LayoutEditorBottomSheetView::LayoutEditorBottomSheetView(
     , _slotLabel(56, 16, 10, fontRepository->GetFont(FontType::Regular10))
     , _saveLabel(48, 16, 9, fontRepository->GetFont(FontType::Regular10))
     , _resetLabel(56, 16, 10, fontRepository->GetFont(FontType::Regular10))
+    , _resetMenuLabel(96, 16, 16, fontRepository->GetFont(FontType::Regular10))
     , _subMenuLabel(196, 16, 20, fontRepository->GetFont(FontType::Regular10))
     , _itemName0(96, 16, 16, fontRepository->GetFont(FontType::Regular10))
     , _itemName1(96, 16, 16, fontRepository->GetFont(FontType::Regular10))
@@ -348,6 +415,7 @@ LayoutEditorBottomSheetView::LayoutEditorBottomSheetView(
     AddChildTail(&_slotLabel);
     AddChildTail(&_saveLabel);
     AddChildTail(&_resetLabel);
+    AddChildTail(&_resetMenuLabel);
     AddChildTail(&_subMenuLabel);
     AddChildTail(&_itemName0);
     AddChildTail(&_itemName1);
@@ -384,10 +452,14 @@ void LayoutEditorBottomSheetView::Focus(FocusManager& focusManager)
 
 void LayoutEditorBottomSheetView::OnDismissed()
 {
-    if (_themeColorDirty)
+    if (_themePreviewApplied)
     {
         RestoreThemeColorPreview();
+    }
+    if (_themeColorDirty)
+    {
         _themeColorDirty = false;
+        _themeColorLoaded = false;
     }
     _controller->HideLayoutEditor();
 }
@@ -451,18 +523,28 @@ const char* LayoutEditorBottomSheetView::GetItemName(int subMenu, int itemIdx) c
     {
         case UI_SUBMENU_DATETIME1:
         case UI_SUBMENU_DATETIME2:
-            return (u32)itemIdx < 6 ? kItemNamesDateTime[itemIdx] : "";
-        case UI_SUBMENU_ROM_IDCODE:
-            return (u32)itemIdx < 4 ? kItemNamesElement[itemIdx] : "";
+            return (u32)itemIdx < 9 ? kItemNamesDateTime[itemIdx] : "";
+        case UI_SUBMENU_PREFIX:
+            return (u32)itemIdx < 11 ? kItemNamesPrefix[itemIdx] : "";
+        case UI_SUBMENU_GAME_ID:
+            return (u32)itemIdx < 15 ? kItemNamesGameId[itemIdx] : "";
+        case UI_SUBMENU_REGION:
+            return (u32)itemIdx < 8 ? kItemNamesRegion[itemIdx] : "";
+        case UI_SUBMENU_VERSION:
+            return (u32)itemIdx < 7 ? kItemNamesElement[itemIdx] : "";
+        case UI_SUBMENU_CRC:
+            return (u32)itemIdx < 7 ? kItemNamesElement[itemIdx] : "";
+        case UI_SUBMENU_USERNAME:
+            return (u32)itemIdx < 7 ? kItemNamesElement[itemIdx] : "";
         case UI_SUBMENU_BOXART:
         case UI_SUBMENU_ICON:
             return (u32)itemIdx < 3 ? kItemNamesNoFont[itemIdx] : "";
         case UI_SUBMENU_ROMNAME:
-            return (u32)itemIdx < 5 ? kItemNamesRomName[itemIdx] : "";
+            return (u32)itemIdx < 8 ? kItemNamesRomName[itemIdx] : "";
         case UI_SUBMENU_FILENAME:
-            return (u32)itemIdx < 6 ? kItemNamesFileName[itemIdx] : "";
+            return (u32)itemIdx < 9 ? kItemNamesFileName[itemIdx] : "";
         case UI_SUBMENU_THEMECOLOR:
-            return (u32)itemIdx < 4 ? kItemNamesThemeColor[itemIdx] : "";
+            return (u32)itemIdx < 5 ? kItemNamesThemeColor[itemIdx] : "";
         default:
             return "";
     }
@@ -491,6 +573,9 @@ void LayoutEditorBottomSheetView::GetItemValueText(
                 case 3: mini_snprintf(buf, bufLen, "%s", kLayoutFormatNames[d.dateTime1.format % LAYOUT_FORMAT_COUNT]); break;
                 case 4: mini_snprintf(buf, bufLen, "%s", kLayoutSeparatorNames[d.dateTime1.separator % LAYOUT_SEP_COUNT]); break;
                 case 5: WRITE_FONT(d.dateTime1.font); break;
+                case 6: WRITE_COORD(d.dateTime1.colorR); break;
+                case 7: WRITE_COORD(d.dateTime1.colorG); break;
+                case 8: WRITE_COORD(d.dateTime1.colorB); break;
             }
             break;
         case UI_SUBMENU_DATETIME2:
@@ -502,15 +587,94 @@ void LayoutEditorBottomSheetView::GetItemValueText(
                 case 3: mini_snprintf(buf, bufLen, "%s", kLayoutFormatNames[d.dateTime2.format % LAYOUT_FORMAT_COUNT]); break;
                 case 4: mini_snprintf(buf, bufLen, "%s", kLayoutSeparatorNames[d.dateTime2.separator % LAYOUT_SEP_COUNT]); break;
                 case 5: WRITE_FONT(d.dateTime2.font); break;
+                case 6: WRITE_COORD(d.dateTime2.colorR); break;
+                case 7: WRITE_COORD(d.dateTime2.colorG); break;
+                case 8: WRITE_COORD(d.dateTime2.colorB); break;
             }
             break;
-        case UI_SUBMENU_ROM_IDCODE:
+        case UI_SUBMENU_PREFIX:
             switch (itemIdx)
             {
-                case 0: WRITE_VISIBLE(d.romIdCode.visible); break;
-                case 1: WRITE_COORD(d.romIdCode.y); break;
-                case 2: WRITE_COORD(d.romIdCode.x); break;
-                case 3: WRITE_FONT(d.romIdCode.font); break;
+                case 0: WRITE_VISIBLE(d.prefix.visible); break;
+                case 1: WRITE_COORD(d.prefix.x); break;
+                case 2: WRITE_COORD(d.prefix.y); break;
+                case 3: WRITE_FONT(d.prefix.font); break;
+                case 4: WRITE_VISIBLE(d.prefix.trailingDash); break;
+                case 5: mini_snprintf(buf, bufLen, "%s", kLayoutPrefixGbaModeNames[d.prefix.gbaPrefixMode % LAYOUT_PREFIX_GBA_COUNT]); break;
+                case 6: mini_snprintf(buf, bufLen, "%s", kLayoutPrefixNtrModeNames[d.prefix.ntrPrefixMode % LAYOUT_PREFIX_NTR_COUNT]); break;
+                case 7: mini_snprintf(buf, bufLen, "%s", kLayoutPrefixTwlModeNames[d.prefix.twlPrefixMode % LAYOUT_PREFIX_TWL_COUNT]); break;
+                case 8: WRITE_COORD(d.prefix.colorR); break;
+                case 9: WRITE_COORD(d.prefix.colorG); break;
+                case 10: WRITE_COORD(d.prefix.colorB); break;
+            }
+            break;
+        case UI_SUBMENU_GAME_ID:
+            switch (itemIdx)
+            {
+                case 0: WRITE_VISIBLE(d.gameId.visible); break;
+                case 1: WRITE_COORD(d.gameId.x); break;
+                case 2: WRITE_COORD(d.gameId.y); break;
+                case 3: WRITE_FONT(d.gameId.font); break;
+                case 4: WRITE_VISIBLE(d.gameId.trailingDash); break;
+                case 5: WRITE_VISIBLE(d.gameId.showLabelText); break;
+                case 6: WRITE_FONT(d.gameId.labelFont); break;
+                case 7: WRITE_COORD(d.gameId.labelX); break;
+                case 8: WRITE_COORD(d.gameId.labelY); break;
+                case 9: WRITE_COORD(d.gameId.labelColorR); break;
+                case 10: WRITE_COORD(d.gameId.labelColorG); break;
+                case 11: WRITE_COORD(d.gameId.labelColorB); break;
+                case 12: WRITE_COORD(d.gameId.colorR); break;
+                case 13: WRITE_COORD(d.gameId.colorG); break;
+                case 14: WRITE_COORD(d.gameId.colorB); break;
+            }
+            break;
+        case UI_SUBMENU_REGION:
+            switch (itemIdx)
+            {
+                case 0: WRITE_VISIBLE(d.region.visible); break;
+                case 1: WRITE_COORD(d.region.x); break;
+                case 2: WRITE_COORD(d.region.y); break;
+                case 3: WRITE_FONT(d.region.font); break;
+                case 4: WRITE_VISIBLE(d.region.trailingDash); break;
+                case 5: WRITE_COORD(d.region.colorR); break;
+                case 6: WRITE_COORD(d.region.colorG); break;
+                case 7: WRITE_COORD(d.region.colorB); break;
+            }
+            break;
+        case UI_SUBMENU_VERSION:
+            switch (itemIdx)
+            {
+                case 0: WRITE_VISIBLE(d.version.visible); break;
+                case 1: WRITE_COORD(d.version.y); break;
+                case 2: WRITE_COORD(d.version.x); break;
+                case 3: WRITE_FONT(d.version.font); break;
+                case 4: WRITE_COORD(d.version.colorR); break;
+                case 5: WRITE_COORD(d.version.colorG); break;
+                case 6: WRITE_COORD(d.version.colorB); break;
+            }
+            break;
+        case UI_SUBMENU_CRC:
+            switch (itemIdx)
+            {
+                case 0: WRITE_VISIBLE(d.crc.visible); break;
+                case 1: WRITE_COORD(d.crc.y); break;
+                case 2: WRITE_COORD(d.crc.x); break;
+                case 3: WRITE_FONT(d.crc.font); break;
+                case 4: WRITE_COORD(d.crc.colorR); break;
+                case 5: WRITE_COORD(d.crc.colorG); break;
+                case 6: WRITE_COORD(d.crc.colorB); break;
+            }
+            break;
+        case UI_SUBMENU_USERNAME:
+            switch (itemIdx)
+            {
+                case 0: WRITE_VISIBLE(d.username.visible); break;
+                case 1: WRITE_COORD(d.username.y); break;
+                case 2: WRITE_COORD(d.username.x); break;
+                case 3: WRITE_FONT(d.username.font); break;
+                case 4: WRITE_COORD(d.username.colorR); break;
+                case 5: WRITE_COORD(d.username.colorG); break;
+                case 6: WRITE_COORD(d.username.colorB); break;
             }
             break;
         case UI_SUBMENU_BOXART:
@@ -532,7 +696,7 @@ void LayoutEditorBottomSheetView::GetItemValueText(
         case UI_SUBMENU_ROMNAME:
             switch (itemIdx)
             {
-                case 0: mini_snprintf(buf, bufLen, "Line %d", _romNameSelectedLine + 1); break;
+                case 0: mini_snprintf(buf, bufLen, "%d", _romNameSelectedLine + 1); break;
                 case 1:
                     if (_romNameSelectedLine == 0) WRITE_VISIBLE(d.romNameRow1.visible);
                     else if (_romNameSelectedLine == 1) WRITE_VISIBLE(d.romNameRow2.visible);
@@ -553,6 +717,21 @@ void LayoutEditorBottomSheetView::GetItemValueText(
                     else if (_romNameSelectedLine == 1) WRITE_FONT(d.romNameRow2.font);
                     else WRITE_FONT(d.romNameRow3.font);
                     break;
+                case 5:
+                    if (_romNameSelectedLine == 0) WRITE_COORD(d.romNameRow1.colorR);
+                    else if (_romNameSelectedLine == 1) WRITE_COORD(d.romNameRow2.colorR);
+                    else WRITE_COORD(d.romNameRow3.colorR);
+                    break;
+                case 6:
+                    if (_romNameSelectedLine == 0) WRITE_COORD(d.romNameRow1.colorG);
+                    else if (_romNameSelectedLine == 1) WRITE_COORD(d.romNameRow2.colorG);
+                    else WRITE_COORD(d.romNameRow3.colorG);
+                    break;
+                case 7:
+                    if (_romNameSelectedLine == 0) WRITE_COORD(d.romNameRow1.colorB);
+                    else if (_romNameSelectedLine == 1) WRITE_COORD(d.romNameRow2.colorB);
+                    else WRITE_COORD(d.romNameRow3.colorB);
+                    break;
             }
             break;
         case UI_SUBMENU_FILENAME:
@@ -564,6 +743,9 @@ void LayoutEditorBottomSheetView::GetItemValueText(
                 case 3: WRITE_FONT(d.fileName.font); break;
                 case 4: mini_snprintf(buf, bufLen, "%s", d.fileName.scroll ? "On" : "Off"); break;
                 case 5: WRITE_COORD(d.fileName.scrollSpeed); break;
+                case 6: WRITE_COORD(d.fileName.colorR); break;
+                case 7: WRITE_COORD(d.fileName.colorG); break;
+                case 8: WRITE_COORD(d.fileName.colorB); break;
             }
             break;
         case UI_SUBMENU_THEMECOLOR:
@@ -573,6 +755,7 @@ void LayoutEditorBottomSheetView::GetItemValueText(
                 case 0: mini_snprintf(buf, bufLen, "%d", _themeColorR); break;
                 case 1: mini_snprintf(buf, bufLen, "%d", _themeColorG); break;
                 case 2: mini_snprintf(buf, bufLen, "%d", _themeColorB); break;
+                case 3: mini_snprintf(buf, bufLen, "%s", _themeDarkMode ? "True" : "False"); break;
             }
             break;
     }
@@ -594,6 +777,7 @@ void LayoutEditorBottomSheetView::ChangeItemValue(int subMenu, int itemIdx, int 
 
     auto changeX = [&](s16& v) { ChangeWrappedCoord(v, delta, -30, 260); };
     auto changeY = [&](s16& v) { ChangeWrappedCoord(v, delta, -20, 200); };
+    auto changeColor = [&](u8& v) { v = (u8)WrapRange((int)v + delta, 0, 255); };
 
     switch (subMenu)
     {
@@ -606,6 +790,9 @@ void LayoutEditorBottomSheetView::ChangeItemValue(int subMenu, int itemIdx, int 
                 case 3: cycleU8(d.dateTime1.format, delta, LAYOUT_FORMAT_COUNT); break;
                 case 4: cycleU8(d.dateTime1.separator, delta, LAYOUT_SEP_COUNT); break;
                 case 5: cycleU8(d.dateTime1.font, delta, LAYOUT_FONT_COUNT); break;
+                case 6: changeColor(d.dateTime1.colorR); break;
+                case 7: changeColor(d.dateTime1.colorG); break;
+                case 8: changeColor(d.dateTime1.colorB); break;
             }
             break;
         case UI_SUBMENU_DATETIME2:
@@ -617,15 +804,94 @@ void LayoutEditorBottomSheetView::ChangeItemValue(int subMenu, int itemIdx, int 
                 case 3: cycleU8(d.dateTime2.format, delta, LAYOUT_FORMAT_COUNT); break;
                 case 4: cycleU8(d.dateTime2.separator, delta, LAYOUT_SEP_COUNT); break;
                 case 5: cycleU8(d.dateTime2.font, delta, LAYOUT_FONT_COUNT); break;
+                case 6: changeColor(d.dateTime2.colorR); break;
+                case 7: changeColor(d.dateTime2.colorG); break;
+                case 8: changeColor(d.dateTime2.colorB); break;
             }
             break;
-        case UI_SUBMENU_ROM_IDCODE:
+        case UI_SUBMENU_PREFIX:
             switch (itemIdx)
             {
-                case 0: toggleU8(d.romIdCode.visible); break;
-                case 1: changeY(d.romIdCode.y); break;
-                case 2: changeX(d.romIdCode.x); break;
-                case 3: cycleU8(d.romIdCode.font, delta, LAYOUT_FONT_COUNT); break;
+                case 0: toggleU8(d.prefix.visible); break;
+                case 1: changeX(d.prefix.x); break;
+                case 2: changeY(d.prefix.y); break;
+                case 3: cycleU8(d.prefix.font, delta, LAYOUT_FONT_COUNT); break;
+                case 4: toggleU8(d.prefix.trailingDash); break;
+                case 5: cycleU8(d.prefix.gbaPrefixMode, delta, LAYOUT_PREFIX_GBA_COUNT); break;
+                case 6: cycleU8(d.prefix.ntrPrefixMode, delta, LAYOUT_PREFIX_NTR_COUNT); break;
+                case 7: cycleU8(d.prefix.twlPrefixMode, delta, LAYOUT_PREFIX_TWL_COUNT); break;
+                case 8: changeColor(d.prefix.colorR); break;
+                case 9: changeColor(d.prefix.colorG); break;
+                case 10: changeColor(d.prefix.colorB); break;
+            }
+            break;
+        case UI_SUBMENU_GAME_ID:
+            switch (itemIdx)
+            {
+                case 0: toggleU8(d.gameId.visible); break;
+                case 1: changeX(d.gameId.x); break;
+                case 2: changeY(d.gameId.y); break;
+                case 3: cycleU8(d.gameId.font, delta, LAYOUT_FONT_COUNT); break;
+                case 4: toggleU8(d.gameId.trailingDash); break;
+                case 5: toggleU8(d.gameId.showLabelText); break;
+                case 6: cycleU8(d.gameId.labelFont, delta, LAYOUT_FONT_COUNT); break;
+                case 7: changeX(d.gameId.labelX); break;
+                case 8: changeY(d.gameId.labelY); break;
+                case 9: changeColor(d.gameId.labelColorR); break;
+                case 10: changeColor(d.gameId.labelColorG); break;
+                case 11: changeColor(d.gameId.labelColorB); break;
+                case 12: changeColor(d.gameId.colorR); break;
+                case 13: changeColor(d.gameId.colorG); break;
+                case 14: changeColor(d.gameId.colorB); break;
+            }
+            break;
+        case UI_SUBMENU_REGION:
+            switch (itemIdx)
+            {
+                case 0: toggleU8(d.region.visible); break;
+                case 1: changeX(d.region.x); break;
+                case 2: changeY(d.region.y); break;
+                case 3: cycleU8(d.region.font, delta, LAYOUT_FONT_COUNT); break;
+                case 4: toggleU8(d.region.trailingDash); break;
+                case 5: changeColor(d.region.colorR); break;
+                case 6: changeColor(d.region.colorG); break;
+                case 7: changeColor(d.region.colorB); break;
+            }
+            break;
+        case UI_SUBMENU_VERSION:
+            switch (itemIdx)
+            {
+                case 0: toggleU8(d.version.visible); break;
+                case 1: changeY(d.version.y); break;
+                case 2: changeX(d.version.x); break;
+                case 3: cycleU8(d.version.font, delta, LAYOUT_FONT_COUNT); break;
+                case 4: changeColor(d.version.colorR); break;
+                case 5: changeColor(d.version.colorG); break;
+                case 6: changeColor(d.version.colorB); break;
+            }
+            break;
+        case UI_SUBMENU_CRC:
+            switch (itemIdx)
+            {
+                case 0: toggleU8(d.crc.visible); break;
+                case 1: changeY(d.crc.y); break;
+                case 2: changeX(d.crc.x); break;
+                case 3: cycleU8(d.crc.font, delta, LAYOUT_FONT_COUNT); break;
+                case 4: changeColor(d.crc.colorR); break;
+                case 5: changeColor(d.crc.colorG); break;
+                case 6: changeColor(d.crc.colorB); break;
+            }
+            break;
+        case UI_SUBMENU_USERNAME:
+            switch (itemIdx)
+            {
+                case 0: toggleU8(d.username.visible); break;
+                case 1: changeY(d.username.y); break;
+                case 2: changeX(d.username.x); break;
+                case 3: cycleU8(d.username.font, delta, LAYOUT_FONT_COUNT); break;
+                case 4: changeColor(d.username.colorR); break;
+                case 5: changeColor(d.username.colorG); break;
+                case 6: changeColor(d.username.colorB); break;
             }
             break;
         case UI_SUBMENU_BOXART:
@@ -670,6 +936,21 @@ void LayoutEditorBottomSheetView::ChangeItemValue(int subMenu, int itemIdx, int 
                     else if (_romNameSelectedLine == 1) cycleU8(d.romNameRow2.font, delta, LAYOUT_FONT_COUNT);
                     else cycleU8(d.romNameRow3.font, delta, LAYOUT_FONT_COUNT);
                     break;
+                case 5:
+                    if (_romNameSelectedLine == 0) changeColor(d.romNameRow1.colorR);
+                    else if (_romNameSelectedLine == 1) changeColor(d.romNameRow2.colorR);
+                    else changeColor(d.romNameRow3.colorR);
+                    break;
+                case 6:
+                    if (_romNameSelectedLine == 0) changeColor(d.romNameRow1.colorG);
+                    else if (_romNameSelectedLine == 1) changeColor(d.romNameRow2.colorG);
+                    else changeColor(d.romNameRow3.colorG);
+                    break;
+                case 7:
+                    if (_romNameSelectedLine == 0) changeColor(d.romNameRow1.colorB);
+                    else if (_romNameSelectedLine == 1) changeColor(d.romNameRow2.colorB);
+                    else changeColor(d.romNameRow3.colorB);
+                    break;
             }
             break;
         case UI_SUBMENU_FILENAME:
@@ -681,6 +962,9 @@ void LayoutEditorBottomSheetView::ChangeItemValue(int subMenu, int itemIdx, int 
                 case 3: cycleU8(d.fileName.font, delta, LAYOUT_FONT_COUNT); break;
                 case 4: toggleU8(d.fileName.scroll); break;
                 case 5: d.fileName.scrollSpeed = (u8)WrapRange((int)d.fileName.scrollSpeed + delta, 1, 20); break;
+                case 6: changeColor(d.fileName.colorR); break;
+                case 7: changeColor(d.fileName.colorG); break;
+                case 8: changeColor(d.fileName.colorB); break;
             }
             break;
         case UI_SUBMENU_THEMECOLOR:
@@ -688,6 +972,7 @@ void LayoutEditorBottomSheetView::ChangeItemValue(int subMenu, int itemIdx, int 
             if (itemIdx == 0) _themeColorR = WrapRange(_themeColorR + delta, 0, 255);
             if (itemIdx == 1) _themeColorG = WrapRange(_themeColorG + delta, 0, 255);
             if (itemIdx == 2) _themeColorB = WrapRange(_themeColorB + delta, 0, 255);
+            if (itemIdx == 3) _themeDarkMode = !_themeDarkMode;
             _themeColorDirty = true;
             break;
     }
@@ -720,8 +1005,7 @@ bool LayoutEditorBottomSheetView::GetChoiceListForCurrentFocus(
     if (_focusRow < kFocusItem0)
         return false;
 
-    int visRow = _focusRow - kFocusItem0;
-    int itemIdx = _itemScrollOffset + visRow;
+    int itemIdx = _focusRow - kFocusItem0;
     if (itemIdx >= GetSubMenuItemCount(_currentSubMenu))
         return false;
 
@@ -739,8 +1023,27 @@ bool LayoutEditorBottomSheetView::GetChoiceListForCurrentFocus(
             if (itemIdx == 4) { kind = ChoiceKind::Separator; count = LAYOUT_SEP_COUNT; selectedValue = d.dateTime2.separator; return true; }
             if (itemIdx == 5) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.dateTime2.font; return true; }
             break;
-        case UI_SUBMENU_ROM_IDCODE:
-            if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.romIdCode.font; return true; }
+        case UI_SUBMENU_PREFIX:
+            if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.prefix.font; return true; }
+            if (itemIdx == 5) { kind = ChoiceKind::PrefixGbaMode; count = LAYOUT_PREFIX_GBA_COUNT; selectedValue = d.prefix.gbaPrefixMode; return true; }
+            if (itemIdx == 6) { kind = ChoiceKind::PrefixNtrMode; count = LAYOUT_PREFIX_NTR_COUNT; selectedValue = d.prefix.ntrPrefixMode; return true; }
+            if (itemIdx == 7) { kind = ChoiceKind::PrefixTwlMode; count = LAYOUT_PREFIX_TWL_COUNT; selectedValue = d.prefix.twlPrefixMode; return true; }
+            break;
+        case UI_SUBMENU_GAME_ID:
+            if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.gameId.font; return true; }
+            if (itemIdx == 6) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.gameId.labelFont; return true; }
+            break;
+        case UI_SUBMENU_REGION:
+            if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.region.font; return true; }
+            break;
+        case UI_SUBMENU_VERSION:
+            if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.version.font; return true; }
+            break;
+        case UI_SUBMENU_CRC:
+            if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.crc.font; return true; }
+            break;
+        case UI_SUBMENU_USERNAME:
+            if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.username.font; return true; }
             break;
         case UI_SUBMENU_ROMNAME:
             if (itemIdx == 4)
@@ -778,6 +1081,12 @@ const char* LayoutEditorBottomSheetView::GetChoiceLabel(ChoiceKind kind, int cho
             return (u32)choiceIdx < LAYOUT_SEP_COUNT ? kLayoutSeparatorNames[choiceIdx] : "";
         case ChoiceKind::Font:
             return (u32)choiceIdx < LAYOUT_FONT_COUNT ? kLayoutFontNames[choiceIdx] : "";
+        case ChoiceKind::PrefixGbaMode:
+            return (u32)choiceIdx < LAYOUT_PREFIX_GBA_COUNT ? kLayoutPrefixGbaModeNames[choiceIdx] : "";
+        case ChoiceKind::PrefixNtrMode:
+            return (u32)choiceIdx < LAYOUT_PREFIX_NTR_COUNT ? kLayoutPrefixNtrModeNames[choiceIdx] : "";
+        case ChoiceKind::PrefixTwlMode:
+            return (u32)choiceIdx < LAYOUT_PREFIX_TWL_COUNT ? kLayoutPrefixTwlModeNames[choiceIdx] : "";
         default:
             return "";
     }
@@ -790,7 +1099,7 @@ void LayoutEditorBottomSheetView::ApplyChoiceValue(ChoiceKind kind, int valueIdx
     if (kind == ChoiceKind::Slot)
     {
         _layoutService->SetCurrentSlot((u32)(valueIdx + 1));
-        _itemScrollOffset = 0;
+        EnsureItemFocusVisible();
         ClampItemScroll();
         return;
     }
@@ -798,7 +1107,7 @@ void LayoutEditorBottomSheetView::ApplyChoiceValue(ChoiceKind kind, int valueIdx
     if (kind == ChoiceKind::SubMenu)
     {
         _currentSubMenu = valueIdx;
-        _itemScrollOffset = 0;
+        EnsureItemFocusVisible();
         ClampItemScroll();
         return;
     }
@@ -818,8 +1127,27 @@ void LayoutEditorBottomSheetView::ApplyChoiceValue(ChoiceKind kind, int valueIdx
             if (_choiceTargetIdx == 4 && kind == ChoiceKind::Separator) d.dateTime2.separator = (u8)valueIdx;
             if (_choiceTargetIdx == 5 && kind == ChoiceKind::Font) d.dateTime2.font = (u8)valueIdx;
             break;
-        case UI_SUBMENU_ROM_IDCODE:
-            if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.romIdCode.font = (u8)valueIdx;
+        case UI_SUBMENU_PREFIX:
+            if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.prefix.font = (u8)valueIdx;
+            if (_choiceTargetIdx == 5 && kind == ChoiceKind::PrefixGbaMode) d.prefix.gbaPrefixMode = (u8)valueIdx;
+            if (_choiceTargetIdx == 6 && kind == ChoiceKind::PrefixNtrMode) d.prefix.ntrPrefixMode = (u8)valueIdx;
+            if (_choiceTargetIdx == 7 && kind == ChoiceKind::PrefixTwlMode) d.prefix.twlPrefixMode = (u8)valueIdx;
+            break;
+        case UI_SUBMENU_GAME_ID:
+            if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.gameId.font = (u8)valueIdx;
+            if (_choiceTargetIdx == 6 && kind == ChoiceKind::Font) d.gameId.labelFont = (u8)valueIdx;
+            break;
+        case UI_SUBMENU_REGION:
+            if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.region.font = (u8)valueIdx;
+            break;
+        case UI_SUBMENU_VERSION:
+            if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.version.font = (u8)valueIdx;
+            break;
+        case UI_SUBMENU_CRC:
+            if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.crc.font = (u8)valueIdx;
+            break;
+        case UI_SUBMENU_USERNAME:
+            if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.username.font = (u8)valueIdx;
             break;
         case UI_SUBMENU_ROMNAME:
             if (_choiceTargetIdx == 4 && kind == ChoiceKind::Font)
@@ -890,8 +1218,8 @@ void LayoutEditorBottomSheetView::ConfirmChoice()
 
 void LayoutEditorBottomSheetView::ClampItemScroll()
 {
-    int count = GetSubMenuItemCount(_currentSubMenu);
-    int maxScroll = count - kNumVisibleItems;
+    int totalVisualRows = 2 + GetSubMenuItemCount(_currentSubMenu);
+    int maxScroll = totalVisualRows - kNumVisibleItems;
     if (maxScroll < 0) maxScroll = 0;
     if (_itemScrollOffset < 0) _itemScrollOffset = 0;
     if (_itemScrollOffset > maxScroll) _itemScrollOffset = maxScroll;
@@ -904,31 +1232,6 @@ void LayoutEditorBottomSheetView::UpdateAllLabels()
     _titleLabel.SetText("Layout Editor");
     _titleLabel.SetPosition(LE_TITLE_X, _position.y + LE_TITLE_Y);
 
-    {
-        char buf[16];
-        if (_focusRow == kFocusSlot)
-            mini_snprintf(buf, sizeof(buf), "[%u]", _layoutService->GetCurrentSlot());
-        else
-            mini_snprintf(buf, sizeof(buf), "%u", _layoutService->GetCurrentSlot());
-        _slotLabel.SetText(buf);
-        _slotLabel.SetPosition(LE_SLOT_X, _position.y + LE_SLOT_Y);
-    }
-
-    _saveLabel.SetText(_focusRow == kFocusSave ? "[Save]" : "Save");
-    _resetLabel.SetText(_focusRow == kFocusReset ? "[Reset]" : "Reset");
-    _saveLabel.SetPosition(LE_SAVE_X, _position.y + LE_SAVERES_Y);
-    _resetLabel.SetPosition(LE_RESET_X, _position.y + LE_SAVERES_Y);
-
-    {
-        char buf[28];
-        if (_focusRow == kFocusSubMenu)
-            mini_snprintf(buf, sizeof(buf), "[%s]", GetSubMenuName(_currentSubMenu));
-        else
-            mini_snprintf(buf, sizeof(buf), "%s", GetSubMenuName(_currentSubMenu));
-        _subMenuLabel.SetText(buf);
-        _subMenuLabel.SetPosition(LE_SUBMENU_X, _position.y + LE_SUBMENU_Y);
-    }
-
     if (_isChoosing)
     {
         switch (_choiceKind)
@@ -938,12 +1241,16 @@ void LayoutEditorBottomSheetView::UpdateAllLabels()
             case ChoiceKind::Format: _titleLabel.SetText("Select Format"); break;
             case ChoiceKind::Separator: _titleLabel.SetText("Select Separator"); break;
             case ChoiceKind::Font: _titleLabel.SetText("Select Font"); break;
+            case ChoiceKind::PrefixGbaMode: _titleLabel.SetText("Select GBA Prefix"); break;
+            case ChoiceKind::PrefixNtrMode: _titleLabel.SetText("Select NTR Prefix"); break;
+            case ChoiceKind::PrefixTwlMode: _titleLabel.SetText("Select TWL Prefix"); break;
             default: _titleLabel.SetText("Select Value"); break;
         }
 
         _slotLabel.SetText("");
         _saveLabel.SetText("");
         _resetLabel.SetText("");
+        _resetMenuLabel.SetText("");
         _subMenuLabel.SetText("");
 
         const int localFocus = _choiceSelected - _choiceScroll;
@@ -978,25 +1285,81 @@ void LayoutEditorBottomSheetView::UpdateAllLabels()
         return;
     }
 
-    int count = GetSubMenuItemCount(_currentSubMenu);
+    _slotLabel.SetText("");
+    _saveLabel.SetText("");
+    _resetLabel.SetText("");
+    _resetMenuLabel.SetText("");
+    _subMenuLabel.SetText("");
+
+    int topVisRow = -1;
+    if (_itemScrollOffset <= 0)
+        topVisRow = -_itemScrollOffset;
+
+    if (topVisRow >= 0 && topVisRow < kNumVisibleItems)
+    {
+        int rowY = _position.y + LE_ITEM_Y0_SUBMENU + topVisRow * LE_ITEM_YSTEP;
+        char slotBuf[16];
+        mini_snprintf(slotBuf, sizeof(slotBuf), _focusRow == kFocusSlot ? "[%u]" : "%u", _layoutService->GetCurrentSlot());
+
+        _slotLabel.SetText(slotBuf);
+        _saveLabel.SetText(_focusRow == kFocusSave ? "[Save]" : "Save");
+        _resetLabel.SetText(_focusRow == kFocusReset ? "[Reset]" : "Reset");
+        _resetMenuLabel.SetText(_focusRow == kFocusResetMenu ? "[Reset Menu]" : "Reset Menu");
+
+        _slotLabel.SetPosition(LE_SLOT_X, rowY);
+        _saveLabel.SetPosition(LE_SAVE_X, rowY);
+        _resetLabel.SetPosition(LE_RESET_X, rowY);
+        _resetMenuLabel.SetPosition(LE_RESET_MENU_X, rowY);
+    }
+
+    const int itemCount = GetSubMenuItemCount(_currentSubMenu);
+    const int totalCount = 2 + itemCount;
     for (int visRow = 0; visRow < kNumVisibleItems; visRow++)
     {
-        int itemIdx = _itemScrollOffset + visRow;
-        bool rowFocused = (_focusRow == kFocusItem0 + visRow) && (itemIdx < count)
-            && !IsNonFocusableItem(_currentSubMenu, itemIdx);
+        int rowIdx = _itemScrollOffset + visRow;
+        bool rowFocused = false;
+        if (rowIdx == 1)
+            rowFocused = (_focusRow == kFocusSubMenu);
+        else if (rowIdx >= 2)
+            rowFocused = (_focusRow == (kFocusItem0 + (rowIdx - 2)));
         int xOffset = rowFocused ? LE_FOCUS_OFFSET_X : 0;
-        int indent = GetChildIndentX(_currentSubMenu, itemIdx);
 
         Label2DView* nameLabel = GetItemNameLabel(visRow);
         Label2DView* valueLabel = GetItemValueLabel(visRow);
-        int rowY = _position.y + LE_ITEM_Y0 + visRow * LE_ITEM_YSTEP;
+        int rowY = _position.y + LE_ITEM_Y0_SUBMENU + visRow * LE_ITEM_YSTEP;
+        nameLabel->SetHorizontalAlignment(Alignment::Start);
+        valueLabel->SetHorizontalAlignment(Alignment::Start);
 
-        if (itemIdx < count)
+        if (rowIdx < totalCount)
         {
-            nameLabel->SetText(GetItemName(_currentSubMenu, itemIdx));
-            char vbuf[28];
-            GetItemValueText(_currentSubMenu, itemIdx, vbuf, sizeof(vbuf));
-            valueLabel->SetText(vbuf);
+            if (rowIdx == 0)
+            {
+                nameLabel->SetText("");
+                valueLabel->SetText("");
+            }
+            else if (rowIdx == 1)
+            {
+                nameLabel->SetText("");
+                char menuBuf[32];
+                mini_snprintf(menuBuf, sizeof(menuBuf), rowFocused ? "[%s]" : "%s", GetSubMenuName(_currentSubMenu));
+                valueLabel->SetText(menuBuf);
+                valueLabel->SetHorizontalAlignment(Alignment::Start);
+                valueLabel->SetPosition(LE_ITEMNAME_X + xOffset, rowY);
+                nameLabel->SetPosition(LE_ITEMNAME_X, rowY); 
+                continue;
+            }
+            else
+            {
+                int itemIdx = rowIdx - 2;
+                int indent = GetChildIndentX(_currentSubMenu, itemIdx);
+                nameLabel->SetText(GetItemName(_currentSubMenu, itemIdx));
+                char vbuf[28];
+                GetItemValueText(_currentSubMenu, itemIdx, vbuf, sizeof(vbuf));
+                valueLabel->SetText(vbuf);
+                nameLabel->SetPosition(LE_ITEMNAME_X + indent + xOffset, rowY);
+                valueLabel->SetPosition(LE_ITEMVALUE_X + xOffset, rowY);
+                continue;
+            }
         }
         else
         {
@@ -1004,11 +1367,10 @@ void LayoutEditorBottomSheetView::UpdateAllLabels()
             valueLabel->SetText("");
         }
 
-        nameLabel->SetPosition(LE_ITEMNAME_X + indent + xOffset, rowY);
+        nameLabel->SetPosition(LE_ITEMNAME_X + xOffset, rowY);
         valueLabel->SetPosition(LE_ITEMVALUE_X + xOffset, rowY);
     }
 
-    _scrollHintLabel.SetText("");
     _scrollHintLabel.SetPosition(LE_HINT_X, _position.y + LE_HINT_Y);
 }
 
@@ -1041,24 +1403,33 @@ void LayoutEditorBottomSheetView::Draw(GraphicsContext& graphicsContext)
         _resetLabel.SetBackgroundColor(_focusRow == kFocusReset && !_isChoosing ? bgFocused : bgColor);
         _resetLabel.SetForegroundColor(_focusRow == kFocusReset && !_isChoosing ? fgFocused : fgNormal);
 
+        _resetMenuLabel.SetBackgroundColor(_focusRow == kFocusResetMenu && !_isChoosing ? bgFocused : bgColor);
+        _resetMenuLabel.SetForegroundColor(_focusRow == kFocusResetMenu && !_isChoosing ? fgFocused : fgNormal);
+
         _subMenuLabel.SetBackgroundColor(_focusRow == kFocusSubMenu && !_isChoosing ? bgFocused : bgColor);
         _subMenuLabel.SetForegroundColor(_focusRow == kFocusSubMenu && !_isChoosing ? fgFocused : fgNormal);
 
-        int count = _isChoosing ? _choiceCount : GetSubMenuItemCount(_currentSubMenu);
+        int count = _isChoosing ? _choiceCount : (2 + GetSubMenuItemCount(_currentSubMenu));
         int localFocus = _isChoosing ? (_choiceSelected - _choiceScroll) : -1;
         auto headerBg = _materialColorScheme->surfaceContainerHighest;
         for (int visRow = 0; visRow < kNumVisibleItems; visRow++)
         {
-            int itemIdx = (_isChoosing ? _choiceScroll : _itemScrollOffset) + visRow;
+            int rowIdx = (_isChoosing ? _choiceScroll : _itemScrollOffset) + visRow;
             bool rowFocused = false;
             if (_isChoosing)
-                rowFocused = (visRow == localFocus) && (itemIdx < count);
+                rowFocused = (visRow == localFocus) && (rowIdx < count);
             else
-                rowFocused = (_focusRow == kFocusItem0 + visRow) && (itemIdx < count)
-                    && !IsNonFocusableItem(_currentSubMenu, itemIdx);
+            {
+                if (rowIdx == 0)
+                    rowFocused = (_focusRow <= kFocusResetMenu) && (rowIdx < count);
+                else if (rowIdx == 1)
+                    rowFocused = (_focusRow == kFocusSubMenu) && (rowIdx < count);
+                else
+                    rowFocused = (_focusRow == (kFocusItem0 + (rowIdx - 2))) && (rowIdx < count);
+            }
 
-            bool isGroupHeader = !_isChoosing && itemIdx < count
-                && IsNonFocusableItem(_currentSubMenu, itemIdx);
+            bool isGroupHeader = !_isChoosing && rowIdx >= 2 && rowIdx < count
+                && IsNonFocusableItem(_currentSubMenu, rowIdx - 2);
 
             Label2DView* nameLabel = GetItemNameLabel(visRow);
             Label2DView* valueLabel = GetItemValueLabel(visRow);
@@ -1089,9 +1460,18 @@ bool LayoutEditorBottomSheetView::HandleInput(
     _holdUp = inputProvider.Current(InputKey::DpadUp) ? (u16)std::min<int>(0xFFFF, _holdUp + 1) : 0;
     _holdDown = inputProvider.Current(InputKey::DpadDown) ? (u16)std::min<int>(0xFFFF, _holdDown + 1) : 0;
 
+    bool upPressed = inputProvider.Triggered(InputKey::DpadUp)
+        || (_holdUp >= 18 && (_holdUp % 4) == 0);
+    bool downPressed = inputProvider.Triggered(InputKey::DpadDown)
+        || (_holdDown >= 18 && (_holdDown % 4) == 0);
+    bool leftPressed = inputProvider.Triggered(InputKey::DpadLeft)
+        || (_holdLeft >= 18 && (_holdLeft % 3) == 0);
+    bool rightPressed = inputProvider.Triggered(InputKey::DpadRight)
+        || (_holdRight >= 18 && (_holdRight % 3) == 0);
+
     if (_isChoosing)
     {
-        if (inputProvider.Triggered(InputKey::DpadUp))
+        if (upPressed)
         {
             if (_choiceSelected > 0)
                 _choiceSelected--;
@@ -1099,7 +1479,7 @@ bool LayoutEditorBottomSheetView::HandleInput(
                 _choiceScroll = _choiceSelected;
             return true;
         }
-        else if (inputProvider.Triggered(InputKey::DpadDown))
+        else if (downPressed)
         {
             if (_choiceSelected < _choiceCount - 1)
                 _choiceSelected++;
@@ -1147,120 +1527,96 @@ bool LayoutEditorBottomSheetView::HandleInput(
     if (inputProvider.Triggered(InputKey::L | InputKey::R))
     {
         int delta = inputProvider.Triggered(InputKey::R) ? 1 : -1;
-        _currentSubMenu = (_currentSubMenu + delta + GetSubMenuCount()) % GetSubMenuCount();
-        _itemScrollOffset = 0;
+        _currentSubMenu = ClampInt(_currentSubMenu + delta, 0, GetSubMenuCount() - 1);
         _focusRow = kFocusSubMenu;
         ClampItemScroll();
+        EnsureItemFocusVisible();
         return true;
     }
 
     bool consumed = false;
-    auto focusItem = [&](int itemIdx)
+    auto focusToVisualRow = [&](int focusRow) -> int
     {
-        if (itemIdx < 0)
-        {
-            _focusRow = kFocusSubMenu;
-            return;
-        }
-
-        if (itemIdx < _itemScrollOffset)
-            _itemScrollOffset = itemIdx;
-        else if (itemIdx >= _itemScrollOffset + kNumVisibleItems)
-            _itemScrollOffset = itemIdx - (kNumVisibleItems - 1);
-
-        ClampItemScroll();
-        _focusRow = kFocusItem0 + (itemIdx - _itemScrollOffset);
-        EnsureItemFocusVisible();
+        if (focusRow <= kFocusResetMenu)
+            return 0;
+        if (focusRow == kFocusSubMenu)
+            return 1;
+        return 2 + (focusRow - kFocusItem0);
+    };
+    auto visualRowToFocus = [&](int visualRow) -> int
+    {
+        if (visualRow <= 0)
+            return _topActionFocus;
+        if (visualRow == 1)
+            return kFocusSubMenu;
+        return kFocusItem0 + (visualRow - 2);
+    };
+    auto isRowFocusable = [&](int rowIdx) -> bool
+    {
+        if (rowIdx < 0)
+            return false;
+        int totalRows = 2 + GetSubMenuItemCount(_currentSubMenu);
+        if (rowIdx >= totalRows)
+            return false;
+        if (rowIdx <= 1)
+            return true;
+        return !IsNonFocusableItem(_currentSubMenu, rowIdx - 2);
     };
 
-    if (inputProvider.Triggered(InputKey::DpadUp))
+    if (upPressed)
     {
-        int count = GetSubMenuItemCount(_currentSubMenu);
-
-        if (_focusRow >= kFocusItem0)
+        int currentVisual = focusToVisualRow(_focusRow);
+        for (int row = currentVisual - 1; row >= 0; --row)
         {
-            int currentIdx = _itemScrollOffset + (_focusRow - kFocusItem0);
-            int nextIdx = GetNextFocusableItem(_currentSubMenu, currentIdx, -1);
-            focusItem(nextIdx);
-        }
-        else if (_focusRow == kFocusSubMenu)
-        {
-            _focusRow = kFocusSlot;
-        }
-        else
-        {
-            if (count > 0)
+            if (isRowFocusable(row))
             {
-                int nextIdx = GetNextFocusableItem(_currentSubMenu, count, -1);
-                focusItem(nextIdx);
-            }
-            else
-            {
-                _focusRow = kFocusSubMenu;
+                _focusRow = visualRowToFocus(row);
+                EnsureItemFocusVisible();
+                break;
             }
         }
 
         consumed = true;
     }
-    else if (inputProvider.Triggered(InputKey::DpadDown))
+    else if (downPressed)
     {
-        int count = GetSubMenuItemCount(_currentSubMenu);
-
-        if (_focusRow == kFocusSlot || _focusRow == kFocusSave || _focusRow == kFocusReset)
+        int currentVisual = focusToVisualRow(_focusRow);
+        int totalRows = 2 + GetSubMenuItemCount(_currentSubMenu);
+        for (int row = currentVisual + 1; row < totalRows; ++row)
         {
-            _focusRow = kFocusSubMenu;
-        }
-        else if (_focusRow == kFocusSubMenu)
-        {
-            if (count > 0)
+            if (isRowFocusable(row))
             {
-                int nextIdx = GetNextFocusableItem(_currentSubMenu, -1, 1);
-                focusItem(nextIdx);
+                _focusRow = visualRowToFocus(row);
+                EnsureItemFocusVisible();
+                break;
             }
-        }
-        else
-        {
-            int currentIdx = _itemScrollOffset + (_focusRow - kFocusItem0);
-            int nextIdx = GetNextFocusableItem(_currentSubMenu, currentIdx, 1);
-            if (nextIdx >= 0)
-                focusItem(nextIdx);
         }
 
         consumed = true;
     }
 
-    if (inputProvider.Triggered(InputKey::DpadLeft) || inputProvider.Triggered(InputKey::DpadRight))
+    if (leftPressed || rightPressed)
     {
-        bool right = inputProvider.Triggered(InputKey::DpadRight);
+        bool right = rightPressed;
         int step = right ? GetHoldAccelerationStep(_holdRight) : GetHoldAccelerationStep(_holdLeft);
         int delta = right ? step : -step;
 
-        if (_focusRow == kFocusSlot)
+        if (_focusRow <= kFocusResetMenu)
         {
-            _focusRow = (delta > 0) ? kFocusSave : kFocusReset;
-            consumed = true;
-        }
-        else if (_focusRow == kFocusSave)
-        {
-            _focusRow = (delta > 0) ? kFocusReset : kFocusSlot;
-            consumed = true;
-        }
-        else if (_focusRow == kFocusReset)
-        {
-            _focusRow = (delta > 0) ? kFocusSlot : kFocusSave;
+            _focusRow = ClampInt(_focusRow + (delta > 0 ? 1 : -1), kFocusSlot, kFocusResetMenu);
+            _topActionFocus = _focusRow;
             consumed = true;
         }
         else if (_focusRow == kFocusSubMenu)
         {
-            _currentSubMenu = (_currentSubMenu + delta + GetSubMenuCount()) % GetSubMenuCount();
-            _itemScrollOffset = 0;
+            _currentSubMenu = ClampInt(_currentSubMenu + (delta > 0 ? 1 : -1), 0, GetSubMenuCount() - 1);
             ClampItemScroll();
+            EnsureItemFocusVisible();
             consumed = true;
         }
         else
         {
-            int visRow = _focusRow - kFocusItem0;
-            int itemIdx = _itemScrollOffset + visRow;
+            int itemIdx = _focusRow - kFocusItem0;
             int count = GetSubMenuItemCount(_currentSubMenu);
             if (itemIdx < count)
             {
@@ -1280,8 +1636,15 @@ bool LayoutEditorBottomSheetView::HandleInput(
             _layoutService->SaveCurrentSlot();
             if (_themeColorDirty)
             {
-                SaveThemeColorToFile();
-                _themeColorDirty = false;
+                if (SaveThemeColorToFile())
+                {
+                    if (_themePreviewApplied && _materialColorScheme != nullptr)
+                    {
+                        _originalMaterialColorScheme = *const_cast<MaterialColorScheme*>(_materialColorScheme);
+                        _themePreviewApplied = false;
+                    }
+                    _themeColorDirty = false;
+                }
             }
             consumed = true;
         }
@@ -1297,6 +1660,22 @@ bool LayoutEditorBottomSheetView::HandleInput(
             }
             consumed = true;
         }
+        else if (_focusRow == kFocusResetMenu)
+        {
+            if (_currentSubMenu == UI_SUBMENU_THEMECOLOR)
+            {
+                if (_themePreviewApplied)
+                    RestoreThemeColorPreview();
+                _themeColorDirty = false;
+                _themeColorLoaded = false;
+                EnsureThemeColorLoaded();
+            }
+            else
+            {
+                ResetSubMenuToDefaults(_layoutService->GetCurrentLayoutMutable(), _currentSubMenu);
+            }
+            consumed = true;
+        }
         else
         {
             ChoiceKind kind;
@@ -1306,17 +1685,13 @@ bool LayoutEditorBottomSheetView::HandleInput(
             {
                 int targetIdx = -1;
                 if (_focusRow >= kFocusItem0)
-                {
-                    int visRow = _focusRow - kFocusItem0;
-                    targetIdx = _itemScrollOffset + visRow;
-                }
+                    targetIdx = _focusRow - kFocusItem0;
                 BeginChoice(kind, count, selectedValue, targetIdx);
                 consumed = true;
             }
             else if (_focusRow >= kFocusItem0)
             {
-                int visRow = _focusRow - kFocusItem0;
-                int itemIdx = _itemScrollOffset + visRow;
+                int itemIdx = _focusRow - kFocusItem0;
                 int countItems = GetSubMenuItemCount(_currentSubMenu);
                 if (itemIdx < countItems && !IsNonFocusableItem(_currentSubMenu, itemIdx))
                 {
@@ -1325,7 +1700,22 @@ bool LayoutEditorBottomSheetView::HandleInput(
                     {
                         case UI_SUBMENU_DATETIME1:
                         case UI_SUBMENU_DATETIME2:
-                        case UI_SUBMENU_ROM_IDCODE:
+                            isToggle = (itemIdx == 0);
+                            break;
+                        case UI_SUBMENU_PREFIX:
+                            isToggle = (itemIdx == 0 || itemIdx == 4);
+                            break;
+                        case UI_SUBMENU_GAME_ID:
+                            isToggle = (itemIdx == 0 || itemIdx == 4 || itemIdx == 5);
+                            break;
+                        case UI_SUBMENU_REGION:
+                            isToggle = (itemIdx == 0 || itemIdx == 4);
+                            break;
+                        case UI_SUBMENU_VERSION:
+                        case UI_SUBMENU_CRC:
+                        case UI_SUBMENU_USERNAME:
+                            isToggle = (itemIdx == 0);
+                            break;
                         case UI_SUBMENU_BOXART:
                         case UI_SUBMENU_ICON:
                             isToggle = (itemIdx == 0);
@@ -1337,14 +1727,14 @@ bool LayoutEditorBottomSheetView::HandleInput(
                             isToggle = (itemIdx == 0 || itemIdx == 4);
                             break;
                         case UI_SUBMENU_THEMECOLOR:
-                            isToggle = (itemIdx == 3);
+                            isToggle = (itemIdx == 4);
                             break;
                         default:
                             break;
                     }
                     if (isToggle)
                     {
-                        if (_currentSubMenu == UI_SUBMENU_THEMECOLOR && itemIdx == 3)
+                        if (_currentSubMenu == UI_SUBMENU_THEMECOLOR && itemIdx == 4)
                         {
                             EnsureThemeColorLoaded();
                             ApplyThemeColorPreview();

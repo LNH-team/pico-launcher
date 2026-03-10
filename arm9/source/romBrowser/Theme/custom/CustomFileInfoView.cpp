@@ -195,14 +195,19 @@ void CustomFileInfoView::Update()
 
 void CustomFileInfoView::Draw(GraphicsContext& graphicsContext)
 {
+    const auto& cfg = GetLayoutConfig();
+    Rgb<8, 8, 8> textColor1(cfg.romNameRow1ColorR, cfg.romNameRow1ColorG, cfg.romNameRow1ColorB);
+    Rgb<8, 8, 8> textColor2(cfg.romNameRow2ColorR, cfg.romNameRow2ColorG, cfg.romNameRow2ColorB);
+    Rgb<8, 8, 8> textColor3(cfg.romNameRow3ColorR, cfg.romNameRow3ColorG, cfg.romNameRow3ColorB);
+    Rgb<8, 8, 8> fileNameColor(cfg.fileNameColorR, cfg.fileNameColorG, cfg.fileNameColorB);
     _firstLine.SetBackgroundColor(_backgroundColor);
-    _firstLine.SetForegroundColor(_textColor);
+    _firstLine.SetForegroundColor(textColor1);
     _secondLine.SetBackgroundColor(_backgroundColor);
-    _secondLine.SetForegroundColor(_textColor);
+    _secondLine.SetForegroundColor(textColor2);
     _thirdLine.SetBackgroundColor(_backgroundColor);
-    _thirdLine.SetForegroundColor(_textColor);
+    _thirdLine.SetForegroundColor(textColor3);
     _filenameLabelView.SetBackgroundColor(_backgroundColor);
-    _filenameLabelView.SetForegroundColor(_textColor);
+    _filenameLabelView.SetForegroundColor(fileNameColor);
 
     BannerView::Draw(graphicsContext);
 

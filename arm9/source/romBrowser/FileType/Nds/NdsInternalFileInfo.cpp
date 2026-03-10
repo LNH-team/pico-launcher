@@ -9,6 +9,8 @@ NdsInternalFileInfo::NdsInternalFileInfo(const FastFileRef& fastFileRef)
 {
     const auto file = std::make_unique<File>();
     _hasBanner = false;
+    _unitCode = 0;
+    _romVersion = 0;
     memset(_gameCode, 0, sizeof(_gameCode));
 
     file->Open(fastFileRef, FA_READ);
@@ -17,7 +19,19 @@ NdsInternalFileInfo::NdsInternalFileInfo(const FastFileRef& fastFileRef)
         return;
 
     u32 bytesRead;
-    if (file->Read(_gameCode, 4, bytesRead) != FR_OK)
+    if (file->Read(_gameCode, 4, bytesRead) != FR_OK || bytesRead < 4)
+        return;
+
+    if (file->Seek(0x12) != FR_OK)
+        return;
+
+    if (file->Read(&_unitCode, 1, bytesRead) != FR_OK || bytesRead < 1)
+        return;
+
+    if (file->Seek(0x1E) != FR_OK)
+        return;
+
+    if (file->Read(&_romVersion, 1, bytesRead) != FR_OK || bytesRead < 1)
         return;
 
     if (file->Seek(0x68) != FR_OK)
