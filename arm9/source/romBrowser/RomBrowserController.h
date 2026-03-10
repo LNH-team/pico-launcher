@@ -29,6 +29,8 @@ public:
         int scrollOffset, int cursorIndex, int folderIndex, int rootScrollOffset, int rootCursorIndex,
         bool enabledOnlyMode, int savedViewScrollOffset, int savedViewCursorIndex, int savedViewFolderIndex) override;
     void HideCheatDescription() override;
+    void ShowLayoutEditor() override;
+    void HideLayoutEditor() override;
     void ShowDisplaySettings() override;
     void HideDisplaySettings() override;
     void ShowDisplayInfo() override;

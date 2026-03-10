@@ -27,6 +27,7 @@
 #include "romBrowser/views/cheats/CheatsBottomSheetView.h"
 #include "romBrowser/views/DisplaySettingsBottomSheetView.h"
 #include "romBrowser/views/InfoBottomSheetView.h"
+#include "romBrowser/views/LayoutEditorBottomSheetView.h"
 #include "bgm/AudioStreamPlayer.h"
 #include "bgm/BgmService.h"
 #include "themes/ThemeInfoFactory.h"
@@ -211,6 +212,8 @@ void App::Run()
 
     Localization::Initialize(&_appSettingsService);
 
+    _layoutService.Initialize(_appSettingsService.GetAppSettings().layoutSlot);
+
     StoreVramState(_vramStateBeforeThemeLoad);
     LoadTheme();
 
@@ -354,6 +357,16 @@ void App::HandleTrigger(RomBrowserStateTrigger trigger, RomBrowserState newState
         case RomBrowserStateTrigger::HideDisplayInfo:
         {
             HandleHideDisplayInfoTrigger();
+            break;
+        }
+        case RomBrowserStateTrigger::ShowLayoutEditor:
+        {
+            HandleShowLayoutEditorTrigger();
+            break;
+        }
+        case RomBrowserStateTrigger::HideLayoutEditor:
+        {
+            HandleHideLayoutEditorTrigger();
             break;
         }
         case RomBrowserStateTrigger::ShowCheats:
@@ -501,6 +514,30 @@ void App::HandleHideDisplayInfoTrigger()
     _dialogPresenter.ShowDialog(std::move(displaySettingsDialog));
 }
 
+void App::HandleShowLayoutEditorTrigger()
+{
+    _dialogPresenter.CloseDialog();
+
+    auto layoutEditorDialog = std::make_unique<LayoutEditorBottomSheetView>(
+        &_romBrowserController, &_layoutService,
+        &_theme->GetMaterialColorScheme(), _theme->GetFontRepository(),
+        &_appSettingsService);
+    _dialogPresenter.ShowDialog(std::move(layoutEditorDialog));
+}
+
+void App::HandleHideLayoutEditorTrigger()
+{
+    _appSettingsService.GetAppSettings().layoutSlot = _layoutService.GetCurrentSlot();
+    _romBrowserController.MarkSettingsDirty();
+
+    _dialogPresenter.CloseDialog();
+
+    auto displaySettingsDialog = std::make_unique<DisplaySettingsBottomSheetView>(
+        &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository(), &_appSettingsService);
+    displaySettingsDialog->SetGraphics(_iconButtonViewVram);
+    _dialogPresenter.ShowDialog(std::move(displaySettingsDialog));
+}
+
 void App::HandleNavigateTrigger()
 {
     if (!_romBrowserBottomScreenView->IsAppBarFocused(_focusManager))
@@ -528,7 +565,8 @@ void App::HandleFolderLoadDoneTrigger()
         _theme->GetRomBrowserViewFactory(),
         &_theme->GetMaterialColorScheme(),
         _theme->GetFontRepository(),
-        &_bgmService);
+        &_bgmService,
+        &_layoutService);
     _romBrowserTopScreenView->InitVram(_subVramContext);
     _romBrowserBottomScreenView->RomBrowserViewModelInvalidated(_mainVramContext);
     if (!_focusManager.GetCurrentFocus())
@@ -560,7 +598,8 @@ void App::HandleRomBrowserViewModelInvalidated()
         _theme->GetRomBrowserViewFactory(),
         &_theme->GetMaterialColorScheme(),
         _theme->GetFontRepository(),
-        &_bgmService);
+        &_bgmService,
+        &_layoutService);
     _romBrowserTopScreenView->InitVram(_subVramContext);
     _romBrowserBottomScreenView->RomBrowserViewModelInvalidated(_mainVramContext);
 
@@ -631,7 +670,8 @@ void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)
         _theme->GetRomBrowserViewFactory(),
         &_theme->GetMaterialColorScheme(),
         _theme->GetFontRepository(),
-        &_bgmService);
+        &_bgmService,
+        &_layoutService);
     _romBrowserTopScreenView->InitVram(_subVramContext);
     _romBrowserBottomScreenView->RomBrowserViewModelInvalidated(_mainVramContext);
     if (newState == RomBrowserState::Browser)
@@ -653,13 +693,12 @@ bool App::IsRomBrowserVisible() const
         || curState == RomBrowserState::CheatDescription
         || curState == RomBrowserState::DisplaySettings
         || curState == RomBrowserState::DisplayInfo
+        || curState == RomBrowserState::LayoutEditor
         || curState == RomBrowserState::Launching;
 }
 
 void App::Update()
 {
-    constexpr int kSleepResumeBgmDelayFrames = 6;
-
     bool sleepModeActive = (SHARED_SYSTEM_FLAGS & SHARED_FLAG_SLEEP_MODE) != 0;
     if (sleepModeActive != _sleepModeWasActive)
     {

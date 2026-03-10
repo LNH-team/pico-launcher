@@ -457,6 +457,13 @@ bool DisplaySettingsBottomSheetView::HandleInput(
         return true;
     }
 
+    if (inputProvider.Triggered(InputKey::L))
+    {
+        SaveIfDirty();
+        _viewModel->ShowLayoutEditor();
+        return true;
+    }
+
     if (_themeValueLabel.IsFocused() && inputProvider.Triggered(InputKey::A))
     {
         ApplyTheme();

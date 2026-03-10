@@ -56,6 +56,16 @@ public:
         UpdateTileBuffer();
     }
 
+    void SetFont(const nft2_header_t* font)
+    {
+        if (_font == font)
+            return;
+
+        _font = font;
+        UpdateTileBuffer();
+        _stringWidth = _newStringWidth;
+    }
+
 protected:
     u32 _width;
     u32 _height;

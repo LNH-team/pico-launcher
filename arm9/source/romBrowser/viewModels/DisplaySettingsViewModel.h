@@ -64,6 +64,11 @@ public:
         _romBrowserController->HideDisplayInfo();
     }
 
+    void ShowLayoutEditor()
+    {
+        _romBrowserController->ShowLayoutEditor();
+    }
+
 private:
     IRomBrowserController* _romBrowserController;
 };

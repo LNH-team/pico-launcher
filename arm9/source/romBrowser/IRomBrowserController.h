@@ -58,6 +58,9 @@ public:
         bool enabledOnlyMode, int savedViewScrollOffset, int savedViewCursorIndex, int savedViewFolderIndex) = 0;
     virtual void HideCheatDescription() = 0;
 
+    virtual void ShowLayoutEditor() = 0;
+    virtual void HideLayoutEditor() = 0;
+
     virtual const FileInfo& GetTriggerFileInfo() const = 0;
 };
 

@@ -104,6 +104,25 @@ void RomBrowserController::HideCheatDescription()
     _stateMachine.Fire(RomBrowserStateTrigger::HideCheatDescription);
 }
 
+void RomBrowserController::ShowLayoutEditor()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::ShowLayoutEditor);
+}
+
+void RomBrowserController::HideLayoutEditor()
+{
+    if (_saveSettingsPending)
+    {
+        _saveSettingsPending = false;
+        _ioTaskQueue->Enqueue([this] (const vu8& cancelRequested)
+        {
+            _appSettingsService->Save();
+            return TaskResult<void>::Completed();
+        });
+    }
+    _stateMachine.Fire(RomBrowserStateTrigger::HideLayoutEditor);
+}
+
 void RomBrowserController::ShowDisplaySettings()
 {
     _stateMachine.Fire(RomBrowserStateTrigger::ShowDisplaySettings);

@@ -27,6 +27,7 @@
 #include "romBrowser/views/ChipView.h"
 #include "romBrowser/Theme/Material/MaterialThemeFileIconFactory.h"
 #include "romBrowser/RomBrowserController.h"
+#include "romBrowser/layout/LayoutService.h"
 #include "DialogPresenter.h"
 #include "themes/ITheme.h"
 #include "core/SharedPtr.h"
@@ -90,6 +91,7 @@ private:
     RomBrowserController _romBrowserController;
 
     DisplaySettingsViewModel _displaySettingsBottomSheetViewModel;
+    LayoutService _layoutService;
 
     FocusManager _focusManager;
 
@@ -127,6 +129,8 @@ private:
     void HandleHideDisplaySettingsTrigger();
     void HandleShowDisplayInfoTrigger();
     void HandleHideDisplayInfoTrigger();
+    void HandleShowLayoutEditorTrigger();
+    void HandleHideLayoutEditorTrigger();
     void HandleNavigateTrigger();
     void HandleFolderLoadDoneTrigger();
     void HandleRomBrowserViewModelInvalidated();
