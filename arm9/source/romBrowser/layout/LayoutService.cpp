@@ -204,7 +204,7 @@ bool LayoutService::LoadSlot(u32 slot)
         return false;
 
     u32 fileSize = file->GetSize();
-    if (fileSize < (LAYOUT_HEADER_SIZE + LAYOUT_LEGACY_DATA_SIZE))
+    if (fileSize < (LAYOUT_HEADER_SIZE))
         return false;
 
     u32 dataSize = fileSize - LAYOUT_HEADER_SIZE;
@@ -214,7 +214,7 @@ bool LayoutService::LoadSlot(u32 slot)
     u8 buf[LAYOUT_FILE_SIZE] = { 0 };
     u32 bytesRead = 0;
     if (file->Read(buf, LAYOUT_HEADER_SIZE + dataSize, bytesRead) != FR_OK
-        || bytesRead < (LAYOUT_HEADER_SIZE + LAYOUT_LEGACY_DATA_SIZE))
+        || bytesRead < (LAYOUT_HEADER_SIZE))
         return false;
 
     // Verify magic

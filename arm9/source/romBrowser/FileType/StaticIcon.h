@@ -7,7 +7,7 @@ public:
     StaticIcon(const u8* tileData, const u16* paletteData)
         : _tileData(tileData), _paletteData(paletteData) { }
 
-    void UploadGraphics(vu16* vram) const override;
+    void UploadGraphics(vu16* vram) override;
     void Update() override;
     void Draw(GraphicsContext& graphicsContext, const Rgb<8, 8, 8>& backgroundColor) override;
 

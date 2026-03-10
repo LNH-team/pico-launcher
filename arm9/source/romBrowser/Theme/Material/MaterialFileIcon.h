@@ -11,7 +11,7 @@ public:
     MaterialFileIcon(const TCHAR* name, const MaterialColorScheme* materialColorScheme,
         const IFontRepository* fontRepository);
 
-    void UploadGraphics(vu16* vram) const override;
+    void UploadGraphics(vu16* vram) override;
     void Draw(GraphicsContext& graphicsContext, const Rgb<8, 8, 8>& backgroundColor) override;
 
 protected:

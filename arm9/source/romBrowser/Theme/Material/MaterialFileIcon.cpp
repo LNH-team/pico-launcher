@@ -24,7 +24,7 @@ MaterialFileIcon::MaterialFileIcon(const TCHAR* name, const MaterialColorScheme*
     _displayName[i] = 0;
 }
 
-void MaterialFileIcon::UploadGraphics(vu16* vram) const
+void MaterialFileIcon::UploadGraphics(vu16* vram)
 {
     dma_ntrCopy32(3, GetIconTiles(), vram, 32 * 32 / 2);
 

@@ -7,7 +7,7 @@
 #include "gui/palette/DirectPalette.h"
 #include "StaticIcon.h"
 
-void StaticIcon::UploadGraphics(vu16* vram) const
+void StaticIcon::UploadGraphics(vu16* vram)
 {
     dma_ntrCopy32(3, _tileData, vram, 512);
 }
