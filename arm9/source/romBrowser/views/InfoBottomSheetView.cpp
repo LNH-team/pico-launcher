@@ -365,8 +365,8 @@ SettingsInfoBottomSheetView::SettingsInfoBottomSheetView(
 
     buildInfoLine(consoleLine, sizeof(consoleLine) / sizeof(consoleLine[0]),
         Localization::Translate("information_console"), getConsoleValueText());
-
-    buildInfoLine(usrcheatLine, sizeof(usrcheatLine) / sizeof(usrcheatLine[0]),
+        
+        buildInfoLine(usrcheatLine, sizeof(usrcheatLine) / sizeof(usrcheatLine[0]),
         u"usrcheat.dat",
         hasUsrcheatFile() ? Localization::Translate("information_usrcheat_found") : Localization::Translate("information_usrcheat_not_found"));
 

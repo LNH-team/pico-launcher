@@ -35,7 +35,6 @@ public:
     bool TryGetGameIdentity(const char* path,
         char* outGameCode, u32 outGameCodeSize, bool* outHasGameCode,
         u32* outHeaderCrc, bool* outHasHeaderCrc) const;
-    void SetCheatStats(const char* path, u32 activeCount);
     void SetGameIdentity(const char* path,
         const char* gameCode, bool hasGameCode,
         u32 headerCrc, bool hasHeaderCrc);

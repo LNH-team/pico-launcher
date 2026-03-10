@@ -12,8 +12,6 @@
 //     pathLen:          u8   (string byte length, without null terminator)
 //     path:             char[pathLen]
 //     launchCount:      u32 LE
-//     hasCheatStats:    u8  (0 or 1)
-//     cheatActiveCount: u32 LE
 //     dateLen:          u8
 //     date:             char[dateLen]
 //     timeLen:          u8
@@ -655,42 +653,3 @@ void LaunchStatsService::SetGameIdentity(const char* path,
     Save();
 }
 
-void LaunchStatsService::SetCheatStats(const char* path, u32 activeCount)
-{
-    if (!path || path[0] == 0)
-        return;
-
-    EnsureLoaded();
-
-    const char* normalized = path;
-    const char* colon = strchr(path, ':');
-    if (colon && colon < path + 6)
-        normalized = colon;
-
-    for (u32 i = 0; i < _count; i++)
-    {
-        if (!strcasecmp(_infos[i].path.GetString(), normalized))
-        {
-            if (_infos[i].cheatActiveCount == activeCount)
-                return;
-
-            _infos[i].cheatActiveCount = activeCount;
-            _infos[i].hasCheatStats = true;
-            Save();
-            return;
-        }
-    }
-
-    u32 newCount = _count + 1;
-    auto newInfos = std::make_unique_for_overwrite<Info[]>(newCount);
-    for (u32 i = 0; i < _count; i++)
-        newInfos[i] = _infos[i];
-
-    newInfos[newCount - 1].path = normalized;
-    newInfos[newCount - 1].cheatActiveCount = activeCount;
-    newInfos[newCount - 1].hasCheatStats = true;
-
-    _infos = std::move(newInfos);
-    _count = newCount;
-    Save();
-}

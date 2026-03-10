@@ -573,7 +573,6 @@ void LayoutEditorBottomSheetView::GetItemValueText(
                 case 0: mini_snprintf(buf, bufLen, "%d", _themeColorR); break;
                 case 1: mini_snprintf(buf, bufLen, "%d", _themeColorG); break;
                 case 2: mini_snprintf(buf, bufLen, "%d", _themeColorB); break;
-                case 3: mini_snprintf(buf, bufLen, "Press A"); break;
             }
             break;
     }

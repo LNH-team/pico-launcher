@@ -23,78 +23,6 @@
 static constexpr int GAME_DETAILS_CHEATS_CHIP_WIDTH = 64;
 static constexpr int GAME_DETAILS_FAVORITES_CHIP_WIDTH = 80;
 
-static bool BuildStatsPath(const FileInfo& fileInfo, char* outPath, u32 outPathSize)
-{
-    if (!outPath || outPathSize == 0)
-    {
-        return false;
-    }
-
-    outPath[0] = 0;
-    const TCHAR* fullPath = fileInfo.GetFullPath();
-    if (fullPath && fullPath[0] != 0)
-    {
-        strncpy(outPath, fullPath, outPathSize - 1);
-        outPath[outPathSize - 1] = 0;
-    }
-    else
-    {
-        if (f_getcwd(outPath, outPathSize) != FR_OK)
-        {
-            return false;
-        }
-
-        int idx = strlcat(outPath, "/", outPathSize);
-        if (idx > 1 && outPath[idx - 2] == '/')
-        {
-            outPath[idx - 1] = 0;
-        }
-        strlcat(outPath, fileInfo.GetFileName(), outPathSize);
-    }
-
-    const char* normalizedPath = strchr(outPath, ':');
-    if (!normalizedPath)
-    {
-        outPath[0] = 0;
-        return false;
-    }
-
-    if (normalizedPath != outPath)
-    {
-        size_t len = strlen(normalizedPath);
-        memmove(outPath, normalizedPath, len + 1);
-    }
-
-    return outPath[0] != 0;
-}
-
-static void BuildCheatsLabelWithActiveText(const char16_t* label, u32 activeCount, char16_t* outText, u32 outTextLen)
-{
-    if (!outText || outTextLen == 0)
-        return;
-
-    outText[0] = 0;
-    u32 cursor = 0;
-    if (label)
-    {
-        for (; label[cursor] != 0 && cursor + 1 < outTextLen; cursor++)
-        {
-            outText[cursor] = label[cursor];
-        }
-    }
-    if (cursor + 2 < outTextLen)
-    {
-        outText[cursor++] = ' ';
-        char countText[16];
-        mini_snprintf(countText, sizeof(countText), "%lu", activeCount);
-        for (u32 i = 0; countText[i] != 0 && cursor + 1 < outTextLen; i++)
-        {
-            outText[cursor++] = (char16_t)(unsigned char)countText[i];
-        }
-    }
-    outText[cursor] = 0;
-}
-
 static u32 ComputeCrc32(const void* buffer, u32 length)
 {
     u32 crc = ~0u;
@@ -143,8 +71,6 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
 
     bool isNds = false;
 
-    u32 cheatActiveCount = 0;
-
     if (_romBrowserController) {
         const auto& viewModel = _romBrowserController->GetRomBrowserViewModel();
         if (viewModel.IsValid()) {
@@ -163,26 +89,40 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                     }
 
                     if (isNds) {
-                        char statsPath[256];
-                        bool hasStatsPath = BuildStatsPath(fileInfo, statsPath, sizeof(statsPath));
-                        if (hasStatsPath)
-                        {
-                            bool hasCheatStats = false;
-                            LaunchStatsService::Instance().TryGetInfo(statsPath,
-                                nullptr,
-                                nullptr, 0,
-                                nullptr, 0,
-                                &cheatActiveCount, &hasCheatStats);
-                            if (!hasCheatStats)
-                            {
-                                cheatActiveCount = 0;
-                            }
-                        }
-
                         char gameCodeBuf[5] = { 0 };
                         bool hasCachedGameCode = false;
                         u32 crc32 = 0;
                         bool hasCachedCrc = false;
+
+                        char statsPath[256];
+                        bool hasStatsPath = false;
+
+                        {
+                            const TCHAR* fullPath = fileInfo.GetFullPath();
+                            if (fullPath && fullPath[0] != 0) {
+                                strncpy(statsPath, fullPath, sizeof(statsPath) - 1);
+                                statsPath[sizeof(statsPath) - 1] = 0;
+                            } else {
+                                if (f_getcwd(statsPath, sizeof(statsPath)) == FR_OK) {
+                                    int idx = strlcat(statsPath, "/", sizeof(statsPath));
+                                    if (idx > 1 && statsPath[idx - 2] == '/')
+                                        statsPath[idx - 1] = 0;
+                                    strlcat(statsPath, fileInfo.GetFileName(), sizeof(statsPath));
+                                } else {
+                                    statsPath[0] = 0;
+                                }
+                            }
+                            const char* normalizedPath = strchr(statsPath, ':');
+                            if (normalizedPath) {
+                                if (normalizedPath != statsPath) {
+                                    size_t len = strlen(normalizedPath);
+                                    memmove(statsPath, normalizedPath, len + 1);
+                                }
+                                hasStatsPath = statsPath[0] != 0;
+                            } else {
+                                statsPath[0] = 0;
+                            }
+                        }
 
                         if (hasStatsPath)
                         {
@@ -224,8 +164,7 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                                     crc32 = ComputeCrc32(header, sizeof(header));
                                 }
                             }
-
-                            // Memorizza anche il caso CRC non disponibile (0) per evitare ricalcoli a ogni apertura.
+                            
                             hasCrc = true;
                         }
 
@@ -284,10 +223,7 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
         AddChildTail(&_gameCodeLabel);
         AddChildTail(&_crcLabel);
 
-        char16_t cheatsLabelText[32];
-        BuildCheatsLabelWithActiveText(Localization::Translate("cheats"), cheatActiveCount,
-            cheatsLabelText, sizeof(cheatsLabelText) / sizeof(cheatsLabelText[0]));
-        _cheatsChip.SetText(cheatsLabelText);
+        _cheatsChip.SetText(Localization::Translate("cheats"));
         _cheatsChip.SetSecondaryText(u"");
         _cheatsChip.SetCenteredText(true);
         _cheatsChip.SetMinWidth(GAME_DETAILS_CHEATS_CHIP_WIDTH);

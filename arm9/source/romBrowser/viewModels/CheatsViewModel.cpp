@@ -1,7 +1,6 @@
 #include "common.h"
 #include "cheats/ICheatRepository.h"
 #include "fat/File.h"
-#include "services/launchStats/LaunchStatsService.h"
 #include "CheatsViewModel.h"
 
 CheatsViewModel::CheatsViewModel(const FileInfo& romFileInfo, IRomBrowserController* romBrowserController)
@@ -11,19 +10,13 @@ CheatsViewModel::CheatsViewModel(const FileInfo& romFileInfo, IRomBrowserControl
     _categoryNameStack.fill(nullptr);
     _loadCheatsTask = _romBrowserController->GetIoTaskQueue()->Enqueue([this] (const vu8& cancelRequested)
     {
-        char statsPath[256];
-        if (BuildStatsPath(statsPath, sizeof(statsPath)))
-        {
-            _statsPath = statsPath;
-        }
-
         _cheats = _romBrowserController->GetCheatRepository().GetCheatsForGame(_romFileInfo.GetFastFileRef());
         if (_cheats)
         {
             _categoryStack[0] = _cheats.get();
             _isUsrCheatDatMissing = false;
             _state = State::DisplayCheats;
-            UpdateRomCheatStatsFromTree(true);
+            UpdateRomCheatStatsFromTree();
         }
         else
         {
@@ -32,7 +25,6 @@ CheatsViewModel::CheatsViewModel(const FileInfo& romFileInfo, IRomBrowserControl
             _state = State::NoCheats;
             _romActiveCheatCount = 0;
             _romTotalCheatCount = 0;
-            SaveRomCheatStatsToStats();
         }
 
         return TaskResult<void>::Completed();
@@ -85,7 +77,7 @@ bool CheatsViewModel::ItemActivated()
         if (wasEnabled != isEnabled || cheatCategory->GetIsMaxOneCheatActive())
         {
             _changed = true;
-            UpdateRomCheatStatsFromTree(false);
+            UpdateRomCheatStatsFromTree();
         }
     }
 
@@ -103,7 +95,6 @@ void CheatsViewModel::DisableAllCheats()
     _changed = true;
     _romActiveCheatCount = 0;
     _romTotalCheatCount = CountCheats(_cheats.get());
-    SaveRomCheatStatsToStats();
 
     if (_selectedOnlyMode)
     {
@@ -133,8 +124,6 @@ void CheatsViewModel::Close()
 {
     if (_changed)
     {
-        SaveRomCheatStatsToStats();
-
         // Save which cheats are enabled/disabled
         _romBrowserController->GetIoTaskQueue()->Enqueue(
             [romBrowserController = _romBrowserController, cheats = move(_cheats)] (const vu8& cancelRequested)
@@ -307,43 +296,7 @@ void CheatsViewModel::BuildSelectedCheatsList()
     CopyActiveCheats(_cheats.get(), _selectedCheats.get(), offset);
 }
 
-bool CheatsViewModel::BuildStatsPath(char* outPath, u32 outPathSize) const
-{
-    if (!outPath || outPathSize == 0)
-        return false;
-
-    outPath[0] = 0;
-    const TCHAR* fullPath = _romFileInfo.GetFullPath();
-    if (fullPath && fullPath[0] != 0)
-    {
-        strncpy(outPath, fullPath, outPathSize - 1);
-        outPath[outPathSize - 1] = 0;
-    }
-    else
-    {
-        if (f_getcwd(outPath, outPathSize) != FR_OK)
-            return false;
-
-        int idx = strlcat(outPath, "/", outPathSize);
-        if (idx > 1 && outPath[idx - 2] == '/')
-            outPath[idx - 1] = 0;
-        strlcat(outPath, _romFileInfo.GetFileName(), outPathSize);
-    }
-
-    const char* normalizedPath = strchr(outPath, ':');
-    if (!normalizedPath)
-        return false;
-
-    if (normalizedPath != outPath)
-    {
-        size_t len = strlen(normalizedPath);
-        memmove(outPath, normalizedPath, len + 1);
-    }
-
-    return outPath[0] != 0;
-}
-
-void CheatsViewModel::UpdateRomCheatStatsFromTree(bool saveToStats)
+void CheatsViewModel::UpdateRomCheatStatsFromTree()
 {
     if (_cheats == nullptr)
     {
@@ -355,18 +308,4 @@ void CheatsViewModel::UpdateRomCheatStatsFromTree(bool saveToStats)
         _romTotalCheatCount = CountCheats(_cheats.get());
         _romActiveCheatCount = CountActiveCheats(_cheats.get());
     }
-
-    if (saveToStats)
-    {
-        SaveRomCheatStatsToStats();
-    }
-}
-
-void CheatsViewModel::SaveRomCheatStatsToStats() const
-{
-    if (_statsPath.GetString()[0] == 0)
-        return;
-
-    LaunchStatsService::Instance().SetCheatStats(
-        _statsPath.GetString(), _romActiveCheatCount);
 }
