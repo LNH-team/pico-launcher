@@ -17,6 +17,7 @@ public:
     void Update() override;
     void Draw(GraphicsContext& graphicsContext) override;
     void Focus(FocusManager& focusManager) override { focusManager.Unfocus(); }
+    bool AllowDismissGestures() const override { return false; }
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
     bool HandleTouch(const TouchEvent& event, FocusManager& focusManager) override;
     void OnDismissed() override;

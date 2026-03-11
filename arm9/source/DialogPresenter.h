@@ -67,6 +67,9 @@ public:
     /// @brief Returns true if no dialog is being shown or animated.
     bool IsIdle() const { return _curState == State::Idle && !_nextDialog; }
 
+    /// @brief Returns true while dialogs are opening/closing or pending show.
+    bool IsTransitioning() const;
+
 private:
     enum class State
     {

@@ -59,6 +59,19 @@ static bool TryGetThemeReloadLauncherPath(const char*& outLauncherPath)
     return false;
 }
 
+class MaskedInputProvider final : public InputProvider
+{
+public:
+    MaskedInputProvider(const InputProvider& source, InputKey mask)
+    {
+        _currentKeys = source.GetCurrentKeys() & mask;
+        _triggeredKeys = source.GetTriggeredKeys() & mask;
+        _releasedKeys = source.GetReleasedKeys() & mask;
+    }
+
+    void Update() override { }
+};
+
 App::App(IAppSettingsService& appSettingsService, IBgmService& bgmService)
     : _mainObjPltt(GFX_PLTT_OBJ_MAIN)
     , _mainObjVram(GFX_OBJ_MAIN)
@@ -730,16 +743,25 @@ void App::Update()
     bool isRomBrowserVisible = IsRomBrowserVisible();
     if (isRomBrowserVisible && !_exit && curState != RomBrowserState::Launching)
     {
+        const bool blockNonBInput = _dialogPresenter.IsTransitioning();
         auto* currentDialog = _dialogPresenter.GetCurrentDialog();
+        const MaskedInputProvider bOnlyInput(_inputRepeater, InputKey::B);
+        const InputProvider& activeInput = blockNonBInput
+            ? static_cast<const InputProvider&>(bOnlyInput)
+            : static_cast<const InputProvider&>(_inputRepeater);
+
         if (currentDialog && !_focusManager.GetCurrentFocus())
-            currentDialog->HandleInput(_inputRepeater, _focusManager);
-        else
+            currentDialog->HandleInput(activeInput, _focusManager);
+        else if (!blockNonBInput)
             _focusManager.Update(_inputRepeater);
 
-        _touchProvider.Update();
-        if (_touchProvider.HasEvent())
+        if (!blockNonBInput)
         {
-            DispatchTouch(_touchProvider.GetEvent());
+            _touchProvider.Update();
+            if (_touchProvider.HasEvent())
+            {
+                DispatchTouch(_touchProvider.GetEvent());
+            }
         }
     }
 

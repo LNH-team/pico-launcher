@@ -19,9 +19,6 @@
 #define INFO_FIRST_LABEL_Y  30
 #define INFO_LINE_SPACING   12
 #define INFO_GAP 8
-#define SWIPE_BACK_MIN_X    24
-#define SWIPE_BACK_MAX_Y    28
-#define SWIPE_BACK_START_X  96
 
 static const char16_t* getModeValueText()
 {
@@ -136,7 +133,7 @@ static void copyUserNameFromFirmware(char16_t* outText, u32 outTextLength)
 
     if (firmwareNameLen == 0 || firmwareNameLen > 10)
     {
-        StringUtil::Copy(outText, u"Unknown", outTextLength);
+        StringUtil::Copy(outText, Localization::Translate("information_unknown"), outTextLength);
         return;
     }
 
@@ -154,7 +151,7 @@ static void copyUserNameFromFirmware(char16_t* outText, u32 outTextLength)
 
     if (outIdx == 0)
     {
-        StringUtil::Copy(outText, u"Unknown", outTextLength);
+        StringUtil::Copy(outText, Localization::Translate("information_unknown"), outTextLength);
         return;
     }
 
@@ -187,7 +184,7 @@ static void copyUserMessageFromFirmware(char16_t* outText, u32 outTextLength)
 
     if (outIdx == 0)
     {
-        outText[0] = 0;
+        StringUtil::Copy(outText, Localization::Translate("information_unknown"), outTextLength);
         return;
     }
 
@@ -204,7 +201,7 @@ static void copyBirthDateFromFirmware(char16_t* outText, u32 outTextLength)
 
     if (day == 0 || day > 31 || month == 0 || month > 12)
     {
-        StringUtil::Copy(outText, u"Unknown", outTextLength);
+        StringUtil::Copy(outText, Localization::Translate("information_unknown"), outTextLength);
         return;
     }
 

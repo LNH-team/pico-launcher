@@ -59,6 +59,8 @@ private:
     int _themeCount = 0;
     int _selectedThemeIdx = 0;
     int _originalThemeIdx = 0;
+    bool _themesLoaded = false;
+    String<char, 64> _pendingThemeName;
 
     static constexpr int kMaxLanguageCount = 16;
     struct LanguageEntry
@@ -69,6 +71,8 @@ private:
     std::array<LanguageEntry, kMaxLanguageCount> _languageEntries;
     int _languageCount = 0;
     int _selectedLanguageIdx = 0;
+    bool _languagesLoaded = false;
+    String<char, 64> _pendingLanguageName;
 
     IconButton2DView CreateLayoutOptionIconButton();
     IconButton2DView CreateSortOptionIconButton();
@@ -76,12 +80,15 @@ private:
 
     void UpdateLabels();
     void LoadThemes();
+    void EnsureThemesLoaded();
     void UpdateThemeUI();
     void ChangeTheme(int newIdx);
     void ApplyTheme();
     void LoadLanguages();
+    void EnsureLanguagesLoaded();
     void UpdateLanguageUI();
     void ChangeLanguage(int newIdx);
+    void ReleaseLazyLists();
     void SaveIfDirty();
     u32 LoadIcon(IVramManager& vramManager, const unsigned int* tiles, u32 tilesLength) const;
 

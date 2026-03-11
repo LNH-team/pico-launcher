@@ -5,9 +5,26 @@
 #include "core/mini-printf.h"
 #include "LayoutService.h"
 
-// Binary file layout:
-//   magic[4]   = "LYOT"
-//   version[1] = 1
+/*
+ * * Header (5 bytes):
+ * - magic:        u8[4]    "LYOT"
+ * - version:      u8       1
+ * * * Data Block (139 bytes - Packed Data):
+ * - DateTime1:    (10b)    visible(u8), y(s16 LE), x(s16 LE), format(u8), separator(u8), font(u8), R,G,B(u8)
+ * - DateTime2:    (10b)    visible(u8), y(s16 LE), x(s16 LE), format(u8), separator(u8), font(u8), R,G,B(u8)
+ * - Prefix:       (12b)    visible(u8), y,x(s16 LE), font(u8), dash(u8), R,G,B(u8), gbaMode,ntrMode,twlMode(u8)
+ * - Game ID:      (17b)    visible(u8), y,x(s16 LE), font(u8), dash(u8), R,G,B(u8), showLbl(u8), lblFont(u8), lblY,lblX(s16 LE), lblR,lblG,lblB(u8)
+ * - Region:       (10b)    visible(u8), y,x(s16 LE), font(u8), dash(u8), R,G,B(u8)
+ * - Version:      (9b)     visible(u8), y,x(s16 LE), font(u8), R,G,B(u8)
+ * - CRC:          (9b)     visible(u8), y,x(s16 LE), font(u8), R,G,B(u8)
+ * - Username:     (9b)     visible(u8), y,x(s16 LE), font(u8), R,G,B(u8)
+ * - Box Art:      (5b)     visible(u8), y,x(s16 LE)
+ * - Icon:         (5b)     visible(u8), y,x(s16 LE)
+ * - ROM Row 1:    (9b)     visible(u8), y,x(s16 LE), font(u8), R,G,B(u8)
+ * - ROM Row 2:    (9b)     visible(u8), y,x(s16 LE), font(u8), R,G,B(u8)
+ * - ROM Row 3:    (9b)     visible(u8), y,x(s16 LE), font(u8), R,G,B(u8)
+ * - File Name:    (11b)    visible(u8), y,x(s16 LE), font(u8), scroll(u8), speed(u8), R,G,B(u8)
+ */
 
 #define LAYOUT_HEADER_SIZE  5u   // magic(4) + version(1)
 #define LAYOUT_PACKED_DATA_SIZE 139u
@@ -59,7 +76,7 @@ static void PackLayoutData(const LayoutData& d, u8* buf)
     writeU8(d.prefix.ntrPrefixMode);
     writeU8(d.prefix.twlPrefixMode);
 
-    // Game ID
+    // Title ID
     writeU8(d.gameId.visible);
     writeS16(d.gameId.y);
     writeS16(d.gameId.x);
@@ -235,7 +252,7 @@ static void UnpackLayoutData(const u8* buf, u32 dataSize, LayoutData& d)
     if (!readU8OrReturn(d.prefix.ntrPrefixMode)) return;
     if (!readU8OrReturn(d.prefix.twlPrefixMode)) return;
 
-    // GAME ID
+    // TITLE ID
     if (!readU8OrReturn(d.gameId.visible)) return;
     if (!readS16OrReturn(d.gameId.y)) return;
     if (!readS16OrReturn(d.gameId.x)) return;

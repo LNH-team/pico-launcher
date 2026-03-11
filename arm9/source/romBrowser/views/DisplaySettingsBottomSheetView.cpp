@@ -78,30 +78,11 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     // , _filtersLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
 
 {
-    LoadLanguages();
     const char* currLang = _appSettingsService->GetAppSettings().language.GetString();
-    _selectedLanguageIdx = 0;
-    for (int i = 0; i < _languageCount; ++i)
-    {
-        if (strcasecmp(currLang, _languageEntries[i].fileName.GetString()) == 0)
-        {
-            _selectedLanguageIdx = i;
-            break;
-        }
-    }
+    _pendingLanguageName = currLang ? currLang : "English";
 
-    LoadThemes();
     const char* currTheme = _appSettingsService->GetAppSettings().theme.GetString();
-    _selectedThemeIdx = 0;
-    for (int i = 0; i < _themeCount; ++i)
-    {
-        if (strcasecmp(currTheme, _themeNames[i].GetString()) == 0)
-        {
-            _selectedThemeIdx = i;
-            break;
-        }
-    }
-    _originalThemeIdx = _selectedThemeIdx;
+    _pendingThemeName = currTheme ? currTheme : "material";
 
     Localization::Initialize(_appSettingsService);
     _titleLabel.SetText(Localization::Translate("display_settings"));
@@ -144,8 +125,13 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
 
 void DisplaySettingsBottomSheetView::ChangeLanguage(int newIdx)
 {
+    EnsureLanguagesLoaded();
+    if (_languageCount <= 0)
+        return;
+
     _selectedLanguageIdx = newIdx;
     _appSettingsService->GetAppSettings().language = _languageEntries[_selectedLanguageIdx].fileName.GetString();
+    _pendingLanguageName = _languageEntries[_selectedLanguageIdx].fileName;
     _settingsDirty = true;
     Localization::Initialize(_appSettingsService);
     UpdateLanguageUI();
@@ -154,6 +140,29 @@ void DisplaySettingsBottomSheetView::ChangeLanguage(int newIdx)
     _sortingLabel.SetText(Localization::Translate("sorting"));
     _themeLabel.SetText(Localization::Translate("theme"));
     _languageLabel.SetText(Localization::Translate("language"));
+}
+
+void DisplaySettingsBottomSheetView::EnsureThemesLoaded()
+{
+    if (_themesLoaded)
+        return;
+
+    LoadThemes();
+    _themesLoaded = true;
+    _selectedThemeIdx = 0;
+
+    for (int i = 0; i < _themeCount; ++i)
+    {
+        if (strcasecmp(_pendingThemeName.GetString(), _themeNames[i].GetString()) == 0)
+        {
+            _selectedThemeIdx = i;
+            break;
+        }
+    }
+
+    _originalThemeIdx = _selectedThemeIdx;
+    _pendingThemeName = _themeNames[_selectedThemeIdx];
+    UpdateThemeUI();
 }
 
 void DisplaySettingsBottomSheetView::LoadThemes()
@@ -183,7 +192,7 @@ void DisplaySettingsBottomSheetView::LoadThemes()
 
     if (_themeCount == 0)
     {
-        _themeNames[0] = "NULL";
+        _themeNames[0] = "material";
         _themeCount = 1;
     }
     else
@@ -246,9 +255,36 @@ void DisplaySettingsBottomSheetView::LoadLanguages()
     }
 }
 
+void DisplaySettingsBottomSheetView::EnsureLanguagesLoaded()
+{
+    if (_languagesLoaded)
+        return;
+
+    LoadLanguages();
+    _languagesLoaded = true;
+    _selectedLanguageIdx = 0;
+
+    for (int i = 0; i < _languageCount; ++i)
+    {
+        if (strcasecmp(_pendingLanguageName.GetString(), _languageEntries[i].fileName.GetString()) == 0)
+        {
+            _selectedLanguageIdx = i;
+            break;
+        }
+    }
+
+    _pendingLanguageName = _languageEntries[_selectedLanguageIdx].fileName;
+    UpdateLanguageUI();
+}
+
 void DisplaySettingsBottomSheetView::ChangeTheme(int newIdx)
 {
+    EnsureThemesLoaded();
+    if (_themeCount <= 0)
+        return;
+
     _selectedThemeIdx = newIdx;
+    _pendingThemeName = _themeNames[_selectedThemeIdx];
     UpdateThemeUI();
 }
 
@@ -262,6 +298,7 @@ void DisplaySettingsBottomSheetView::ApplyTheme()
     _appSettingsService->GetAppSettings().theme = _themeNames[_selectedThemeIdx].GetString();
     _settingsDirty = true;
     SaveIfDirty();
+    ReleaseLazyLists();
     _viewModel->RequestThemeReload();
     _viewModel->Close();
 }
@@ -270,15 +307,31 @@ void DisplaySettingsBottomSheetView::UpdateThemeUI()
 {
     _themeLabel.SetPosition(THEME_LABEL_X, _position.y + THEME_LABEL_Y);
     _themeValueLabel.SetPosition(THEME_VALUE_X, _position.y + THEME_LABEL_Y);
-    _themeValueLabel.SetText(_themeNames[_selectedThemeIdx].GetString());
+    _themeValueLabel.SetText(_themesLoaded
+        ? _themeNames[_selectedThemeIdx].GetString()
+        : _pendingThemeName.GetString());
 }
 
 void DisplaySettingsBottomSheetView::UpdateLanguageUI()
 {
     _languageLabel.SetPosition(LANGUAGE_LABEL_X, _position.y + LANGUAGE_LABEL_Y);
     _languageValueLabel.SetPosition(LANGUAGE_VALUE_X, _position.y + LANGUAGE_LABEL_Y);
-    if (_languageCount > 0)
+    if (_languagesLoaded && _languageCount > 0)
         _languageValueLabel.SetText(_languageEntries[_selectedLanguageIdx].displayName);
+    else
+        _languageValueLabel.SetText(_pendingLanguageName.GetString());
+}
+
+void DisplaySettingsBottomSheetView::ReleaseLazyLists()
+{
+    _themesLoaded = false;
+    _themeCount = 0;
+    _selectedThemeIdx = 0;
+    _originalThemeIdx = 0;
+
+    _languagesLoaded = false;
+    _languageCount = 0;
+    _selectedLanguageIdx = 0;
 }
 
 IconButton2DView DisplaySettingsBottomSheetView::CreateLayoutOptionIconButton()
@@ -451,8 +504,14 @@ void DisplaySettingsBottomSheetView::SaveIfDirty()
 bool DisplaySettingsBottomSheetView::HandleInput(
     const InputProvider& inputProvider, FocusManager& focusManager)
 {
+    if (_themeValueLabel.IsFocused())
+        EnsureThemesLoaded();
+    if (_languageValueLabel.IsFocused())
+        EnsureLanguagesLoaded();
+
     if (inputProvider.Triggered(InputKey::R))
     {
+        ReleaseLazyLists();
         _viewModel->ShowInfo();
         return true;
     }
@@ -460,6 +519,7 @@ bool DisplaySettingsBottomSheetView::HandleInput(
     if (inputProvider.Triggered(InputKey::L))
     {
         SaveIfDirty();
+        ReleaseLazyLists();
         _viewModel->ShowLayoutEditor();
         return true;
     }
@@ -477,6 +537,7 @@ bool DisplaySettingsBottomSheetView::HandleInput(
             _settingsDirty = true;
             SaveIfDirty();
         }
+        ReleaseLazyLists();
         _viewModel->Close();
         return true;
     }
@@ -491,6 +552,7 @@ void DisplaySettingsBottomSheetView::OnDismissed()
         _settingsDirty = true;
         SaveIfDirty();
     }
+    ReleaseLazyLists();
     _viewModel->Close();
 }
 
@@ -533,11 +595,13 @@ bool DisplaySettingsBottomSheetView::HandleTouch(const TouchEvent& event, FocusM
         }
         if (_themeValueLabel.GetBounds().Contains(event.position))
         {
+            EnsureThemesLoaded();
             focusManager.Focus(&_themeValueLabel);
             return true;
         }
         if (_languageValueLabel.GetBounds().Contains(event.position))
         {
+            EnsureLanguagesLoaded();
             focusManager.Focus(&_languageValueLabel);
             return true;
         }
@@ -582,6 +646,10 @@ bool DisplaySettingsBottomSheetView::HandleTouch(const TouchEvent& event, FocusM
 
     if (_themeValueLabel.GetBounds().Contains(event.position))
     {
+        EnsureThemesLoaded();
+        if (_themeCount <= 0)
+            return true;
+
         focusManager.Focus(&_themeValueLabel);
         int newIdx;
         if (isHorizontalSwipe)
@@ -600,6 +668,10 @@ bool DisplaySettingsBottomSheetView::HandleTouch(const TouchEvent& event, FocusM
 
     if (_languageValueLabel.GetBounds().Contains(event.position))
     {
+        EnsureLanguagesLoaded();
+        if (_languageCount <= 0)
+            return true;
+
         focusManager.Focus(&_languageValueLabel);
         int newIdx;
         if (isHorizontalSwipe)
@@ -641,6 +713,7 @@ View* DisplaySettingsBottomSheetView::MoveFocus(View* currentFocus,
             }
             else if (direction == FocusMoveDirection::Up)
             {
+                EnsureLanguagesLoaded();
                 return &_languageValueLabel;
             }
             else //if (direction == FocusMoveDirection::Down)
@@ -677,6 +750,7 @@ View* DisplaySettingsBottomSheetView::MoveFocus(View* currentFocus,
             }
             else //if (direction == FocusMoveDirection::Down)
             {
+                EnsureThemesLoaded();
                 return &_themeValueLabel;
             }
         }
@@ -685,6 +759,10 @@ View* DisplaySettingsBottomSheetView::MoveFocus(View* currentFocus,
     idx = 0;
     if (currentFocus == &_themeValueLabel)
     {
+        EnsureThemesLoaded();
+        if (_themeCount <= 0)
+            return &_themeValueLabel;
+
         if (direction == FocusMoveDirection::Left)
         {
             int newIdx = (_selectedThemeIdx - 1 + _themeCount) % _themeCount;
@@ -700,11 +778,18 @@ View* DisplaySettingsBottomSheetView::MoveFocus(View* currentFocus,
         if (direction == FocusMoveDirection::Up)
             return &_sortOptions[0];
         if (direction == FocusMoveDirection::Down)
+        {
+            EnsureLanguagesLoaded();
             return &_languageValueLabel;
+        }
     }
     idx = 0;
     if (currentFocus == &_languageValueLabel)
     {
+        EnsureLanguagesLoaded();
+        if (_languageCount <= 0)
+            return &_languageValueLabel;
+
         if (direction == FocusMoveDirection::Left)
         {
             int newIdx = (_selectedLanguageIdx - 1 + _languageCount) % _languageCount;
@@ -718,7 +803,10 @@ View* DisplaySettingsBottomSheetView::MoveFocus(View* currentFocus,
             return &_languageValueLabel;
         }
         if (direction == FocusMoveDirection::Up)
+        {
+            EnsureThemesLoaded();
             return &_themeValueLabel;
+        }
         if (direction == FocusMoveDirection::Down)
         {
             if (idx >= (int)_layoutOptions.size())

@@ -4,25 +4,27 @@
 #include "fat/File.h"
 #include "rtcIpc.h"
 
-// Binary format for stats.bin (version 1):
-//   magic:   u8[4]  = "STAT"
-//   version: u8     = 1
-//   count:   u32 LE
-//   Per entry:
-//     pathLen:       u8
-//     path:          char[pathLen]
-//     launchCount:   u32 LE
-//     dateLen:       u8
-//     date:          char[dateLen]
-//     timeLen:       u8
-//     time:          char[timeLen]
-//     hasRomVersion: u8  (0 or 1)
-//     romVersion:    u8
-//     hasID:         u8  (0 or 1)
-//     idLen:         u8  (0..16)
-//     id:            char[idLen]
-//     hasHeaderCrc:  u8  (0 or 1)
-//     headerCrc:     u32 LE
+/*
+ * * Global Header (9 bytes):
+ * - magic:           u8[4]    "STAT"
+ * - version:         u8       1
+ * - entryCount:      u32 (LE) Total number of game records
+ * * * Data Record (Repeated entryCount times - VARIABLE SIZE):
+ * - pathLen:         u8       Length of the ROM path string
+ * - path:            char[]   ROM path (ASCII, NO null-terminator)
+ * - launchCount:     u32 (LE) Total number of times launched
+ * - dateLen:         u8       Length of date string (typically 10: "YYYY-MM-DD")
+ * - date:            char[]   Last launch date (ASCII)
+ * - timeLen:         u8       Length of time string (typically 8: "HH:MM:SS")
+ * - time:            char[]   Last launch time (ASCII)
+ * - hasRomVersion:   u8       Boolean flag (0 = No, 1 = Yes)
+ * - romVersion:      u8       Internal version byte
+ * - hasID:           u8       Boolean flag (0 = No, 1 = Yes)
+ * - idLen:           u8       Length of Game ID (e.g., "NTR-AMQE")
+ * - id:              char[]   Game ID string (ASCII)
+ * - hasHeaderCrc:    u8       Boolean flag (0 = No, 1 = Yes)
+ * - headerCrc:       u32 (LE) Cached CRC32 of the ROM header
+ */
 
 static const u8  STATS_VERSION  = 1;
 

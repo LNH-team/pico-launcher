@@ -126,6 +126,14 @@ bool DialogPresenter::HandleTouch(const TouchEvent& event, FocusManager& focusMa
         return false;
 
     int dialogTopY = _yAnimator.GetValue();
+    const bool allowDismissGestures = _currentDialog->AllowDismissGestures();
+
+    if (!allowDismissGestures)
+    {
+        if (event.position.y >= dialogTopY || event.startPosition.y >= dialogTopY)
+            _currentDialog->HandleTouch(event, focusManager);
+        return true;
+    }
 
     switch (event.type)
     {
@@ -267,4 +275,21 @@ void DialogPresenter::InitVram()
 
     REG_BLDCNT = 0x3944;
     REG_BLDALPHA = (16 << 8) | 0;
+}
+
+bool DialogPresenter::IsTransitioning() const
+{
+    if (_nextDialog)
+        return true;
+
+    if (_curState != _newState)
+        return true;
+
+    if (_curState == State::BottomSheetClosing)
+        return true;
+
+    if (_curState == State::BottomSheetVisible && !_yAnimator.IsFinished())
+        return true;
+
+    return false;
 }

@@ -30,6 +30,9 @@ public:
     ///        (swipe-down or scrim tap).
     virtual void OnDismissed() { }
 
+    /// @brief Returns whether drag/scrim dismiss gestures are allowed.
+    virtual bool AllowDismissGestures() const { return true; }
+
     /// @brief Handles a touch event forwarded from the DialogPresenter
     ///        when the user taps inside the dialog area.
     /// @param event The touch event.

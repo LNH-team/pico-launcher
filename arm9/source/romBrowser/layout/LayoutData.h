@@ -132,7 +132,7 @@ static const char* const kLayoutSubMenuNames[LAYOUT_SUBMENU_COUNT] = {
     "DateTime1",
     "DateTime2",
     "PREFIX",
-    "GAME ID",
+    "TITLE ID",
     "Region",
     "Version",
     "CRC",
@@ -246,10 +246,6 @@ struct LayoutData {
     LayoutFilename          fileName;
 };
 
-// Binary file layout:
-//   magic[4]   = "LYOT"
-//   version[1] = 1
-
 // Build a Layout with default values
 inline LayoutData LayoutData_Default()
 {
@@ -286,7 +282,7 @@ inline LayoutData LayoutData_Default()
     d.prefix.gbaPrefixMode = LAYOUT_PREFIX_GBA_NATIVE;
     d.prefix.ntrPrefixMode = LAYOUT_PREFIX_NTR_NATIVE;
     d.prefix.twlPrefixMode = LAYOUT_PREFIX_TWL_NATIVE;
-    // GAME ID
+    // TITLE ID
     d.gameId.visible      = 0;
     d.gameId.y            = 2;
     d.gameId.x            = 162;

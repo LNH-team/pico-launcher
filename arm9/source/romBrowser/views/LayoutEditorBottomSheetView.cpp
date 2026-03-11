@@ -47,7 +47,7 @@
 #define UI_SUBMENU_DATETIME1  0
 #define UI_SUBMENU_DATETIME2  1
 #define UI_SUBMENU_PREFIX     2
-#define UI_SUBMENU_GAME_ID    3
+#define UI_SUBMENU_TITLE_ID   3
 #define UI_SUBMENU_REGION     4
 #define UI_SUBMENU_VERSION    5
 #define UI_SUBMENU_CRC        6
@@ -63,7 +63,7 @@ static const char* const kUiSubMenuNames[UI_SUBMENU_COUNT] = {
     "DateTime1",
     "DateTime2",
     "PREFIX",
-    "GAME ID",
+    "TITLE ID",
     "Region",
     "Version",
     "CRC",
@@ -81,7 +81,7 @@ static const char* const kItemNamesDateTime[] = {
 static const char* const kItemNamesPrefix[] = {
     "Visible", "X", "Y", "Font", "Trailing -", "GBA Text", "NTR Text", "TWL Text", "Color Red", "Color Green", "Color Blue"
 };
-static const char* const kItemNamesGameId[] = {
+static const char* const kItemNamesTitleId[] = {
     "Visible", "X", "Y", "Font", "Trailing -", "Color Red", "Color Green", "Color Blue", "Show TID", "TID Font", "TID X", "TID Y", "TID Color Red", "TID Color Green", "TID Color Blue"
 };
 static const char* const kItemNamesRegion[] = {
@@ -166,7 +166,7 @@ static void ResetSubMenuToDefaults(LayoutData& data, int subMenu)
         case UI_SUBMENU_DATETIME1: data.dateTime1 = defaults.dateTime1; break;
         case UI_SUBMENU_DATETIME2: data.dateTime2 = defaults.dateTime2; break;
         case UI_SUBMENU_PREFIX: data.prefix = defaults.prefix; break;
-        case UI_SUBMENU_GAME_ID: data.gameId = defaults.gameId; break;
+        case UI_SUBMENU_TITLE_ID: data.gameId = defaults.gameId; break;
         case UI_SUBMENU_REGION: data.region = defaults.region; break;
         case UI_SUBMENU_VERSION: data.version = defaults.version; break;
         case UI_SUBMENU_CRC: data.crc = defaults.crc; break;
@@ -550,8 +550,8 @@ const char* LayoutEditorBottomSheetView::GetItemName(int subMenu, int itemIdx) c
             return (u32)itemIdx < 9 ? kItemNamesDateTime[itemIdx] : "";
         case UI_SUBMENU_PREFIX:
             return (u32)itemIdx < 11 ? kItemNamesPrefix[itemIdx] : "";
-        case UI_SUBMENU_GAME_ID:
-            return (u32)itemIdx < 15 ? kItemNamesGameId[itemIdx] : "";
+        case UI_SUBMENU_TITLE_ID:
+            return (u32)itemIdx < 15 ? kItemNamesTitleId[itemIdx] : "";
         case UI_SUBMENU_REGION:
             return (u32)itemIdx < 8 ? kItemNamesRegion[itemIdx] : "";
         case UI_SUBMENU_VERSION:
@@ -632,7 +632,7 @@ void LayoutEditorBottomSheetView::GetItemValueText(
                 case 10: WRITE_COORD(d.prefix.colorB); break;
             }
             break;
-        case UI_SUBMENU_GAME_ID:
+        case UI_SUBMENU_TITLE_ID:
             switch (itemIdx)
             {
                 case 0: WRITE_VISIBLE(d.gameId.visible); break;
@@ -849,7 +849,7 @@ void LayoutEditorBottomSheetView::ChangeItemValue(int subMenu, int itemIdx, int 
                 case 10: changeColor(d.prefix.colorB); break;
             }
             break;
-        case UI_SUBMENU_GAME_ID:
+        case UI_SUBMENU_TITLE_ID:
             switch (itemIdx)
             {
                 case 0: toggleU8(d.gameId.visible); break;
@@ -1053,7 +1053,7 @@ bool LayoutEditorBottomSheetView::GetChoiceListForCurrentFocus(
             if (itemIdx == 6) { kind = ChoiceKind::PrefixNtrMode; count = LAYOUT_PREFIX_NTR_COUNT; selectedValue = d.prefix.ntrPrefixMode; return true; }
             if (itemIdx == 7) { kind = ChoiceKind::PrefixTwlMode; count = LAYOUT_PREFIX_TWL_COUNT; selectedValue = d.prefix.twlPrefixMode; return true; }
             break;
-        case UI_SUBMENU_GAME_ID:
+        case UI_SUBMENU_TITLE_ID:
             if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.gameId.font; return true; }
             if (itemIdx == 9) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.gameId.labelFont; return true; }
             break;
@@ -1157,7 +1157,7 @@ void LayoutEditorBottomSheetView::ApplyChoiceValue(ChoiceKind kind, int valueIdx
             if (_choiceTargetIdx == 6 && kind == ChoiceKind::PrefixNtrMode) d.prefix.ntrPrefixMode = (u8)valueIdx;
             if (_choiceTargetIdx == 7 && kind == ChoiceKind::PrefixTwlMode) d.prefix.twlPrefixMode = (u8)valueIdx;
             break;
-        case UI_SUBMENU_GAME_ID:
+        case UI_SUBMENU_TITLE_ID:
             if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.gameId.font = (u8)valueIdx;
             if (_choiceTargetIdx == 9 && kind == ChoiceKind::Font) d.gameId.labelFont = (u8)valueIdx;
             break;
@@ -1731,7 +1731,7 @@ bool LayoutEditorBottomSheetView::HandleInput(
                         case UI_SUBMENU_PREFIX:
                             isToggle = (itemIdx == 0 || itemIdx == 4);
                             break;
-                        case UI_SUBMENU_GAME_ID:
+                        case UI_SUBMENU_TITLE_ID:
                             isToggle = (itemIdx == 0 || itemIdx == 4 || itemIdx == 8);
                             break;
                         case UI_SUBMENU_REGION:

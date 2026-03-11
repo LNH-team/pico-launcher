@@ -1,104 +1,272 @@
 #include "common.h"
 #include <memory>
 #include "fat/File.h"
+#include "fat/Directory.h"
 #include "core/mini-printf.h"
 #include "core/StringUtil.h"
 #include "Localization.h"
 
-// Binary format for {language}.bin:
-//   magic:      u8[4]  = "LANG"
-//   version:    u8     = 1
-//   entryCount: u16 LE
-//   Per entry:
-//     keyLen:   u8     (byte length of key, without null terminator, max 31)
-//     key:      char[keyLen]  (ASCII, no null terminator)
-//     valueLen: u8     (number of char16_t units, without null terminator, max 63)
-//     value:    u8[valueLen * 2]  (UTF-16 LE, no null terminator)
+/*
+ * * Header:
+ * - magic:        u8[4]    "LANG"
+ * - version:      u8       1
+ * - entryCount:   u16 (LE) Number of translation entries
+ * * Per Entry (Repeat entryCount times):
+ * - keyLen:       u8       Length of key string in bytes (max 31)
+ * - key:          char[]   ASCII key string (NOT null-terminated)
+ * - valueLen:     u8       Number of char16_t units (max 63)
+ * - value:        u16[]    UTF-16 LE string (NOT null-terminated)
+ */
 
 static char s_languageBuf[32] = "english";
+static constexpr const char* kEnglishSettingsName = "English";
+static constexpr const char* kEnglishFileName = "English";
+static constexpr const char* kTranslationsDirPath = "/_pico/extras/translations";
+static constexpr const char* kEnglishTranslationPath = "/_pico/extras/translations/English.bin";
+
+struct FallbackTranslation
+{
+    const char* key;
+    const char16_t* value;
+};
+
+static const FallbackTranslation kEnglishFallbackTranslations[] =
+{
+    { "display_settings", u"Display Settings" },
+    { "layout", u"Layout" },
+    { "sorting", u"Sorting" },
+    { "theme", u"Theme" },
+    { "language", u"Language" },
+
+    { "game_details", u"Game Details" },
+    { "total_launches", u"Total Launches" },
+    { "last_launch", u"Last Launch" },
+    { "cheats", u"Cheats" },
+    { "favorites", u"Favorites" },
+
+    { "cheats_not_found", u"No cheats found for this game" },
+    { "cheats_dat_missing", u"usrcheat.dat not found" },
+    { "selected_cheats", u"Selected Cheats" },
+    { "cheats_no_description_available", u"No description available." },
+
+    { "information", u"Information" },
+    { "information_user", u"User" },
+    { "information_birthdate", u"Birthdate" },
+    { "information_favorite_color", u"Favorite color" },
+    { "information_console_language", u"Console language" },
+    { "information_message", u"Message" },
+    { "information_console", u"Console" },
+    { "information_mode", u"Mode" },
+    { "information_usrcheat_found", u"Found" },
+    { "information_usrcheat_not_found", u"Not found" },
+    { "information_unknown", u"Unknown" },
+    { "information_touch", u"Touch" },
+    { "information_usrcheat_filename", u"usrcheat.dat" },
+
+    { "information_color_gray", u"Gray" },
+    { "information_color_brown", u"Brown" },
+    { "information_color_red", u"Red" },
+    { "information_color_pink", u"Pink" },
+    { "information_color_orange", u"Orange" },
+    { "information_color_yellow", u"Yellow" },
+    { "information_color_yellow_green", u"Yellow-Green" },
+    { "information_color_green", u"Green" },
+    { "information_color_dark_green", u"Dark Green" },
+    { "information_color_green_blue", u"Green-Blue" },
+    { "information_color_light_blue", u"Light Blue" },
+    { "information_color_blue", u"Blue" },
+    { "information_color_dark_blue", u"Dark Blue" },
+    { "information_color_dark_purple", u"Dark Purple" },
+    { "information_color_purple", u"Purple" },
+    { "information_color_purple_red", u"Purple-Red" },
+
+    { "information_language_english", u"English" },
+    { "information_language_french", u"French" },
+    { "information_language_italian", u"Italian" },
+    { "information_language_german", u"German" },
+    { "information_language_spanish", u"Spanish" },
+    { "information_language_japanese", u"Japanese" },
+    { "information_language_unknown", u"Unknown" },
+};
+
+static constexpr u32 kFallbackTranslationCount = sizeof(kEnglishFallbackTranslations) / sizeof(kEnglishFallbackTranslations[0]);
+
+static u32 AsciiLen(const char* text)
+{
+    if (!text)
+        return 0;
+
+    u32 len = 0;
+    while (text[len] != '\0')
+        ++len;
+    return len;
+}
+
+static u32 Utf16Len(const char16_t* text)
+{
+    if (!text)
+        return 0;
+
+    u32 len = 0;
+    while (text[len] != 0)
+        ++len;
+    return len;
+}
 
 Localization::TranslationEntry Localization::s_entries[LOCALIZATION_MAX_KEYS];
 int Localization::s_entryCount = 0;
 bool Localization::s_loaded = false;
+IAppSettingsService* Localization::s_appSettingsService = nullptr;
+
+static bool BuildDefaultEnglishBin(std::unique_ptr<u8[]>& outBuffer, u32& outLength)
+{
+    u32 totalSize = 7; // magic(4) + version(1) + entryCount(2)
+
+    for (u32 i = 0; i < kFallbackTranslationCount; ++i)
+    {
+        const char* key = kEnglishFallbackTranslations[i].key;
+        const char16_t* value = kEnglishFallbackTranslations[i].value;
+        if (!key || !value)
+            continue;
+
+        const u32 keyLen = AsciiLen(key);
+        const u32 valueLen = Utf16Len(value);
+        if (keyLen > 31 || valueLen > 63)
+            continue;
+
+        totalSize += 1 + keyLen + 1 + (valueLen * 2);
+    }
+
+    outBuffer = std::unique_ptr<u8[]>(new(cache_align) u8[totalSize]);
+    if (!outBuffer)
+        return false;
+
+    u8* p = outBuffer.get();
+    p[0] = 'L';
+    p[1] = 'A';
+    p[2] = 'N';
+    p[3] = 'G';
+    p[4] = 1;
+    p[5] = (u8)(kFallbackTranslationCount & 0xFF);
+    p[6] = (u8)((kFallbackTranslationCount >> 8) & 0xFF);
+    p += 7;
+
+    for (u32 i = 0; i < kFallbackTranslationCount; ++i)
+    {
+        const char* key = kEnglishFallbackTranslations[i].key;
+        const char16_t* value = kEnglishFallbackTranslations[i].value;
+        if (!key || !value)
+            continue;
+
+        const u32 keyLen = AsciiLen(key);
+        const u32 valueLen = Utf16Len(value);
+        if (keyLen > 31 || valueLen > 63)
+            continue;
+
+        *p++ = (u8)keyLen;
+        memcpy(p, key, keyLen);
+        p += keyLen;
+
+        *p++ = (u8)valueLen;
+        for (u32 j = 0; j < valueLen; ++j)
+        {
+            const char16_t ch = value[j];
+            *p++ = (u8)(ch & 0xFF);
+            *p++ = (u8)((ch >> 8) & 0xFF);
+        }
+    }
+
+    outLength = (u32)(p - outBuffer.get());
+    return true;
+}
+
+static void WriteDefaultEnglishBin()
+{
+    Directory dir;
+    if (dir.Open(kTranslationsDirPath) != FR_OK)
+        f_mkdir(kTranslationsDirPath);
+
+    std::unique_ptr<u8[]> buffer;
+    u32 length = 0;
+    if (!BuildDefaultEnglishBin(buffer, length) || length == 0)
+        return;
+
+    const auto file = std::make_unique<File>();
+    if (file->Open(kEnglishTranslationPath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK)
+        return;
+
+    u32 bytesWritten = 0;
+    file->Write(buffer.get(), length, bytesWritten);
+}
+
+static void NormalizeLanguageName(const char* source, char* destination, size_t destinationSize)
+{
+    if (!destination || destinationSize == 0)
+        return;
+
+    if (!source)
+    {
+        destination[0] = '\0';
+        return;
+    }
+
+    size_t i = 0;
+    for (; i < destinationSize - 1 && source[i]; ++i)
+        destination[i] = (char)tolower((unsigned char)source[i]);
+
+    destination[i] = '\0';
+}
+
+static void PersistFallbackLanguageIfNeeded(IAppSettingsService* appSettingsService)
+{
+    if (!appSettingsService)
+        return;
+
+    auto& appSettings = appSettingsService->GetAppSettings();
+    if (strcasecmp(appSettings.language.GetString(), kEnglishSettingsName) != 0)
+    {
+        appSettings.language = kEnglishSettingsName;
+        appSettingsService->Save();
+    }
+}
 
 static const char16_t* GetFallbackEnglishValue(const char* key)
 {
     if (!key)
         return u"";
 
-    if (!strcasecmp(key, "display_settings")) return u"Display Settings";
-    if (!strcasecmp(key, "layout")) return u"Layout";
-    if (!strcasecmp(key, "sorting")) return u"Sorting";
-    if (!strcasecmp(key, "theme")) return u"Theme";
-    if (!strcasecmp(key, "language")) return u"Language";
-
-    if (!strcasecmp(key, "game_details")) return u"Game Details";
-    if (!strcasecmp(key, "total_launches")) return u"Total Launches";
-    if (!strcasecmp(key, "last_launch")) return u"Last Launch";
-    if (!strcasecmp(key, "cheats")) return u"Cheats";
-    if (!strcasecmp(key, "favorites")) return u"Favorites";
-
-    if (!strcasecmp(key, "cheats_not_found")) return u"No cheats found for this game";
-    if (!strcasecmp(key, "cheats_dat_missing")) return u"usrcheat.dat not found";
-    if (!strcasecmp(key, "selected_cheats")) return u"Selected Cheats";
-    if (!strcasecmp(key, "cheats_no_description_available")) return u"No description available.";
-
-    if (!strcasecmp(key, "information")) return u"Information";
-    if (!strcasecmp(key, "information_user")) return u"User";
-    if (!strcasecmp(key, "information_birthdate")) return u"Birthdate";
-    if (!strcasecmp(key, "information_favorite_color")) return u"Favorite color";
-    if (!strcasecmp(key, "information_console_language")) return u"Console language";
-    if (!strcasecmp(key, "information_message")) return u"Message";
-    if (!strcasecmp(key, "information_console")) return u"Console";
-    if (!strcasecmp(key, "information_mode")) return u"Mode";
-    if (!strcasecmp(key, "information_usrcheat_found")) return u"Found";
-    if (!strcasecmp(key, "information_usrcheat_not_found")) return u"Not found";
-
-    if (!strcasecmp(key, "information_color_gray")) return u"Gray";
-    if (!strcasecmp(key, "information_color_brown")) return u"Brown";
-    if (!strcasecmp(key, "information_color_red")) return u"Red";
-    if (!strcasecmp(key, "information_color_pink")) return u"Pink";
-    if (!strcasecmp(key, "information_color_orange")) return u"Orange";
-    if (!strcasecmp(key, "information_color_yellow")) return u"Yellow";
-    if (!strcasecmp(key, "information_color_yellow_green")) return u"Yellow-Green";
-    if (!strcasecmp(key, "information_color_green")) return u"Green";
-    if (!strcasecmp(key, "information_color_dark_green")) return u"Dark Green";
-    if (!strcasecmp(key, "information_color_green_blue")) return u"Green-Blue";
-    if (!strcasecmp(key, "information_color_light_blue")) return u"Light Blue";
-    if (!strcasecmp(key, "information_color_blue")) return u"Blue";
-    if (!strcasecmp(key, "information_color_dark_blue")) return u"Dark Blue";
-    if (!strcasecmp(key, "information_color_dark_purple")) return u"Dark Purple";
-    if (!strcasecmp(key, "information_color_purple")) return u"Purple";
-    if (!strcasecmp(key, "information_color_purple_red")) return u"Purple-Red";
-
-    if (!strcasecmp(key, "information_language_english")) return u"English";
-    if (!strcasecmp(key, "information_language_french")) return u"French";
-    if (!strcasecmp(key, "information_language_italian")) return u"Italian";
-    if (!strcasecmp(key, "information_language_german")) return u"German";
-    if (!strcasecmp(key, "information_language_spanish")) return u"Spanish";
-    if (!strcasecmp(key, "information_language_japanese")) return u"Japanese";
-    if (!strcasecmp(key, "information_language_unknown")) return u"Unknown";
+    for (u32 i = 0; i < kFallbackTranslationCount; ++i)
+    {
+        if (!strcasecmp(key, kEnglishFallbackTranslations[i].key))
+            return kEnglishFallbackTranslations[i].value;
+    }
 
     return u"";
 }
 
-void Localization::Initialize(const IAppSettingsService* appSettingsService)
+void Localization::Initialize(IAppSettingsService* appSettingsService)
 {
-    if (!appSettingsService)
+    s_appSettingsService = appSettingsService;
+    if (!s_appSettingsService)
         return;
 
-    auto& settings = appSettingsService->GetAppSettings();
+    auto& settings = s_appSettingsService->GetAppSettings();
     const char* lang = settings.language.GetString();
-    if (!lang)
-        return;
+    if (!lang || !lang[0])
+        lang = kEnglishFileName;
 
-    // Store lowercase language into local buffer
-    size_t i = 0;
-    for (; i < sizeof(s_languageBuf) - 1 && lang[i]; i++)
-        s_languageBuf[i] = (char)tolower((unsigned char)lang[i]);
-    s_languageBuf[i] = '\0';
+    NormalizeLanguageName(lang, s_languageBuf, sizeof(s_languageBuf));
+    if (s_languageBuf[0] == '\0')
+        NormalizeLanguageName(kEnglishFileName, s_languageBuf, sizeof(s_languageBuf));
 
-    LoadFromBin(s_languageBuf);
+    if (!LoadFromBin(s_languageBuf))
+    {
+        LoadFallbackEnglish();
+        WriteDefaultEnglishBin();
+        NormalizeLanguageName(kEnglishFileName, s_languageBuf, sizeof(s_languageBuf));
+        PersistFallbackLanguageIfNeeded(s_appSettingsService);
+    }
+
     s_loaded = true;
 }
 
@@ -119,101 +287,38 @@ void Localization::LoadFallbackEnglish()
 {
     s_entryCount = 0;
 
-    AddEntry("display_settings", GetFallbackEnglishValue("display_settings"));
-    AddEntry("layout", GetFallbackEnglishValue("layout"));
-    AddEntry("sorting", GetFallbackEnglishValue("sorting"));
-    AddEntry("theme", GetFallbackEnglishValue("theme"));
-    AddEntry("language", GetFallbackEnglishValue("language"));
-
-    AddEntry("game_details", GetFallbackEnglishValue("game_details"));
-    AddEntry("total_launches", GetFallbackEnglishValue("total_launches"));
-    AddEntry("last_launch", GetFallbackEnglishValue("last_launch"));
-    AddEntry("cheats", GetFallbackEnglishValue("cheats"));
-    AddEntry("favorites", GetFallbackEnglishValue("favorites"));
-
-    AddEntry("cheats_not_found", GetFallbackEnglishValue("cheats_not_found"));
-    AddEntry("cheats_dat_missing", GetFallbackEnglishValue("cheats_dat_missing"));
-    AddEntry("selected_cheats", GetFallbackEnglishValue("selected_cheats"));
-
-    AddEntry("information", GetFallbackEnglishValue("information"));
-    AddEntry("information_user", GetFallbackEnglishValue("information_user"));
-    AddEntry("information_birthdate", GetFallbackEnglishValue("information_birthdate"));
-    AddEntry("information_favorite_color", GetFallbackEnglishValue("information_favorite_color"));
-    AddEntry("information_message", GetFallbackEnglishValue("information_message"));
-    AddEntry("information_console_language", GetFallbackEnglishValue("information_console_language"));
-    AddEntry("information_console", GetFallbackEnglishValue("information_console"));    
-    AddEntry("information_mode", GetFallbackEnglishValue("information_mode"));
-    AddEntry("information_usrcheat_found", GetFallbackEnglishValue("information_usrcheat_found"));
-    AddEntry("information_usrcheat_not_found", GetFallbackEnglishValue("information_usrcheat_not_found"));
-
-    AddEntry("information_color_gray", GetFallbackEnglishValue("information_color_gray"));
-    AddEntry("information_color_brown", GetFallbackEnglishValue("information_color_brown"));
-    AddEntry("information_color_red", GetFallbackEnglishValue("information_color_red"));
-    AddEntry("information_color_pink", GetFallbackEnglishValue("information_color_pink"));
-    AddEntry("information_color_orange", GetFallbackEnglishValue("information_color_orange"));
-    AddEntry("information_color_yellow", GetFallbackEnglishValue("information_color_yellow"));
-    AddEntry("information_color_yellow_green", GetFallbackEnglishValue("information_color_yellow_green"));
-    AddEntry("information_color_green", GetFallbackEnglishValue("information_color_green"));
-    AddEntry("information_color_dark_green", GetFallbackEnglishValue("information_color_dark_green"));
-    AddEntry("information_color_green_blue", GetFallbackEnglishValue("information_color_green_blue"));
-    AddEntry("information_color_light_blue", GetFallbackEnglishValue("information_color_light_blue"));
-    AddEntry("information_color_blue", GetFallbackEnglishValue("information_color_blue"));
-    AddEntry("information_color_dark_blue", GetFallbackEnglishValue("information_color_dark_blue"));
-    AddEntry("information_color_dark_purple", GetFallbackEnglishValue("information_color_dark_purple"));
-    AddEntry("information_color_purple", GetFallbackEnglishValue("information_color_purple"));
-    AddEntry("information_color_purple_red", GetFallbackEnglishValue("information_color_purple_red"));
-
-    AddEntry("information_language_english", GetFallbackEnglishValue("information_language_english"));
-    AddEntry("information_language_french", GetFallbackEnglishValue("information_language_french"));
-    AddEntry("information_language_italian", GetFallbackEnglishValue("information_language_italian"));
-    AddEntry("information_language_german", GetFallbackEnglishValue("information_language_german"));
-    AddEntry("information_language_spanish", GetFallbackEnglishValue("information_language_spanish"));
-    AddEntry("information_language_japanese", GetFallbackEnglishValue("information_language_japanese"));
-    AddEntry("information_language_unknown", GetFallbackEnglishValue("information_language_unknown"));
+    for (u32 i = 0; i < kFallbackTranslationCount; ++i)
+        AddEntry(kEnglishFallbackTranslations[i].key, kEnglishFallbackTranslations[i].value);
 }
 
-void Localization::LoadFromBin(const char* language)
+bool Localization::LoadFromBin(const char* language)
 {
     char path[128];
     mini_snprintf(path, sizeof(path), "/_pico/extras/translations/%s.bin", language);
 
     auto file = std::make_unique<File>();
     if (file->Open(path, FA_READ | FA_OPEN_EXISTING) != FR_OK)
-    {
-        LoadFallbackEnglish();
-        return;
-    }
+        return false;
 
     u32 fileSize = file->GetSize();
     if (fileSize < 7)
-    {
-        LoadFallbackEnglish();
-        return;
-    }
+        return false;
 
     std::unique_ptr<u8[]> fileData(new(cache_align) u8[fileSize]);
     u32 bytesRead = 0;
     if (file->Read(fileData.get(), fileSize, bytesRead) != FR_OK || bytesRead != fileSize)
-    {
-        LoadFallbackEnglish();
-        return;
-    }
+        return false;
 
     const u8* p   = fileData.get();
     const u8* end = p + fileSize;
 
     if (p[0] != 'L' || p[1] != 'A' || p[2] != 'N' || p[3] != 'G')
-    {
-        LoadFallbackEnglish();
-        return;
-    }
+        return false;
+
     p += 4;
 
     if (*p++ != 1)
-    {
-        LoadFallbackEnglish();
-        return;
-    }
+        return false;
 
     u32 entryCount = (u32)p[0] | ((u32)p[1] << 8);
     p += 2;
@@ -227,7 +332,7 @@ void Localization::LoadFromBin(const char* language)
 
         if (p >= end) break;
         u8 keyLen = *p++;
-        if (keyLen > 31 || p + keyLen > end) break;
+        if (keyLen > 31 || p + keyLen > end) return false;
 
         char key[32];
         memcpy(key, p, keyLen);
@@ -236,7 +341,7 @@ void Localization::LoadFromBin(const char* language)
 
         if (p >= end) break;
         u8 valueLen = *p++;
-        if (valueLen > 63 || p + (u32)valueLen * 2 > end) break;
+        if (valueLen > 63 || p + (u32)valueLen * 2 > end) return false;
 
         char16_t value[64];
         for (u8 j = 0; j < valueLen; j++)
@@ -250,7 +355,9 @@ void Localization::LoadFromBin(const char* language)
     }
 
     if (s_entryCount == 0)
-        LoadFallbackEnglish();
+        return false;
+
+    return true;
 }
 
 const char16_t* Localization::Translate(const char* key)

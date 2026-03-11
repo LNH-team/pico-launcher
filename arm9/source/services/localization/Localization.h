@@ -11,7 +11,7 @@ public:
     ///        Attempts to load translations from /_pico/extras/translations/{language}.bin.
     ///        Falls back to hardcoded English if the file is not found.
     /// @param appSettingsService The application settings service.
-    static void Initialize(const IAppSettingsService* appSettingsService);
+    static void Initialize(IAppSettingsService* appSettingsService);
 
     /// @brief Translates the given key to the current language.
     /// @param key The translation key (e.g. "display_settings").
@@ -28,8 +28,9 @@ private:
     static TranslationEntry s_entries[LOCALIZATION_MAX_KEYS];
     static int s_entryCount;
     static bool s_loaded;
+    static IAppSettingsService* s_appSettingsService;
 
-    static void LoadFromBin(const char* language);
+    static bool LoadFromBin(const char* language);
     static void LoadFallbackEnglish();
     static void AddEntry(const char* key, const char16_t* value);
 };
