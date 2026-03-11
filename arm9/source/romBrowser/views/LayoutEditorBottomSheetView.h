@@ -132,6 +132,7 @@ private:
     void        EnsureThemeColorLoaded() const;
     void        ApplyThemeColorPreview();
     void        RestoreThemeColorPreview();
+    void        RefreshThemeBackgroundPalettes();
     bool        SaveThemeColorToFile() const;
     static int  ClampInt(int value, int minValue, int maxValue);
 

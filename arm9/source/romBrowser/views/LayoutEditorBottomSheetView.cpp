@@ -15,6 +15,10 @@
 #include "json/ArduinoJson.h"
 #include "services/settings/IAppSettingsService.h"
 #include "../IRomBrowserController.h"
+#include <libtwl/mem/memVram.h>
+#include <libtwl/gfx/gfxPalette.h>
+#include "core/math/RgbMixer.h"
+#include "core/math/ColorConverter.h"
 
 // Y positions
 #define LE_TITLE_Y            8
@@ -242,6 +246,7 @@ void LayoutEditorBottomSheetView::ApplyThemeColorPreview()
         _themeDarkMode,
         *const_cast<MaterialColorScheme*>(_materialColorScheme));
     _themePreviewApplied = true;
+    RefreshThemeBackgroundPalettes();
 }
 
 void LayoutEditorBottomSheetView::RestoreThemeColorPreview()
@@ -251,6 +256,25 @@ void LayoutEditorBottomSheetView::RestoreThemeColorPreview()
 
     *const_cast<MaterialColorScheme*>(_materialColorScheme) = _originalMaterialColorScheme;
     _themePreviewApplied = false;
+    RefreshThemeBackgroundPalettes();
+}
+
+void LayoutEditorBottomSheetView::RefreshThemeBackgroundPalettes()
+{
+    mem_setVramHMapping(MEM_VRAM_H_LCDC);
+    RgbMixer::MakeGradientPalette((u16*)0x06898020,
+        _materialColorScheme->inverseOnSurface,
+        _materialColorScheme->secondaryContainer);
+    mem_setVramHMapping(MEM_VRAM_H_SUB_BG_EXT_PLTT_SLOT_0123);
+
+    auto scrimBlendColor = Rgb<8, 8, 8>(
+        _materialColorScheme->inverseOnSurface.r + (_materialColorScheme->scrim.r - _materialColorScheme->inverseOnSurface.r) * 5 / 16,
+        _materialColorScheme->inverseOnSurface.g + (_materialColorScheme->scrim.g - _materialColorScheme->inverseOnSurface.g) * 5 / 16,
+        _materialColorScheme->inverseOnSurface.b + (_materialColorScheme->scrim.b - _materialColorScheme->inverseOnSurface.b) * 5 / 16);
+    RgbMixer::MakeGradientPalette((u16*)GFX_PLTT_BG_MAIN, scrimBlendColor,
+        _materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+    GFX_PLTT_BG_MAIN[0] = ColorConverter::ToGBGR565(_materialColorScheme->inverseOnSurface);
+    GFX_PLTT_BG_MAIN[31] = ColorConverter::ToGBGR565(_materialColorScheme->scrim);
 }
 
 bool LayoutEditorBottomSheetView::SaveThemeColorToFile() const

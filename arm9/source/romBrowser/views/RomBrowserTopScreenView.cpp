@@ -365,11 +365,11 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
     : _viewModel(viewModel)
     , _themeFileIconFactory(themeFileIconFactory)
     , _fileInfoView(romBrowserViewFactory->CreateFileInfoView())
-    , _dateTime1Label(160, 16, 26,
+    , _dateTime1Label(128, 16, 26,
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().dateTime1.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().dateTime1.font : LAYOUT_FONT_REGULAR10)))
-    , _dateTime2Label(160, 16, 26,
+    , _dateTime2Label(128, 16, 26,
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().dateTime2.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().dateTime2.font : LAYOUT_FONT_REGULAR10)))
@@ -377,7 +377,7 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().prefix.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().prefix.font : LAYOUT_FONT_REGULAR10)))
-    , _gameIdTagLabel(56, 16, 8,
+    , _gameIdTagLabel(32, 16, 8,
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().gameId.labelFont < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().gameId.labelFont : LAYOUT_FONT_REGULAR10)))
@@ -385,7 +385,7 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().gameId.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().gameId.font : LAYOUT_FONT_REGULAR10)))
-    , _regionLabel(128, 16, 8,
+    , _regionLabel(64, 16, 8,
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().region.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().region.font : LAYOUT_FONT_REGULAR10)))
@@ -397,7 +397,7 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().crc.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().crc.font : LAYOUT_FONT_REGULAR10)))
-    , _usernameLabel(160, 16, 20,
+    , _usernameLabel(128, 16, 20,
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().username.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().username.font : LAYOUT_FONT_REGULAR10)))
@@ -1085,7 +1085,6 @@ void RomBrowserTopScreenView::VBlank()
             _selectedFileCover->Upload2DCoverBitmap((u8*)GFX_BG_SUB + 0x4000);
             mem_setVramHMapping(MEM_VRAM_H_LCDC);
             _selectedFileCover->Upload2DCoverPalette((void*)0x0689E000);
-            GFX_PLTT_BG_SUB[0] = *(vu16*)0x0689E000;
             mem_setVramHMapping(MEM_VRAM_H_SUB_BG_EXT_PLTT_SLOT_0123);
         }
         _coverGraphicsUploaded = true;
