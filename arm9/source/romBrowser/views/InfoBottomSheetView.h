@@ -34,6 +34,9 @@ private:
     Label2DView _modeLabel;
     Label2DView _consoleLabel;
     Label2DView _usrcheatLabel;
-    Label2DView _themesLabel;
-    Label2DView _languagesLabel;
+    Label2DView _touchLabel;
+
+    bool _touchPressed = false;
+    int  _touchX = 0;
+    int  _touchY = 0;
 };

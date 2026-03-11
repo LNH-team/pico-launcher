@@ -53,8 +53,6 @@ static const char16_t* GetFallbackEnglishValue(const char* key)
     if (!strcasecmp(key, "information_mode")) return u"Mode";
     if (!strcasecmp(key, "information_usrcheat_found")) return u"Found";
     if (!strcasecmp(key, "information_usrcheat_not_found")) return u"Not found";
-    if (!strcasecmp(key, "information_themes")) return u"Themes";
-    if (!strcasecmp(key, "information_languages")) return u"Languages";
 
     if (!strcasecmp(key, "information_color_gray")) return u"Gray";
     if (!strcasecmp(key, "information_color_brown")) return u"Brown";
@@ -147,8 +145,6 @@ void Localization::LoadFallbackEnglish()
     AddEntry("information_mode", GetFallbackEnglishValue("information_mode"));
     AddEntry("information_usrcheat_found", GetFallbackEnglishValue("information_usrcheat_found"));
     AddEntry("information_usrcheat_not_found", GetFallbackEnglishValue("information_usrcheat_not_found"));
-    AddEntry("information_themes", GetFallbackEnglishValue("information_themes"));
-    AddEntry("information_languages", GetFallbackEnglishValue("information_languages"));
 
     AddEntry("information_color_gray", GetFallbackEnglishValue("information_color_gray"));
     AddEntry("information_color_brown", GetFallbackEnglishValue("information_color_brown"));

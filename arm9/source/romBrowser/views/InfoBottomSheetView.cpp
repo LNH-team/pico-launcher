@@ -3,7 +3,6 @@
 #include "core/StringUtil.h"
 #include "core/mini-printf.h"
 #include <nds/system.h>
-#include "fat/Directory.h"
 #include "gui/GraphicsContext.h"
 #include "gui/input/InputProvider.h"
 #include "gui/input/TouchEvent.h"
@@ -14,11 +13,12 @@
 #include "InfoBottomSheetView.h"
 
 #define TITLE_LABEL_X       15
-#define TITLE_LABEL_Y       20
+#define TITLE_LABEL_Y       8
 #define INFO_LEFT_LABEL_X   16
 #define INFO_RIGHT_LABEL_X  132
-#define INFO_FIRST_LABEL_Y  36
+#define INFO_FIRST_LABEL_Y  30
 #define INFO_LINE_SPACING   12
+#define INFO_GAP 8
 #define SWIPE_BACK_MIN_X    24
 #define SWIPE_BACK_MAX_Y    28
 #define SWIPE_BACK_START_X  96
@@ -110,67 +110,6 @@ static bool hasUsrcheatFile()
 
     return f_stat("/_pico/extras/usrcheat.dat", &fileInfo) == FR_OK
         && (fileInfo.fattrib & AM_DIR) == 0;
-}
-
-static int countThemes()
-{
-    int count = 0;
-
-    Directory directory;
-
-    if (directory.Open("/_pico/themes") != FR_OK)
-        return 0;
-
-    FILINFO fileInfo;
-
-    while (directory.Read(&fileInfo) == FR_OK)
-    {
-        if (fileInfo.fname[0] == 0)
-            break;
-
-        if (fileInfo.fname[0] == '.')
-            continue;
-
-        if ((fileInfo.fattrib & AM_DIR) == 0)
-            continue;
-
-        count++;
-    }
-
-    return count;
-}
-
-static int countLanguages()
-{
-    int count = 0;
-
-    Directory directory;
-
-    if (directory.Open("/_pico/extras/translations") != FR_OK)
-        return 0;
-
-    FILINFO fileInfo;
-
-    while (directory.Read(&fileInfo) == FR_OK)
-    {
-        if (fileInfo.fname[0] == 0)
-            break;
-
-        if (fileInfo.fname[0] == '.')
-            continue;
-
-        if (fileInfo.fattrib & AM_DIR)
-            continue;
-
-        const char* dot = strrchr(fileInfo.fname, '.');
-
-        if (!dot || strcasecmp(dot, ".bin") != 0)
-            continue;
-
-        count++;
-    }
-
-    return count;
 }
 
 static void copyAsciiToUtf16(char16_t* outText, u32 outTextLength, const char* text)
@@ -305,6 +244,17 @@ static void buildInfoLine(char16_t* outText, u32 outTextLength, const char16_t* 
     outText[idx] = 0;
 }
 
+static void buildTouchLine(char16_t* outText, u32 outTextLength, int x, int y)
+{
+    char coords[24];
+    mini_snprintf(coords, sizeof(coords), "X:%d      Y:%d", x, y);
+    
+    char16_t coords16[24];
+    copyAsciiToUtf16(coords16, sizeof(coords16) / sizeof(coords16[0]), coords);
+
+    buildInfoLine(outText, outTextLength, u"Touch", coords16);
+}
+
 SettingsInfoBottomSheetView::SettingsInfoBottomSheetView(
     DisplaySettingsViewModel* viewModel,
     const MaterialColorScheme* materialColorScheme,
@@ -320,8 +270,7 @@ SettingsInfoBottomSheetView::SettingsInfoBottomSheetView(
     , _modeLabel(116, 16, 64, fontRepository->GetFont(FontType::Regular10))
     , _consoleLabel(116, 16, 64, fontRepository->GetFont(FontType::Regular10))
     , _usrcheatLabel(228, 16, 64, fontRepository->GetFont(FontType::Regular10))
-    , _themesLabel(116, 16, 64, fontRepository->GetFont(FontType::Regular10))
-    , _languagesLabel(116, 16, 64, fontRepository->GetFont(FontType::Regular10))
+    , _touchLabel(300, 16, 64, fontRepository->GetFont(FontType::Regular10))
 {
     _titleLabel.SetText(Localization::Translate("information"));
 
@@ -342,8 +291,7 @@ SettingsInfoBottomSheetView::SettingsInfoBottomSheetView(
     char16_t modeLine[72];
     char16_t consoleLine[72];
     char16_t usrcheatLine[96];
-    char16_t themesLine[72];
-    char16_t languagesLine[72];
+    char16_t touchLine[72];
 
     buildInfoLine(userLine, sizeof(userLine) / sizeof(userLine[0]),
         Localization::Translate("information_user"), userName);
@@ -365,28 +313,12 @@ SettingsInfoBottomSheetView::SettingsInfoBottomSheetView(
 
     buildInfoLine(consoleLine, sizeof(consoleLine) / sizeof(consoleLine[0]),
         Localization::Translate("information_console"), getConsoleValueText());
-        
-        buildInfoLine(usrcheatLine, sizeof(usrcheatLine) / sizeof(usrcheatLine[0]),
+
+    buildInfoLine(usrcheatLine, sizeof(usrcheatLine) / sizeof(usrcheatLine[0]),
         u"usrcheat.dat",
         hasUsrcheatFile() ? Localization::Translate("information_usrcheat_found") : Localization::Translate("information_usrcheat_not_found"));
 
-    char themesCount[16];
-    mini_snprintf(themesCount, sizeof(themesCount), "%d", countThemes());
-
-    char16_t themesCount16[16];
-    copyAsciiToUtf16(themesCount16, 16, themesCount);
-
-    buildInfoLine(themesLine, sizeof(themesLine) / sizeof(themesLine[0]),
-        Localization::Translate("information_themes"), themesCount16);
-
-    char languagesCount[16];
-    mini_snprintf(languagesCount, sizeof(languagesCount), "%d", countLanguages());
-
-    char16_t languagesCount16[16];
-    copyAsciiToUtf16(languagesCount16, 16, languagesCount);
-
-    buildInfoLine(languagesLine, sizeof(languagesLine) / sizeof(languagesLine[0]),
-        Localization::Translate("information_languages"), languagesCount16);
+    buildTouchLine(touchLine, sizeof(touchLine) / sizeof(touchLine[0]), 0, 0);
 
     _userLabel.SetText(userLine);
     _birthdayLabel.SetText(birthdayLine);
@@ -396,8 +328,7 @@ SettingsInfoBottomSheetView::SettingsInfoBottomSheetView(
     _consoleLabel.SetText(consoleLine);
     _modeLabel.SetText(modeLine);
     _usrcheatLabel.SetText(usrcheatLine);
-    _themesLabel.SetText(themesLine);
-    _languagesLabel.SetText(languagesLine);
+    _touchLabel.SetText(touchLine);
 
     AddChildTail(&_titleLabel);
     AddChildTail(&_userLabel);
@@ -408,13 +339,18 @@ SettingsInfoBottomSheetView::SettingsInfoBottomSheetView(
     AddChildTail(&_consoleLabel);
     AddChildTail(&_modeLabel);
     AddChildTail(&_usrcheatLabel);
-    AddChildTail(&_themesLabel);
-    AddChildTail(&_languagesLabel);
+    AddChildTail(&_touchLabel);
 }
 
 void SettingsInfoBottomSheetView::Update()
 {
     BottomSheetView::Update();
+
+    char16_t touchLine[72];
+    int displayX = _touchPressed ? _touchX : 0;
+    int displayY = _touchPressed ? _touchY : 0;
+    buildTouchLine(touchLine, sizeof(touchLine) / sizeof(touchLine[0]), displayX, displayY);
+    _touchLabel.SetText(touchLine);
 
     _titleLabel.SetPosition(TITLE_LABEL_X, _position.y + TITLE_LABEL_Y);
     int lineY = _position.y + INFO_FIRST_LABEL_Y;
@@ -427,14 +363,13 @@ void SettingsInfoBottomSheetView::Update()
     _consoleLanguageLabel.SetPosition(INFO_LEFT_LABEL_X, lineY);
     lineY += INFO_LINE_SPACING;
     _messageLabel.SetPosition(INFO_LEFT_LABEL_X, lineY);
-    lineY += INFO_LINE_SPACING;
+    lineY += INFO_LINE_SPACING + INFO_GAP;
     _consoleLabel.SetPosition(INFO_LEFT_LABEL_X, lineY);
     _modeLabel.SetPosition(INFO_RIGHT_LABEL_X, lineY);
-    lineY += INFO_LINE_SPACING;
+    lineY += INFO_LINE_SPACING + INFO_GAP;
     _usrcheatLabel.SetPosition(INFO_LEFT_LABEL_X, lineY);
-    lineY += INFO_LINE_SPACING;
-    _themesLabel.SetPosition(INFO_LEFT_LABEL_X, lineY);
-    _languagesLabel.SetPosition(INFO_RIGHT_LABEL_X, lineY);
+    lineY += INFO_LINE_SPACING + INFO_GAP;
+    _touchLabel.SetPosition(INFO_LEFT_LABEL_X, lineY);
 }
 
 void SettingsInfoBottomSheetView::Draw(GraphicsContext& graphicsContext)
@@ -475,11 +410,8 @@ void SettingsInfoBottomSheetView::Draw(GraphicsContext& graphicsContext)
         _usrcheatLabel.SetBackgroundColor(bgColor);
         _usrcheatLabel.SetForegroundColor(fgVariant);
 
-        _themesLabel.SetBackgroundColor(bgColor);
-        _themesLabel.SetForegroundColor(fgVariant);
-
-        _languagesLabel.SetBackgroundColor(bgColor);
-        _languagesLabel.SetForegroundColor(fgVariant);
+        _touchLabel.SetBackgroundColor(bgColor);
+        _touchLabel.SetForegroundColor(fgVariant);
 
         BottomSheetView::Draw(graphicsContext);
     }
@@ -512,19 +444,23 @@ bool SettingsInfoBottomSheetView::HandleTouch(const TouchEvent& event, FocusMana
 {
     (void)focusManager;
 
-    if (event.type != TouchEventType::Up)
-        return false;
-
-    int deltaX = event.position.x - event.startPosition.x;
-    int deltaY = event.position.y - event.startPosition.y;
-    int absDeltaY = deltaY < 0 ? -deltaY : deltaY;
-
-    if (event.startPosition.x <= SWIPE_BACK_START_X
-        && deltaX >= SWIPE_BACK_MIN_X
-        && absDeltaY <= SWIPE_BACK_MAX_Y)
+    if (event.type == TouchEventType::Down || event.type == TouchEventType::Move)
     {
-        _viewModel->HideInfo();
-        return true;
+        _touchPressed = true;
+        _touchX = event.position.x;
+        _touchY = event.position.y;
+        return false;
+    }
+
+    if (event.type == TouchEventType::Up)
+    {
+        _touchPressed = false;
+        _touchX = 0;
+        _touchY = 0;
+    }
+    else
+    {
+        return false;
     }
 
     return false;
