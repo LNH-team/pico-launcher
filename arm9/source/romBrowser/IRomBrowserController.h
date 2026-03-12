@@ -49,6 +49,12 @@ public:
 
     virtual void MarkSettingsDirty() = 0;
 
+    /// @brief Immediately serializes and enqueues an async write of settings.json.
+    virtual void SaveSettingsNow() = 0;
+
+    /// @brief Signals that state.bin should be saved.
+    virtual void MarkStateDirty() = 0;
+
     virtual void RequestThemeReload() = 0;
 
     virtual void ShowCheats() = 0;

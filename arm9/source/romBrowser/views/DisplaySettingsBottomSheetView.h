@@ -15,9 +15,11 @@ struct TouchEvent;
 class DisplaySettingsBottomSheetView : public BottomSheetView
 {
 public:
+    /// @param appliedThemeName  The theme that is actually running
+
     DisplaySettingsBottomSheetView(DisplaySettingsViewModel* viewModel,
         const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository,
-        IAppSettingsService* appSettingsService);
+        IAppSettingsService* appSettingsService, const char* appliedThemeName);
 
     void InitVram(const VramContext& vramContext) override;
     void Update() override;
@@ -54,13 +56,18 @@ private:
 
     const MaterialColorScheme* _materialColorScheme;
 
+    String<char, 64> _appliedThemeName;
+
     static constexpr int kMaxThemeCount = 16;
     std::array<String<char, 64>, kMaxThemeCount> _themeNames;
     int _themeCount = 0;
     int _selectedThemeIdx = 0;
-    int _originalThemeIdx = 0;
     bool _themesLoaded = false;
     String<char, 64> _pendingThemeName;
+
+    static constexpr int kSettleFrames = 30;
+    int _themeSettleCounter = 0;
+    int _languageSettleCounter = 0;
 
     static constexpr int kMaxLanguageCount = 16;
     struct LanguageEntry

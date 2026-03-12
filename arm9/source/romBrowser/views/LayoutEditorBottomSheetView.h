@@ -3,6 +3,7 @@
 #include "gui/views/Label2DView.h"
 #include "../layout/LayoutService.h"
 #include "themes/material/MaterialColorScheme.h"
+#include "core/String.h"
 
 class IRomBrowserController;
 class IFontRepository;
@@ -12,12 +13,17 @@ struct TouchEvent;
 class LayoutEditorBottomSheetView : public BottomSheetView
 {
 public:
+    /// @param appliedThemeName   The theme actually running
+    /// @param initialColorR/G/B  Primary color from state.bin 
+    /// @param initialDarkTheme   Dark-theme flag from state.bin
     LayoutEditorBottomSheetView(
         IRomBrowserController* controller,
         LayoutService* layoutService,
         const MaterialColorScheme* materialColorScheme,
         const IFontRepository* fontRepository,
-        IAppSettingsService* appSettingsService);
+        IAppSettingsService* appSettingsService,
+        const char* appliedThemeName,
+        u8 initialColorR, u8 initialColorG, u8 initialColorB, bool initialDarkTheme);
 
     void InitVram(const VramContext& vramContext) override;
     void Update() override;
@@ -32,6 +38,8 @@ private:
     IRomBrowserController*     _controller;
     LayoutService*             _layoutService;
     IAppSettingsService*       _appSettingsService;
+    /// The theme actually loaded 
+    String<char, 64>           _appliedThemeName;
     const MaterialColorScheme* _materialColorScheme;
 
     Label2DView _titleLabel;

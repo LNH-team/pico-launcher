@@ -37,7 +37,7 @@
 #include "splashTop.h"
 #include "App.h"
 #include "fat/Directory.h"
-#include "services/localization/Localization.h"
+#include "services/Localization/Localization.h"
 
 #define SPLASH_FRAMES       44
 
@@ -172,6 +172,11 @@ void App::LoadTheme()
         themeInfo = themeInfoFactory.CreateFallbackTheme();
     }
 
+    _loadedPrimaryColorR = themeInfo->GetPrimaryColor().r;
+    _loadedPrimaryColorG = themeInfo->GetPrimaryColor().g;
+    _loadedPrimaryColorB = themeInfo->GetPrimaryColor().b;
+    _loadedDarkTheme     = themeInfo->GetIsDarkTheme();
+
     _theme = ThemeFactory().CreateFromThemeInfo(themeInfo.get());
     themeInfo.reset();
     _theme->LoadRomBrowserResources(_mainVramContext, _subVramContext);
@@ -225,6 +230,8 @@ void App::Run()
 
     Localization::Initialize(&_appSettingsService);
 
+    LoadAppStateBin();
+
     _layoutService.Initialize(_appSettingsService.GetAppSettings().layoutSlot);
 
     StoreVramState(_vramStateBeforeThemeLoad);
@@ -232,6 +239,8 @@ void App::Run()
 
     _ioTaskQueue.StartThread(1, _ioTaskThreadStack, sizeof(_ioTaskThreadStack));
     _bgTaskQueue.StartThread(2, _bgTaskThreadStack, sizeof(_bgTaskThreadStack));
+
+    SaveAppStateBinAsync();
 
     StoreVramState(_vramStateBeforeMakeBottomScreenView);
 
@@ -489,7 +498,9 @@ void App::HandleHideCheatDescriptionTrigger()
 void App::HandleShowDisplaySettingsTrigger()
 {
     auto displaySettingsDialog = std::make_unique<DisplaySettingsBottomSheetView>(
-        &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository(), &_appSettingsService);
+        &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(),
+        _theme->GetFontRepository(), &_appSettingsService,
+        _effectiveThemeName.GetString());
     displaySettingsDialog->SetGraphics(_iconButtonViewVram);
     _dialogPresenter.ShowDialog(std::move(displaySettingsDialog));
 }
@@ -522,7 +533,9 @@ void App::HandleHideDisplayInfoTrigger()
     _dialogPresenter.CloseDialog();
 
     auto displaySettingsDialog = std::make_unique<DisplaySettingsBottomSheetView>(
-        &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository(), &_appSettingsService);
+        &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(),
+        _theme->GetFontRepository(), &_appSettingsService,
+        _effectiveThemeName.GetString());
     displaySettingsDialog->SetGraphics(_iconButtonViewVram);
     _dialogPresenter.ShowDialog(std::move(displaySettingsDialog));
 }
@@ -534,19 +547,22 @@ void App::HandleShowLayoutEditorTrigger()
     auto layoutEditorDialog = std::make_unique<LayoutEditorBottomSheetView>(
         &_romBrowserController, &_layoutService,
         &_theme->GetMaterialColorScheme(), _theme->GetFontRepository(),
-        &_appSettingsService);
+        &_appSettingsService, _effectiveThemeName.GetString(),
+        _loadedPrimaryColorR, _loadedPrimaryColorG, _loadedPrimaryColorB, _loadedDarkTheme);
     _dialogPresenter.ShowDialog(std::move(layoutEditorDialog));
 }
 
 void App::HandleHideLayoutEditorTrigger()
 {
     _appSettingsService.GetAppSettings().layoutSlot = _layoutService.GetCurrentSlot();
-    _romBrowserController.MarkSettingsDirty();
+    SaveAppStateBinAsync();
 
     _dialogPresenter.CloseDialog();
 
     auto displaySettingsDialog = std::make_unique<DisplaySettingsBottomSheetView>(
-        &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository(), &_appSettingsService);
+        &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(),
+        _theme->GetFontRepository(), &_appSettingsService,
+        _effectiveThemeName.GetString());
     displaySettingsDialog->SetGraphics(_iconButtonViewVram);
     _dialogPresenter.ShowDialog(std::move(displaySettingsDialog));
 }
@@ -735,6 +751,9 @@ void App::Update()
     {
         HandleTrigger(stateMachine.GetLastTrigger(), curState);
     }
+    if (_romBrowserController.ConsumeStateDirty())
+        SaveAppStateBinAsync();
+
     if (!_changeDisplayMode && _romBrowserController.ConsumeViewModelInvalidated())
     {
         HandleRomBrowserViewModelInvalidated();
@@ -908,6 +927,47 @@ void App::DrainTaskQueues()
     _bgTaskQueue.StopThread();
     _ioTaskQueue.StartThread(1, _ioTaskThreadStack, sizeof(_ioTaskThreadStack));
     _bgTaskQueue.StartThread(2, _bgTaskThreadStack, sizeof(_bgTaskThreadStack));
+}
+
+void App::LoadAppStateBin()
+{
+    AppStateBin state;
+    if (_stateBinSerializer.Deserialize(&state, kStateBinPath))
+    {
+        auto& appSettings = _appSettingsService.GetAppSettings();
+        appSettings.layoutSlot = state.layoutSlot;
+        appSettings.favorites  = std::move(state.favorites);
+        appSettings.numberOfFavorites = state.numberOfFavorites;
+    }
+}
+
+void App::SaveAppStateBinAsync()
+{
+    const auto& appSettings = _appSettingsService.GetAppSettings();
+    AppStateBin state;
+    state.appliedThemeName  = _effectiveThemeName;
+    state.primaryColorR     = _loadedPrimaryColorR;
+    state.primaryColorG     = _loadedPrimaryColorG;
+    state.primaryColorB     = _loadedPrimaryColorB;
+    state.darkTheme         = _loadedDarkTheme ? 1u : 0u;
+    state.layoutSlot        = appSettings.layoutSlot;
+
+    if (appSettings.numberOfFavorites > 0)
+    {
+        state.favorites = std::make_unique_for_overwrite<String<char, 256>[]>(appSettings.numberOfFavorites);
+        for (u32 i = 0; i < appSettings.numberOfFavorites; i++)
+            state.favorites[i] = appSettings.favorites[i];
+        state.numberOfFavorites = appSettings.numberOfFavorites;
+    }
+
+    u32 length = 0;
+    auto buf = _stateBinSerializer.SerializeToBuffer(&state, length);
+    auto shared = std::shared_ptr<u8[]>(std::move(buf));
+    _ioTaskQueue.Enqueue([this, shared, len = length] (const vu8& cancelRequested)
+    {
+        _stateBinSerializer.WriteBufferToFile(shared.get(), len, kStateBinPath);
+        return TaskResult<void>::Completed();
+    });
 }
 
 void App::DispatchTouch(const TouchEvent& event)

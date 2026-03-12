@@ -49,6 +49,11 @@ public:
         _romBrowserController->MarkSettingsDirty();
     }
 
+    void SaveSettingsNow()
+    {
+        _romBrowserController->SaveSettingsNow();
+    }
+
     void RequestThemeReload()
     {
         _romBrowserController->RequestThemeReload();

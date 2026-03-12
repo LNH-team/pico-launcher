@@ -216,7 +216,7 @@ void RomBrowserController::ToggleSelectedFileFavorite()
     else
         AddFavoritePath(fullPath);
 
-    SaveSettingsAsync();
+    _saveStateBinPending = true;
 
     if (_favoritesViewActive && !_favoritesLoadPending)
         StartFavoritesLoad();
@@ -622,6 +622,12 @@ void RomBrowserController::RemoveFavoritePath(const char* fullPath)
     }
     appSettings.favorites = std::move(newFavorites);
     appSettings.numberOfFavorites = writeIndex;
+}
+
+void RomBrowserController::SaveSettingsNow()
+{
+    _saveSettingsPending = false;
+    SaveSettingsAsync();
 }
 
 void RomBrowserController::SaveSettingsAsync()

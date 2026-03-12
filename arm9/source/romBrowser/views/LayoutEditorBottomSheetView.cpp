@@ -201,12 +201,11 @@ void LayoutEditorBottomSheetView::EnsureThemeColorLoaded() const
     _themeColorG = 0;
     _themeColorB = 0;
 
-    if (_appSettingsService == nullptr)
+    if (_appliedThemeName.GetString()[0] == '\0')
         return;
 
-    const auto& appSettings = _appSettingsService->GetAppSettings();
     char path[128];
-    mini_snprintf(path, sizeof(path), "/_pico/themes/%s/theme.json", appSettings.theme.GetString());
+    mini_snprintf(path, sizeof(path), "/_pico/themes/%s/theme.json", _appliedThemeName.GetString());
 
     const auto file = std::make_unique<File>();
     if (file->Open(path, FA_READ | FA_OPEN_EXISTING) != FR_OK)
@@ -279,12 +278,11 @@ void LayoutEditorBottomSheetView::RefreshThemeBackgroundPalettes()
 
 bool LayoutEditorBottomSheetView::SaveThemeColorToFile() const
 {
-    if (_appSettingsService == nullptr)
+    if (_appliedThemeName.GetString()[0] == '\0')
         return false;
 
-    const auto& appSettings = _appSettingsService->GetAppSettings();
     char path[128];
-    mini_snprintf(path, sizeof(path), "/_pico/themes/%s/theme.json", appSettings.theme.GetString());
+    mini_snprintf(path, sizeof(path), "/_pico/themes/%s/theme.json", _appliedThemeName.GetString());
 
     DynamicJsonDocument json(THEME_COLOR_JSON_RESERVED_SIZE);
 
@@ -403,10 +401,18 @@ LayoutEditorBottomSheetView::LayoutEditorBottomSheetView(
     LayoutService* layoutService,
     const MaterialColorScheme* materialColorScheme,
     const IFontRepository* fontRepository,
-    IAppSettingsService* appSettingsService)
+    IAppSettingsService* appSettingsService,
+    const char* appliedThemeName,
+    u8 initialColorR, u8 initialColorG, u8 initialColorB, bool initialDarkTheme)
     : _controller(controller)
     , _layoutService(layoutService)
     , _appSettingsService(appSettingsService)
+    , _appliedThemeName(appliedThemeName ? appliedThemeName : "")
+    , _themeColorLoaded(appliedThemeName && appliedThemeName[0] != '\0')
+    , _themeDarkMode(initialDarkTheme)
+    , _themeColorR(initialColorR)
+    , _themeColorG(initialColorG)
+    , _themeColorB(initialColorB)
     , _materialColorScheme(materialColorScheme)
     , _titleLabel(196, 16, 20, fontRepository->GetFont(FontType::Medium11))
     , _slotLabel(56, 16, 10, fontRepository->GetFont(FontType::Regular10))

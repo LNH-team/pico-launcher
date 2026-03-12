@@ -9,7 +9,7 @@
 #include "themes/material/MaterialColorScheme.h"
 #include "themes/IFontRepository.h"
 #include "picoLoaderBootstrap.h"
-#include "services/localization/Localization.h"
+#include "services/Localization/Localization.h"
 #include "InfoBottomSheetView.h"
 
 #define TITLE_LABEL_X       15

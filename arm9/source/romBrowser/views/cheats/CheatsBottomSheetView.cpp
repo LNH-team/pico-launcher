@@ -15,7 +15,7 @@
 #include "core/StringUtil.h"
 #include "cheats/CheatCategory.h"
 #include "gui/DescendingStackVramManager.h"
-#include "services/localization/Localization.h"
+#include "services/Localization/Localization.h"
 #include "CheatsBottomSheetView.h"
 
 #define TOTALC_LABEL_X      20

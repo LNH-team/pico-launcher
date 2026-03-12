@@ -25,7 +25,7 @@
 #include "core/StringUtil.h"
 #include "core/mini-printf.h"
 #include "DisplaySettingsBottomSheetView.h"
-#include "services/localization/Localization.h"
+#include "services/Localization/Localization.h"
 
 #define TITLE_LABEL_X       15
 #define TITLE_LABEL_Y       16
@@ -64,7 +64,8 @@ static RomBrowserSortMode sRomBrowserSortModes[4] =
 
 DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     DisplaySettingsViewModel* viewModel, const MaterialColorScheme* materialColorScheme,
-    const IFontRepository* fontRepository, IAppSettingsService* appSettingsService)
+    const IFontRepository* fontRepository, IAppSettingsService* appSettingsService,
+    const char* appliedThemeName)
     : _viewModel(viewModel)
     , _appSettingsService(appSettingsService)
     , _titleLabel(128, 16, 25, fontRepository->GetFont(FontType::Medium11))
@@ -75,6 +76,7 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     , _languageLabel(80, 16, 20, fontRepository->GetFont(FontType::Regular10))
     , _languageValueLabel(120, 16, 20, fontRepository->GetFont(FontType::Regular10))
     , _materialColorScheme(materialColorScheme)
+    , _appliedThemeName(appliedThemeName ? appliedThemeName : "")
     // , _filtersLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
 
 {
@@ -133,6 +135,7 @@ void DisplaySettingsBottomSheetView::ChangeLanguage(int newIdx)
     _appSettingsService->GetAppSettings().language = _languageEntries[_selectedLanguageIdx].fileName.GetString();
     _pendingLanguageName = _languageEntries[_selectedLanguageIdx].fileName;
     _settingsDirty = true;
+    _languageSettleCounter = kSettleFrames;
     Localization::Initialize(_appSettingsService);
     UpdateLanguageUI();
     _titleLabel.SetText(Localization::Translate("display_settings"));
@@ -160,7 +163,6 @@ void DisplaySettingsBottomSheetView::EnsureThemesLoaded()
         }
     }
 
-    _originalThemeIdx = _selectedThemeIdx;
     _pendingThemeName = _themeNames[_selectedThemeIdx];
     UpdateThemeUI();
 }
@@ -285,17 +287,17 @@ void DisplaySettingsBottomSheetView::ChangeTheme(int newIdx)
 
     _selectedThemeIdx = newIdx;
     _pendingThemeName = _themeNames[_selectedThemeIdx];
+    _themeSettleCounter = kSettleFrames;
     UpdateThemeUI();
 }
 
 void DisplaySettingsBottomSheetView::ApplyTheme()
 {
-    if (_selectedThemeIdx == _originalThemeIdx)
-    {
+    if (strcasecmp(_pendingThemeName.GetString(), _appliedThemeName.GetString()) == 0)
         return;
-    }
 
-    _appSettingsService->GetAppSettings().theme = _themeNames[_selectedThemeIdx].GetString();
+    _themeSettleCounter = 0;
+    _appSettingsService->GetAppSettings().theme = _pendingThemeName.GetString();
     _settingsDirty = true;
     SaveIfDirty();
     ReleaseLazyLists();
@@ -327,11 +329,12 @@ void DisplaySettingsBottomSheetView::ReleaseLazyLists()
     _themesLoaded = false;
     _themeCount = 0;
     _selectedThemeIdx = 0;
-    _originalThemeIdx = 0;
+    _themeSettleCounter = 0;
 
     _languagesLoaded = false;
     _languageCount = 0;
     _selectedLanguageIdx = 0;
+    _languageSettleCounter = 0;
 }
 
 IconButton2DView DisplaySettingsBottomSheetView::CreateLayoutOptionIconButton()
@@ -422,6 +425,22 @@ void DisplaySettingsBottomSheetView::UpdateLabels()
 void DisplaySettingsBottomSheetView::Update()
 {
     BottomSheetView::Update();
+
+    if (_themeSettleCounter > 0)
+    {
+        if (--_themeSettleCounter == 0)
+        {
+            _appSettingsService->GetAppSettings().theme = _pendingThemeName.GetString();
+            _settingsDirty = true;
+            SaveIfDirty();
+        }
+    }
+    if (_languageSettleCounter > 0)
+    {
+        if (--_languageSettleCounter == 0)
+            SaveIfDirty();
+    }
+
     UpdateLabels();
     auto selectedDisplayMode = _viewModel->GetRomBrowserDisplayMode();
     int x = 70;
@@ -496,7 +515,7 @@ void DisplaySettingsBottomSheetView::SaveIfDirty()
 {
     if (_settingsDirty)
     {
-        _viewModel->MarkSettingsDirty();
+        _viewModel->SaveSettingsNow();
         _settingsDirty = false;
     }
 }
@@ -518,6 +537,13 @@ bool DisplaySettingsBottomSheetView::HandleInput(
 
     if (inputProvider.Triggered(InputKey::L))
     {
+        if (_themeSettleCounter > 0)
+        {
+            _themeSettleCounter = 0;
+            _appSettingsService->GetAppSettings().theme = _pendingThemeName.GetString();
+            _settingsDirty = true;
+        }
+        _languageSettleCounter = 0;
         SaveIfDirty();
         ReleaseLazyLists();
         _viewModel->ShowLayoutEditor();
@@ -531,12 +557,13 @@ bool DisplaySettingsBottomSheetView::HandleInput(
     }
     if (inputProvider.Triggered(InputKey::B))
     {
-        if (_selectedThemeIdx != _originalThemeIdx)
+        if (_themeSettleCounter > 0)
         {
-            _appSettingsService->GetAppSettings().theme = _themeNames[_selectedThemeIdx].GetString();
+            _themeSettleCounter = 0;
+            _appSettingsService->GetAppSettings().theme = _pendingThemeName.GetString();
             _settingsDirty = true;
-            SaveIfDirty();
         }
+        SaveIfDirty();
         ReleaseLazyLists();
         _viewModel->Close();
         return true;
@@ -546,12 +573,13 @@ bool DisplaySettingsBottomSheetView::HandleInput(
 
 void DisplaySettingsBottomSheetView::OnDismissed()
 {
-    if (_selectedThemeIdx != _originalThemeIdx)
+    if (_themeSettleCounter > 0)
     {
-        _appSettingsService->GetAppSettings().theme = _themeNames[_selectedThemeIdx].GetString();
+        _themeSettleCounter = 0;
+        _appSettingsService->GetAppSettings().theme = _pendingThemeName.GetString();
         _settingsDirty = true;
-        SaveIfDirty();
     }
+    SaveIfDirty();
     ReleaseLazyLists();
     _viewModel->Close();
 }

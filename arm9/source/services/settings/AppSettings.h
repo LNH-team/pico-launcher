@@ -11,10 +11,11 @@ public:
     String<char, 64> theme = "material";
     String<char, 256> lastUsedFilePath = "";
     RomBrowserDisplaySettings romBrowserDisplaySettings;
-    u32 layoutSlot = 1; 
 
     std::unique_ptr<FileAssociation[]> fileAssociations;
     u32 numberOfFileAssociations = 0;
+
+    u32 layoutSlot = 1;
 
     std::unique_ptr<String<char, 256>[]> favorites;
     u32 numberOfFavorites = 0;

@@ -2,6 +2,8 @@
 #include "common.h"
 #include <memory>
 #include "services/settings/IAppSettingsService.h"
+#include "services/State/AppStateBin.h"
+#include "services/State/AppStateBinSerializer.h"
 #include "bgm/IBgmService.h"
 #include "services/process/IProcess.h"
 #include "gui/SimplePaletteManager.h"
@@ -153,4 +155,16 @@ private:
     int _themeCount = 0;
 
     String<char, 64> _effectiveThemeName;
+
+    u8 _loadedPrimaryColorR = 0xFF;
+    u8 _loadedPrimaryColorG = 0xFF;
+    u8 _loadedPrimaryColorB = 0xFF;
+    bool _loadedDarkTheme = false;
+
+    static constexpr const char* kStateBinPath = "/_pico/extras/state.bin";
+
+    AppStateBinSerializer _stateBinSerializer;
+
+    void LoadAppStateBin();
+    void SaveAppStateBinAsync();
 };

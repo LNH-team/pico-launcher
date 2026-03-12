@@ -16,7 +16,7 @@
 #include "gui/VramContext.h"
 #include "../Theme/IRomBrowserViewFactory.h"
 #include "rtcIpc.h"
-#include "services/launchStats/LaunchStatsService.h"
+#include "services/LaunchStats/LaunchStatsService.h"
 #include "../FileType/Nds/NdsInternalFileInfo.h"
 #include "fat/File.h"
 #include "fat/ff.h"
