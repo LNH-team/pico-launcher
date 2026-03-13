@@ -1,5 +1,5 @@
-#include "../FileInfo.h"
 #pragma once
+#include "../FileInfo.h"
 #include "BottomSheetView.h"
 #include "ChipView.h"
 #include "gui/FocusManager.h"

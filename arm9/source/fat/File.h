@@ -9,8 +9,8 @@ class alignas(32) File
 public:
     FRESULT Open(const TCHAR* path, BYTE mode) { return f_open(&_file, path, mode); }
 
-    void Open(const FastFileRef& fastFileRef, BYTE mode)
-    {
+        FRESULT Open(const FastFileRef& fastFileRef, BYTE mode)
+        {
         _file.obj.fs = fastFileRef.GetFatFs();
         _file.obj.id = fastFileRef.GetFatFs()->id;
         _file.obj.sclust = fastFileRef.GetStartCluster();
@@ -18,14 +18,15 @@ public:
         _file.obj.objsize = fastFileRef.GetFileSize();
         _file.dir_sect = fastFileRef.GetDirSector();
         _file.dir_ptr = &fastFileRef.GetFatFs()->win[fastFileRef.GetDirSectorOffset()];
-#if FF_USE_FASTSEEK
+    #if FF_USE_FASTSEEK
         _file.cltbl = 0;
-#endif
+    #endif
         _file.flag = mode;
         _file.err = 0;
         _file.sect = 0;
         _file.fptr = 0;
-    }
+        return FR_OK;
+        }
 
     FRESULT Close() { return f_close(&_file); }
 

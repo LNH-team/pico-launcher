@@ -115,28 +115,30 @@ static const char* const kLayoutPrefixTwlModeNames[LAYOUT_PREFIX_TWL_COUNT] = {
 // Sub-menu indices
 #define LAYOUT_SUBMENU_DATETIME1     0
 #define LAYOUT_SUBMENU_DATETIME2     1
-#define LAYOUT_SUBMENU_PREFIX        2
-#define LAYOUT_SUBMENU_GAME_ID       3
-#define LAYOUT_SUBMENU_REGION        4
-#define LAYOUT_SUBMENU_VERSION       5
-#define LAYOUT_SUBMENU_CRC           6
-#define LAYOUT_SUBMENU_USERNAME      7
-#define LAYOUT_SUBMENU_BOXART        8
-#define LAYOUT_SUBMENU_ICON          9
-#define LAYOUT_SUBMENU_ROMNAME       10
-#define LAYOUT_SUBMENU_FILENAME      11
-#define LAYOUT_SUBMENU_THEME_COLOR   12
-#define LAYOUT_SUBMENU_COUNT         13
+#define LAYOUT_SUBMENU_USERNAME      2
+#define LAYOUT_SUBMENU_GAME_TITLE    3
+#define LAYOUT_SUBMENU_PREFIX        4
+#define LAYOUT_SUBMENU_GAME_ID       5
+#define LAYOUT_SUBMENU_REGION        6
+#define LAYOUT_SUBMENU_CRC           7
+#define LAYOUT_SUBMENU_VERSION       8
+#define LAYOUT_SUBMENU_BOXART        9
+#define LAYOUT_SUBMENU_ICON          10
+#define LAYOUT_SUBMENU_ROMNAME       11
+#define LAYOUT_SUBMENU_FILENAME      12
+#define LAYOUT_SUBMENU_THEME_COLOR   13
+#define LAYOUT_SUBMENU_COUNT         14
 
 static const char* const kLayoutSubMenuNames[LAYOUT_SUBMENU_COUNT] = {
     "DateTime1",
     "DateTime2",
-    "PREFIX",
-    "TITLE ID",
-    "Region",
-    "Version",
-    "CRC",
     "Username",
+    "Game Title",
+    "Prefix",
+    "Title ID",
+    "Region",
+    "CRC",
+    "Version",
     "Box Art",
     "Icon",
     "ROM Name",
@@ -144,11 +146,10 @@ static const char* const kLayoutSubMenuNames[LAYOUT_SUBMENU_COUNT] = {
     "Theme Color",
 };
 
-// Layout data structures
 struct LayoutDateTime {
     u8  visible;
-    s16 y;
     s16 x;
+    s16 y;
     u8  format;
     u8  separator;
     u8  font;
@@ -159,8 +160,8 @@ struct LayoutDateTime {
 
 struct LayoutElement {
     u8  visible;
-    s16 y;
     s16 x;
+    s16 y;
     u8  font;
     u8  colorR;
     u8  colorG;
@@ -169,14 +170,14 @@ struct LayoutElement {
 
 struct LayoutElementNoFont {
     u8  visible;
-    s16 y;
     s16 x;
+    s16 y;
 };
 
 struct LayoutPrefixElement {
     u8  visible;
-    s16 y;
     s16 x;
+    s16 y;
     u8  font;
     u8  trailingDash;
     u8  colorR;
@@ -187,10 +188,10 @@ struct LayoutPrefixElement {
     u8  twlPrefixMode;
 };
 
-struct LayoutGameIdElement {
+struct LayoutTitleIDElement {
     u8  visible;
-    s16 y;
     s16 x;
+    s16 y;
     u8  font;
     u8  trailingDash;
     u8  colorR;
@@ -198,8 +199,8 @@ struct LayoutGameIdElement {
     u8  colorB;
     u8  showLabelText;
     u8  labelFont;
+    s16 labelX;     
     s16 labelY;
-    s16 labelX;
     u8  labelColorR;
     u8  labelColorG;
     u8  labelColorB;
@@ -207,8 +208,8 @@ struct LayoutGameIdElement {
 
 struct LayoutRegionElement {
     u8  visible;
-    s16 y;
     s16 x;
+    s16 y;
     u8  font;
     u8  trailingDash;
     u8  colorR;
@@ -218,8 +219,8 @@ struct LayoutRegionElement {
 
 struct LayoutFilename {
     u8  visible;
-    s16 y;
     s16 x;
+    s16 y;
     u8  font;
     u8  scroll;
     u8  scrollSpeed;
@@ -232,12 +233,13 @@ struct LayoutFilename {
 struct LayoutData {
     LayoutDateTime          dateTime1;
     LayoutDateTime          dateTime2;
-    LayoutPrefixElement     prefix;
-    LayoutGameIdElement     gameId;
-    LayoutRegionElement     region;
-    LayoutElement           version;
-    LayoutElement           crc;
     LayoutElement           username;
+    LayoutElement           gameTitle;
+    LayoutPrefixElement     prefix;
+    LayoutTitleIDElement    TitleID;
+    LayoutRegionElement     region;
+    LayoutElement           crc;
+    LayoutElement           version;
     LayoutElementNoFont     boxArt;
     LayoutElementNoFont     icon;
     LayoutElement           romNameRow1;
@@ -246,14 +248,13 @@ struct LayoutData {
     LayoutFilename          fileName;
 };
 
-// Build a Layout with default values
 inline LayoutData LayoutData_Default()
 {
     LayoutData d;
     // DateTime1
     d.dateTime1.visible   = 0;
-    d.dateTime1.y         = 2;
     d.dateTime1.x         = 5;
+    d.dateTime1.y         = 2;
     d.dateTime1.format    = LAYOUT_FMT_DD_MM_YYYY;
     d.dateTime1.separator = LAYOUT_SEP_SLASH;
     d.dateTime1.font      = LAYOUT_FONT_REGULAR10;
@@ -262,18 +263,34 @@ inline LayoutData LayoutData_Default()
     d.dateTime1.colorB    = 255;
     // DateTime2
     d.dateTime2.visible   = 0;
-    d.dateTime2.y         = 14;
     d.dateTime2.x         = 5;
+    d.dateTime2.y         = 14;
     d.dateTime2.format    = LAYOUT_FMT_HH_mm_ss;
     d.dateTime2.separator = LAYOUT_SEP_COLON;
     d.dateTime2.font      = LAYOUT_FONT_REGULAR10;
     d.dateTime2.colorR    = 255;
     d.dateTime2.colorG    = 255;
     d.dateTime2.colorB    = 255;
-    // PREFIX
+    // Username
+    d.username.visible    = 0;
+    d.username.x          = 5;
+    d.username.y          = 26;
+    d.username.font       = LAYOUT_FONT_REGULAR10;
+    d.username.colorR     = 255;
+    d.username.colorG     = 255;
+    d.username.colorB     = 255;
+    // Game Title
+    d.gameTitle.visible = 0;
+    d.gameTitle.x       = 75;
+    d.gameTitle.y       = 2;
+    d.gameTitle.font    = LAYOUT_FONT_REGULAR10;
+    d.gameTitle.colorR  = 255;
+    d.gameTitle.colorG  = 255;
+    d.gameTitle.colorB  = 255;
+    // Prefix
     d.prefix.visible      = 0;
+    d.prefix.x            = 160;
     d.prefix.y            = 2;
-    d.prefix.x            = 130;
     d.prefix.font         = LAYOUT_FONT_REGULAR10;
     d.prefix.trailingDash = 0;
     d.prefix.colorR       = 255;
@@ -282,89 +299,81 @@ inline LayoutData LayoutData_Default()
     d.prefix.gbaPrefixMode = LAYOUT_PREFIX_GBA_NATIVE;
     d.prefix.ntrPrefixMode = LAYOUT_PREFIX_NTR_NATIVE;
     d.prefix.twlPrefixMode = LAYOUT_PREFIX_TWL_NATIVE;
-    // TITLE ID
-    d.gameId.visible      = 0;
-    d.gameId.y            = 2;
-    d.gameId.x            = 162;
-    d.gameId.font         = LAYOUT_FONT_REGULAR10;
-    d.gameId.trailingDash = 0;
-    d.gameId.colorR       = 255;
-    d.gameId.colorG       = 255;
-    d.gameId.colorB       = 255;
-    d.gameId.showLabelText = 0;
-    d.gameId.labelFont    = LAYOUT_FONT_REGULAR10;
-    d.gameId.labelY       = d.gameId.y;
-    d.gameId.labelX       = d.gameId.x;
-    d.gameId.labelColorR  = 255;
-    d.gameId.labelColorG  = 255;
-    d.gameId.labelColorB  = 255;
+    // Title ID
+    d.TitleID.visible      = 0;
+    d.TitleID.x            = 186;
+    d.TitleID.y            = 2;
+    d.TitleID.font         = LAYOUT_FONT_REGULAR10;
+    d.TitleID.trailingDash = 0;
+    d.TitleID.colorR       = 255;
+    d.TitleID.colorG       = 255;
+    d.TitleID.colorB       = 255;
+    d.TitleID.showLabelText = 0;
+    d.TitleID.labelFont    = LAYOUT_FONT_REGULAR10;
+    d.TitleID.labelX       = d.TitleID.x;
+    d.TitleID.labelY       = d.TitleID.y;
+    d.TitleID.labelColorR  = 255;
+    d.TitleID.labelColorG  = 255;
+    d.TitleID.labelColorB  = 255;
     // Region
     d.region.visible      = 0;
+    d.region.x            = 216;
     d.region.y            = 2;
-    d.region.x            = 198;
     d.region.font         = LAYOUT_FONT_REGULAR10;
     d.region.trailingDash = 0;
     d.region.colorR       = 255;
     d.region.colorG       = 255;
     d.region.colorB       = 255;
-    // Version
-    d.version.visible     = 0;
-    d.version.y           = 2;
-    d.version.x           = 222;
-    d.version.font        = LAYOUT_FONT_REGULAR10;
-    d.version.colorR      = 255;
-    d.version.colorG      = 255;
-    d.version.colorB      = 255;
     // CRC
     d.crc.visible         = 0;
-    d.crc.y               = 2;
-    d.crc.x               = 200;
+    d.crc.x               = 180;
+    d.crc.y               = 18;
     d.crc.font            = LAYOUT_FONT_REGULAR10;
     d.crc.colorR          = 255;
     d.crc.colorG          = 255;
     d.crc.colorB          = 255;
-    // Username
-    d.username.visible    = 0;
-    d.username.y          = 16;
-    d.username.x          = 5;
-    d.username.font       = LAYOUT_FONT_REGULAR10;
-    d.username.colorR     = 255;
-    d.username.colorG     = 255;
-    d.username.colorB     = 255;
+    // Version
+    d.version.visible     = 0;
+    d.version.x           = 240;
+    d.version.y           = 2;
+    d.version.font        = LAYOUT_FONT_REGULAR10;
+    d.version.colorR      = 255;
+    d.version.colorG      = 255;
+    d.version.colorB      = 255;
     // Box Art
     d.boxArt.visible      = 1;
-    d.boxArt.y            = 18;
     d.boxArt.x            = 75;
+    d.boxArt.y            = 18;
     // Icon
     d.icon.visible        = 1;
-    d.icon.y              = 128;
     d.icon.x              = 24;
+    d.icon.y              = 128;
     // ROM Name rows
     d.romNameRow1.visible = 1;
-    d.romNameRow1.y       = 122;
     d.romNameRow1.x       = 70;
+    d.romNameRow1.y       = 122;
     d.romNameRow1.font    = LAYOUT_FONT_MEDIUM11;
     d.romNameRow1.colorR  = 0;
     d.romNameRow1.colorG  = 0;
     d.romNameRow1.colorB  = 0;
     d.romNameRow2.visible = 1;
-    d.romNameRow2.y       = 137;
     d.romNameRow2.x       = 70;
+    d.romNameRow2.y       = 137;
     d.romNameRow2.font    = LAYOUT_FONT_REGULAR10;
     d.romNameRow2.colorR  = 0;
     d.romNameRow2.colorG  = 0;
     d.romNameRow2.colorB  = 0;
     d.romNameRow3.visible = 1;
-    d.romNameRow3.y       = 151;
     d.romNameRow3.x       = 70;
+    d.romNameRow3.y       = 151;
     d.romNameRow3.font    = LAYOUT_FONT_REGULAR10;
     d.romNameRow3.colorR  = 0;
     d.romNameRow3.colorG  = 0;
     d.romNameRow3.colorB  = 0;
     // File Name
     d.fileName.visible    = 1;
-    d.fileName.y          = 168;
     d.fileName.x          = 18;
+    d.fileName.y          = 168;
     d.fileName.font       = LAYOUT_FONT_MEDIUM7_5;
     d.fileName.scroll     = 0;
     d.fileName.scrollSpeed = 3;

@@ -1,22 +1,38 @@
 #pragma once
 #include "core/String.h"
+#include "fat/FastFileRef.h"
 #include <memory>
 
 class LaunchStatsService
 {
 public:
+    enum class RomType : u8
+    {
+        Unknown = 0,
+        Nds     = 1,   // .nds / .dsi / .srl
+        Gba     = 2,   // .gba
+    };
+
+    struct RomMetadata
+    {
+        u32  headerCrc32    = 0;
+        char gameCode[5]    = {};
+        u8   romVersion     = 0;
+        char gameTitle[13]  = {};
+        u8   unitCode       = 0;
+    };
+
     struct Info
     {
         String<char, 256> path;
-        u32 launchCount = 0;
-        String<char, 11> lastLaunchDate;
-        String<char, 9> lastLaunchTime;
-        u8 romVersion = 0;
-        bool hasRomVersion = false;
-        String<char, 16> id;
-        bool hasID = false;
-        u32 headerCrc = 0;
-        bool hasHeaderCrc = false;
+        u32  launchCount       = 0;
+        char lastLaunchDate[11] = {};
+        char lastLaunchTime[9]  = {};
+
+        RomType romType    = RomType::Unknown;
+        bool metaScanned   = false;
+        bool metaValid     = false;
+        RomMetadata meta   = {};
     };
 
     static LaunchStatsService& Instance();
@@ -25,27 +41,35 @@ public:
     void Save() const;
 
     void Increment(const char* path);
-    u32 GetCount(const char* path) const;
-    bool TryGetLastLaunchDate(const char* path, char* outValue, u32 outValueSize) const;
-    bool TryGetLastLaunchTime(const char* path, char* outValue, u32 outValueSize) const;
-    bool TryGetInfo(const char* path, u32* outLaunchCount,
-        char* outDate, u32 outDateSize,
-        char* outTime, u32 outTimeSize) const;
-    bool TryGetCachedData(const char* path,
-        u8* outRomVersion, bool* outHasRomVersion,
-        char* outId, u32 outIdSize, bool* outHasID,
-        u32* outHeaderCrc, bool* outHasHeaderCrc) const;
-    void SetCachedData(const char* path,
-        u8 romVersion, bool hasRomVersion,
-        const char* id, bool hasID,
-        u32 headerCrc, bool hasHeaderCrc);
+
+    bool TryGetInfo(const char* path,
+                    u32* outLaunchCount,
+                    char* outDate, u32 outDateSize,
+                    char* outTime, u32 outTimeSize) const;
+
+    bool NeedsMetadataScan(const char* path) const;
+
+    bool TryGetRomMetadata(const char* path,
+                           RomType* outRomType,
+                           RomMetadata* outMeta) const;
+
+    void ScanRomFile(const char* normalizedPath, RomType romType,
+                     const FastFileRef& fileRef);
+
+    static RomType GetRomTypeFromExtension(const char* ext);
 
 private:
     LaunchStatsService();
     void EnsureLoaded();
 
+    Info* FindInfo(const char* normalizedPath) const;
+
+    Info& FindOrCreateInfo(const char* normalizedPath);
+
+    static const char* NormalizePath(const char* path);
+
     std::unique_ptr<Info[]> _infos;
-    u32 _count = 0;
+    u32  _count  = 0;
     bool _loaded = false;
-    const char* _filePath = "/_pico/extras/stats.bin";
+    static constexpr const char* kFilePath = "/_pico/extras/stats.bin";
 };

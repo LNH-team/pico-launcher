@@ -36,8 +36,7 @@ static u32 ComputeCrc32(const void* buffer, u32 length)
             crc = (crc >> 1) ^ ((crc & 1) ? CRCPOLY : 0);
         }
     }
-
-    return crc;
+    return ~crc;
 }
 
 static bool BuildStatsPath(char* outPath, u32 outSize, const FileInfo& fileInfo)
@@ -179,10 +178,10 @@ static void CopyUserNameFromFirmware(char16_t* outText, u32 outTextLength)
 struct IdParts
 {
     char prefix[24];
-    char gameId[5];
+    char TitleID[5];
     char region[4];
     bool hasPrefix;
-    bool hasGameId;
+    bool hasTitleID;
     bool hasRegion;
 };
 
@@ -196,8 +195,8 @@ static void ParseIdParts(const char* fullId, IdParts& parts)
     const char* dash1 = strchr(fullId, '-');
     if (!dash1)
     {
-        CopyCStringTrunc(parts.gameId, sizeof(parts.gameId), fullId);
-        parts.hasGameId = parts.gameId[0] != 0;
+        CopyCStringTrunc(parts.TitleID, sizeof(parts.TitleID), fullId);
+        parts.hasTitleID = parts.TitleID[0] != 0;
         return;
     }
 
@@ -211,18 +210,18 @@ static void ParseIdParts(const char* fullId, IdParts& parts)
         parts.hasPrefix = true;
     }
 
-    const char* gameIdStart = dash1 + 1;
-    const char* dash2 = strchr(gameIdStart, '-');
+    const char* TitleIDStart = dash1 + 1;
+    const char* dash2 = strchr(TitleIDStart, '-');
 
     if (dash2)
     {
-        int gameIdLen = (int)(dash2 - gameIdStart);
-        if (gameIdLen > 4)
-            gameIdLen = 4;
-        if (gameIdLen > 0)
+        int TitleIDLen = (int)(dash2 - TitleIDStart);
+        if (TitleIDLen > 4)
+            TitleIDLen = 4;
+        if (TitleIDLen > 0)
         {
-            memcpy(parts.gameId, gameIdStart, gameIdLen);
-            parts.hasGameId = true;
+            memcpy(parts.TitleID, TitleIDStart, TitleIDLen);
+            parts.hasTitleID = true;
         }
 
         CopyCStringTrunc(parts.region, sizeof(parts.region), dash2 + 1);
@@ -230,8 +229,8 @@ static void ParseIdParts(const char* fullId, IdParts& parts)
     }
     else
     {
-        CopyCStringTrunc(parts.gameId, sizeof(parts.gameId), gameIdStart);
-        parts.hasGameId = parts.gameId[0] != 0;
+        CopyCStringTrunc(parts.TitleID, sizeof(parts.TitleID), TitleIDStart);
+        parts.hasTitleID = parts.TitleID[0] != 0;
     }
 }
 
@@ -364,7 +363,14 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
     const LayoutService* layoutService)
     : _viewModel(viewModel)
     , _themeFileIconFactory(themeFileIconFactory)
+    , _bgmService(bgmService)
+    , _showCover(displayMode->ShowCoverOnTopScreen())
+    , _fontRepository(fontRepository)
+    , _layoutService(layoutService)
     , _fileInfoView(romBrowserViewFactory->CreateFileInfoView())
+    , _selectedFileIcon(nullptr)
+    , _selectedFileCover(nullptr)
+    
     , _dateTime1Label(128, 16, 26,
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().dateTime1.font < LAYOUT_FONT_COUNT
@@ -373,70 +379,76 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().dateTime2.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().dateTime2.font : LAYOUT_FONT_REGULAR10)))
+    , _usernameLabel(96, 16, 20,
+        fontRepository->GetFont(static_cast<FontType>(
+            layoutService->GetCurrentLayout().username.font < LAYOUT_FONT_COUNT
+                ? layoutService->GetCurrentLayout().username.font : LAYOUT_FONT_REGULAR10)))
+    , _gameTitleLabel(96, 16, 14,
+        fontRepository->GetFont(static_cast<FontType>(
+            layoutService->GetCurrentLayout().gameTitle.font < LAYOUT_FONT_COUNT
+                ? layoutService->GetCurrentLayout().gameTitle.font : LAYOUT_FONT_REGULAR10)))
     , _prefixLabel(128, 16, 24,
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().prefix.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().prefix.font : LAYOUT_FONT_REGULAR10)))
-    , _gameIdTagLabel(32, 16, 8,
+    , _TitleIDTagLabel(32, 16, 8,
         fontRepository->GetFont(static_cast<FontType>(
-            layoutService->GetCurrentLayout().gameId.labelFont < LAYOUT_FONT_COUNT
-                ? layoutService->GetCurrentLayout().gameId.labelFont : LAYOUT_FONT_REGULAR10)))
-    , _gameIdLabel(128, 16, 8,
+            layoutService->GetCurrentLayout().TitleID.labelFont < LAYOUT_FONT_COUNT
+                ? layoutService->GetCurrentLayout().TitleID.labelFont : LAYOUT_FONT_REGULAR10)))
+    , _TitleIDLabel(64, 16, 8,
         fontRepository->GetFont(static_cast<FontType>(
-            layoutService->GetCurrentLayout().gameId.font < LAYOUT_FONT_COUNT
-                ? layoutService->GetCurrentLayout().gameId.font : LAYOUT_FONT_REGULAR10)))
+            layoutService->GetCurrentLayout().TitleID.font < LAYOUT_FONT_COUNT
+                ? layoutService->GetCurrentLayout().TitleID.font : LAYOUT_FONT_REGULAR10)))
     , _regionLabel(64, 16, 8,
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().region.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().region.font : LAYOUT_FONT_REGULAR10)))
-    , _versionLabel(64, 16, 8,
-        fontRepository->GetFont(static_cast<FontType>(
-            layoutService->GetCurrentLayout().version.font < LAYOUT_FONT_COUNT
-                ? layoutService->GetCurrentLayout().version.font : LAYOUT_FONT_REGULAR10)))
     , _crcLabel(64, 16, 8,
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().crc.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().crc.font : LAYOUT_FONT_REGULAR10)))
-    , _usernameLabel(128, 16, 20,
+    , _versionLabel(64, 16, 8,
         fontRepository->GetFont(static_cast<FontType>(
-            layoutService->GetCurrentLayout().username.font < LAYOUT_FONT_COUNT
-                ? layoutService->GetCurrentLayout().username.font : LAYOUT_FONT_REGULAR10)))
-    , _showCover(displayMode->ShowCoverOnTopScreen())
-    , _bgmService(bgmService)
-    , _fontRepository(fontRepository)
-    , _layoutService(layoutService)
+            layoutService->GetCurrentLayout().version.font < LAYOUT_FONT_COUNT
+                ? layoutService->GetCurrentLayout().version.font : LAYOUT_FONT_REGULAR10)))
 {
     const auto& layout = layoutService->GetCurrentLayout();
 
+    // Color
     _dateTime1Label.SetForegroundColor({ 255, 255, 255 });
     _dateTime1Label.SetBackgroundColor({ 0, 0, 0 });
     _dateTime2Label.SetForegroundColor({ 255, 255, 255 });
     _dateTime2Label.SetBackgroundColor({ 0, 0, 0 });
-    _prefixLabel.SetForegroundColor({ 255, 255, 255 });
-    _prefixLabel.SetBackgroundColor({ 0, 0, 0 });
-    _gameIdTagLabel.SetForegroundColor({ 255, 255, 255 });
-    _gameIdTagLabel.SetBackgroundColor({ 0, 0, 0 });
-    _gameIdLabel.SetForegroundColor({ 255, 255, 255 });
-    _gameIdLabel.SetBackgroundColor({ 0, 0, 0 });
-    _regionLabel.SetForegroundColor({ 255, 255, 255 });
-    _regionLabel.SetBackgroundColor({ 0, 0, 0 });
-    _versionLabel.SetForegroundColor({ 255, 255, 255 });
-    _versionLabel.SetBackgroundColor({ 0, 0, 0 });
-    _crcLabel.SetForegroundColor({ 255, 255, 255 });
-    _crcLabel.SetBackgroundColor({ 0, 0, 0 });
     _usernameLabel.SetForegroundColor({ 255, 255, 255 });
     _usernameLabel.SetBackgroundColor({ 0, 0, 0 });
+    _gameTitleLabel.SetForegroundColor({ 255, 255, 255 });
+    _gameTitleLabel.SetBackgroundColor({ 0, 0, 0 });
+    _prefixLabel.SetForegroundColor({ 255, 255, 255 });
+    _prefixLabel.SetBackgroundColor({ 0, 0, 0 });
+    _TitleIDTagLabel.SetForegroundColor({ 255, 255, 255 });
+    _TitleIDTagLabel.SetBackgroundColor({ 0, 0, 0 });
+    _TitleIDLabel.SetForegroundColor({ 255, 255, 255 });
+    _TitleIDLabel.SetBackgroundColor({ 0, 0, 0 });
+    _regionLabel.SetForegroundColor({ 255, 255, 255 });
+    _regionLabel.SetBackgroundColor({ 0, 0, 0 });
+    _crcLabel.SetForegroundColor({ 255, 255, 255 });
+    _crcLabel.SetBackgroundColor({ 0, 0, 0 });
+    _versionLabel.SetForegroundColor({ 255, 255, 255 });
+    _versionLabel.SetBackgroundColor({ 0, 0, 0 });
 
+    // Position
     _dateTime1Label.SetPosition(layout.dateTime1.x, layout.dateTime1.y);
     _dateTime2Label.SetPosition(layout.dateTime2.x, layout.dateTime2.y);
-    _prefixLabel.SetPosition(layout.prefix.x, layout.prefix.y);
-    _gameIdTagLabel.SetPosition(layout.gameId.x, layout.gameId.y);
-    _gameIdLabel.SetPosition(layout.gameId.x, layout.gameId.y);
-    _regionLabel.SetPosition(layout.region.x, layout.region.y);
-    _versionLabel.SetPosition(layout.version.x, layout.version.y);
-    _crcLabel.SetPosition(layout.crc.x, layout.crc.y);
     _usernameLabel.SetPosition(layout.username.x, layout.username.y);
+    _gameTitleLabel.SetPosition(-320, -320);
+    _prefixLabel.SetPosition(layout.prefix.x, layout.prefix.y);
+    _TitleIDTagLabel.SetPosition(layout.TitleID.x, layout.TitleID.y);
+    _TitleIDLabel.SetPosition(layout.TitleID.x, layout.TitleID.y);
+    _regionLabel.SetPosition(layout.region.x, layout.region.y);
+    _crcLabel.SetPosition(layout.crc.x, layout.crc.y);
+    _versionLabel.SetPosition(layout.version.x, layout.version.y);
 
+    // initialize DateTime
     rtc_datetime_t dateTime;
     rtc_readDateTime(&dateTime);
     _lastYear     = bcdToDecimal(dateTime.date.year);
@@ -464,21 +476,25 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
     _lastDt2Sep    = layout.dateTime2.separator;
     _lastDt2Font   = layout.dateTime2.font;
 
-    _lastPrefixFont = layout.prefix.font;
-    _lastGameIdTagFont = layout.gameId.labelFont;
-    _lastGameIdFont = layout.gameId.font;
-    _lastRegionFont = layout.region.font;
-    _lastVersionFont = layout.version.font;
-    _lastCrcFont  = layout.crc.font;
+    // Font
     _lastUsernameFont = layout.username.font;
+    _lastGameTitleFont = layout.gameTitle.font;
+    _lastPrefixFont = layout.prefix.font;
+    _lastTitleIDTagFont = layout.TitleID.labelFont;
+    _lastTitleIDFont = layout.TitleID.font;
+    _lastRegionFont = layout.region.font;
+    _lastCrcFont  = layout.crc.font;
+    _lastVersionFont = layout.version.font;
 
-    _prefixLabel.SetText("");
-    _gameIdLabel.SetText("");
-    _regionLabel.SetText("");
-    _versionLabel.SetText("");
-    _crcLabel.SetText("");
+    // Static texts
     CopyUserNameFromFirmware(_cachedUserName, sizeof(_cachedUserName) / sizeof(_cachedUserName[0]));
     _usernameLabel.SetText(_cachedUserName);
+    _gameTitleLabel.SetText("");
+    _prefixLabel.SetText("");
+    _TitleIDLabel.SetText("");
+    _regionLabel.SetText("");
+    _crcLabel.SetText("");
+    _versionLabel.SetText("");
 
     AddChildTail(_fileInfoView.get());
 }
@@ -489,13 +505,14 @@ void RomBrowserTopScreenView::UpdateLayoutFonts()
 
     u8 dt1Font = layout.dateTime1.font < LAYOUT_FONT_COUNT ? layout.dateTime1.font : LAYOUT_FONT_REGULAR10;
     u8 dt2Font = layout.dateTime2.font < LAYOUT_FONT_COUNT ? layout.dateTime2.font : LAYOUT_FONT_REGULAR10;
-    u8 prefixFont = layout.prefix.font < LAYOUT_FONT_COUNT ? layout.prefix.font : LAYOUT_FONT_REGULAR10;
-    u8 gameIdTagFont = layout.gameId.labelFont < LAYOUT_FONT_COUNT ? layout.gameId.labelFont : LAYOUT_FONT_REGULAR10;
-    u8 gameIdFont = layout.gameId.font < LAYOUT_FONT_COUNT ? layout.gameId.font : LAYOUT_FONT_REGULAR10;
-    u8 regionFont = layout.region.font < LAYOUT_FONT_COUNT ? layout.region.font : LAYOUT_FONT_REGULAR10;
-    u8 versionFont = layout.version.font < LAYOUT_FONT_COUNT ? layout.version.font : LAYOUT_FONT_REGULAR10;
-    u8 crcFont = layout.crc.font < LAYOUT_FONT_COUNT ? layout.crc.font : LAYOUT_FONT_REGULAR10;
     u8 usernameFont = layout.username.font < LAYOUT_FONT_COUNT ? layout.username.font : LAYOUT_FONT_REGULAR10;
+    u8 gameTitleFont = layout.gameTitle.font < LAYOUT_FONT_COUNT ? layout.gameTitle.font : LAYOUT_FONT_REGULAR10;
+    u8 prefixFont = layout.prefix.font < LAYOUT_FONT_COUNT ? layout.prefix.font : LAYOUT_FONT_REGULAR10;
+    u8 TitleIDTagFont = layout.TitleID.labelFont < LAYOUT_FONT_COUNT ? layout.TitleID.labelFont : LAYOUT_FONT_REGULAR10;
+    u8 TitleIDFont = layout.TitleID.font < LAYOUT_FONT_COUNT ? layout.TitleID.font : LAYOUT_FONT_REGULAR10;
+    u8 regionFont = layout.region.font < LAYOUT_FONT_COUNT ? layout.region.font : LAYOUT_FONT_REGULAR10;
+    u8 crcFont = layout.crc.font < LAYOUT_FONT_COUNT ? layout.crc.font : LAYOUT_FONT_REGULAR10;
+    u8 versionFont = layout.version.font < LAYOUT_FONT_COUNT ? layout.version.font : LAYOUT_FONT_REGULAR10;
 
     if (dt1Font != _lastDt1Font)
     {
@@ -509,22 +526,34 @@ void RomBrowserTopScreenView::UpdateLayoutFonts()
         _lastDt2Font = dt2Font;
     }
 
+    if (usernameFont != _lastUsernameFont)
+    {
+        _usernameLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(usernameFont)));
+        _lastUsernameFont = usernameFont;
+    }
+
+    if (gameTitleFont != _lastGameTitleFont)
+    {
+        _gameTitleLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(gameTitleFont)));
+        _lastGameTitleFont = gameTitleFont;
+    }
+
     if (prefixFont != _lastPrefixFont)
     {
         _prefixLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(prefixFont)));
         _lastPrefixFont = prefixFont;
     }
 
-    if (gameIdTagFont != _lastGameIdTagFont)
+    if (TitleIDTagFont != _lastTitleIDTagFont)
     {
-        _gameIdTagLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(gameIdTagFont)));
-        _lastGameIdTagFont = gameIdTagFont;
+        _TitleIDTagLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(TitleIDTagFont)));
+        _lastTitleIDTagFont = TitleIDTagFont;
     }
 
-    if (gameIdFont != _lastGameIdFont)
+    if (TitleIDFont != _lastTitleIDFont)
     {
-        _gameIdLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(gameIdFont)));
-        _lastGameIdFont = gameIdFont;
+        _TitleIDLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(TitleIDFont)));
+        _lastTitleIDFont = TitleIDFont;
     }
 
     if (regionFont != _lastRegionFont)
@@ -533,22 +562,16 @@ void RomBrowserTopScreenView::UpdateLayoutFonts()
         _lastRegionFont = regionFont;
     }
 
-    if (versionFont != _lastVersionFont)
-    {
-        _versionLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(versionFont)));
-        _lastVersionFont = versionFont;
-    }
-
     if (crcFont != _lastCrcFont)
     {
         _crcLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(crcFont)));
         _lastCrcFont = crcFont;
     }
 
-    if (usernameFont != _lastUsernameFont)
+    if (versionFont != _lastVersionFont)
     {
-        _usernameLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(usernameFont)));
-        _lastUsernameFont = usernameFont;
+        _versionLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(versionFont)));
+        _lastVersionFont = versionFont;
     }
 }
 
@@ -556,81 +579,96 @@ void RomBrowserTopScreenView::UpdateIdAndVersionLabels()
 {
     const auto& layout = _layoutService->GetCurrentLayout();
 
+    // Colors
     _dateTime1Label.SetForegroundColor(Rgb<8, 8, 8>(layout.dateTime1.colorR, layout.dateTime1.colorG, layout.dateTime1.colorB));
     _dateTime2Label.SetForegroundColor(Rgb<8, 8, 8>(layout.dateTime2.colorR, layout.dateTime2.colorG, layout.dateTime2.colorB));
-    _prefixLabel.SetForegroundColor(Rgb<8, 8, 8>(layout.prefix.colorR, layout.prefix.colorG, layout.prefix.colorB));
-    _gameIdLabel.SetForegroundColor(Rgb<8, 8, 8>(layout.gameId.colorR, layout.gameId.colorG, layout.gameId.colorB));
-    _gameIdTagLabel.SetForegroundColor(Rgb<8, 8, 8>(layout.gameId.labelColorR, layout.gameId.labelColorG, layout.gameId.labelColorB));
-    _regionLabel.SetForegroundColor(Rgb<8, 8, 8>(layout.region.colorR, layout.region.colorG, layout.region.colorB));
-    _versionLabel.SetForegroundColor(Rgb<8, 8, 8>(layout.version.colorR, layout.version.colorG, layout.version.colorB));
-    _crcLabel.SetForegroundColor(Rgb<8, 8, 8>(layout.crc.colorR, layout.crc.colorG, layout.crc.colorB));
     _usernameLabel.SetForegroundColor(Rgb<8, 8, 8>(layout.username.colorR, layout.username.colorG, layout.username.colorB));
+    _gameTitleLabel.SetForegroundColor(Rgb<8, 8, 8>(layout.gameTitle.colorR, layout.gameTitle.colorG, layout.gameTitle.colorB));
+    _prefixLabel.SetForegroundColor(Rgb<8, 8, 8>(layout.prefix.colorR, layout.prefix.colorG, layout.prefix.colorB));
+    _TitleIDLabel.SetForegroundColor(Rgb<8, 8, 8>(layout.TitleID.colorR, layout.TitleID.colorG, layout.TitleID.colorB));
+    _TitleIDTagLabel.SetForegroundColor(Rgb<8, 8, 8>(layout.TitleID.labelColorR, layout.TitleID.labelColorG, layout.TitleID.labelColorB));
+    _regionLabel.SetForegroundColor(Rgb<8, 8, 8>(layout.region.colorR, layout.region.colorG, layout.region.colorB));
+    _crcLabel.SetForegroundColor(Rgb<8, 8, 8>(layout.crc.colorR, layout.crc.colorG, layout.crc.colorB));
+    _versionLabel.SetForegroundColor(Rgb<8, 8, 8>(layout.version.colorR, layout.version.colorG, layout.version.colorB));
 
-    if (_hasCachedIdPrefix || _hasCachedIdGameId || _hasCachedIdRegion)
+    // Game Title
+    if (_hasCachedGameTitle)
+        _gameTitleLabel.SetText(_cachedGameTitle);
+    else
+        _gameTitleLabel.SetText("");
+    
+    _gameTitleLabel.SetPosition(
+        layout.gameTitle.visible ? layout.gameTitle.x : -320,
+        layout.gameTitle.visible ? layout.gameTitle.y : -320);
+
+    // Prefix, Title ID, Region
+    if (_hasCachedIdPrefix || _hasCachedIdTitleID || _hasCachedIdRegion)
     {
         IdParts parts;
         memset(&parts, 0, sizeof(parts));
 
-        if (_hasCachedIdPrefix)
-        {
+        if (_hasCachedIdPrefix) {
             CopyCStringTrunc(parts.prefix, sizeof(parts.prefix), _cachedIdPrefix);
             parts.hasPrefix = true;
         }
-        if (_hasCachedIdGameId)
-        {
-            CopyCStringTrunc(parts.gameId, sizeof(parts.gameId), _cachedIdGameId);
-            parts.hasGameId = true;
+        if (_hasCachedIdTitleID) {
+            CopyCStringTrunc(parts.TitleID, sizeof(parts.TitleID), _cachedIdTitleID);
+            parts.hasTitleID = true;
         }
-        if (_hasCachedIdRegion)
-        {
+        if (_hasCachedIdRegion) {
             CopyCStringTrunc(parts.region, sizeof(parts.region), _cachedIdRegion);
             parts.hasRegion = true;
         }
 
-        char prefixBuf[48] = {0};
-        char gameIdBuf[32] = {0};
-        char regionBuf[32] = {0};
-
         char nativePrefix[8] = {0};
         if (parts.hasPrefix)
             mini_snprintf(nativePrefix, sizeof(nativePrefix), "%s", parts.prefix);
+        
         char mappedPrefix[32] = {0};
         FormatPrefixDisplay(mappedPrefix, sizeof(mappedPrefix), nativePrefix,
             layout.prefix.gbaPrefixMode, layout.prefix.ntrPrefixMode, layout.prefix.twlPrefixMode);
         mini_snprintf(parts.prefix, sizeof(parts.prefix), "%s", mappedPrefix);
         parts.hasPrefix = parts.prefix[0] != 0;
 
+        char prefixBuf[48] = {0};
+        char TitleIDBuf[32] = {0};
+        char regionBuf[32] = {0};
+
         FormatIdPartText(prefixBuf, sizeof(prefixBuf), parts.prefix, layout.prefix.trailingDash != 0);
-        FormatIdPartText(gameIdBuf, sizeof(gameIdBuf), parts.gameId, layout.gameId.trailingDash != 0);
+        FormatIdPartText(TitleIDBuf, sizeof(TitleIDBuf), parts.TitleID, layout.TitleID.trailingDash != 0);
         FormatIdPartText(regionBuf, sizeof(regionBuf), parts.region, layout.region.trailingDash != 0);
 
         _prefixLabel.SetText(prefixBuf);
-        _gameIdLabel.SetText(gameIdBuf);
+        _TitleIDLabel.SetText(TitleIDBuf);
         _regionLabel.SetText(regionBuf);
 
-        if (layout.gameId.showLabelText)
+        _prefixLabel.SetPosition(layout.prefix.visible ? layout.prefix.x : -320, layout.prefix.visible ? layout.prefix.y : -320);
+        _regionLabel.SetPosition(layout.region.visible ? layout.region.x : -320, layout.region.visible ? layout.region.y : -320);
+
+        if (layout.TitleID.showLabelText)
         {
-            _gameIdTagLabel.SetText("TID:");
-            _gameIdTagLabel.SetPosition(layout.gameId.visible ? layout.gameId.labelX : -320,
-                layout.gameId.visible ? layout.gameId.labelY : -320);
-            _gameIdLabel.SetPosition(layout.gameId.visible ? layout.gameId.x : -320,
-                layout.gameId.visible ? layout.gameId.y : -320);
+            _TitleIDTagLabel.SetText("TID:");
+            _TitleIDTagLabel.SetPosition(layout.TitleID.visible ? layout.TitleID.labelX : -320, layout.TitleID.visible ? layout.TitleID.labelY : -320);
         }
         else
         {
-            _gameIdTagLabel.SetText("");
-            _gameIdLabel.SetPosition(layout.gameId.visible ? layout.gameId.x : -320,
-                layout.gameId.visible ? layout.gameId.y : -320);
+            _TitleIDTagLabel.SetText("");
+            _TitleIDTagLabel.SetPosition(-320, -320);
         }
+        _TitleIDLabel.SetPosition(layout.TitleID.visible ? layout.TitleID.x : -320, layout.TitleID.visible ? layout.TitleID.y : -320);
     }
     else
     {
         _prefixLabel.SetText("");
-        _gameIdTagLabel.SetText("");
-        _gameIdLabel.SetText("");
+        _TitleIDTagLabel.SetText("");
+        _TitleIDLabel.SetText("");
         _regionLabel.SetText("");
     }
 
+    // CRC
+    _crcLabel.SetPosition(layout.crc.visible ? layout.crc.x : -320, layout.crc.visible ? layout.crc.y : -320);
+
+    // Version
     if (_hasCachedRomVersion)
     {
         char versionBuf[12];
@@ -641,6 +679,7 @@ void RomBrowserTopScreenView::UpdateIdAndVersionLabels()
     {
         _versionLabel.SetText("");
     }
+    _versionLabel.SetPosition(layout.version.visible ? layout.version.x : -320, layout.version.visible ? layout.version.y : -320);
 }
 
 void RomBrowserTopScreenView::UpdateStaticLabels()
@@ -657,13 +696,14 @@ void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
 
     _dateTime1Label.InitVram(vramContext);
     _dateTime2Label.InitVram(vramContext);
-    _prefixLabel.InitVram(vramContext);
-    _gameIdTagLabel.InitVram(vramContext);
-    _gameIdLabel.InitVram(vramContext);
-    _regionLabel.InitVram(vramContext);
-    _versionLabel.InitVram(vramContext);
-    _crcLabel.InitVram(vramContext);
     _usernameLabel.InitVram(vramContext);
+    _gameTitleLabel.InitVram(vramContext);
+    _prefixLabel.InitVram(vramContext);
+    _TitleIDTagLabel.InitVram(vramContext);
+    _TitleIDLabel.InitVram(vramContext);
+    _regionLabel.InitVram(vramContext);
+    _crcLabel.InitVram(vramContext);
+    _versionLabel.InitVram(vramContext);
 
     int tileIndex = 0;
     vu16* mapPtr = (vu16*)((u8*)GFX_BG_SUB + 0x3800);
@@ -718,9 +758,9 @@ void RomBrowserTopScreenView::UpdateDateTimeLabels(bool forceUpdate)
                                 layout.dateTime2.visible ? layout.dateTime2.y : -320);
     _prefixLabel.SetPosition(layout.prefix.visible ? layout.prefix.x : -320,
                              layout.prefix.visible ? layout.prefix.y : -320);
-    _gameIdTagLabel.SetPosition(-320, -320);
-    _gameIdLabel.SetPosition(layout.gameId.visible ? layout.gameId.x : -320,
-                             layout.gameId.visible ? layout.gameId.y : -320);
+    _TitleIDTagLabel.SetPosition(-320, -320);
+    _TitleIDLabel.SetPosition(layout.TitleID.visible ? layout.TitleID.x : -320,
+                             layout.TitleID.visible ? layout.TitleID.y : -320);
     _regionLabel.SetPosition(layout.region.visible ? layout.region.x : -320,
                              layout.region.visible ? layout.region.y : -320);
     _versionLabel.SetPosition(layout.version.visible ? layout.version.x : -320,
@@ -773,8 +813,6 @@ void RomBrowserTopScreenView::Update()
     fileInfoLayout.fileNameScrollSpeed = layout.fileName.scrollSpeed;
     _fileInfoView->SetLayoutConfig(fileInfoLayout);
 
-    if (fileInfoLayout.iconVisible && !_lastIconVisible)
-        _iconGraphicsUploaded = false;
     _lastIconVisible = fileInfoLayout.iconVisible;
 
     UpdateDateTimeLabels(false);
@@ -818,13 +856,15 @@ void RomBrowserTopScreenView::Update()
         const auto& item = fileInfoManager.GetItem(selectedItem);
 
         memset(_cachedIdPrefix, 0, sizeof(_cachedIdPrefix));
-        memset(_cachedIdGameId, 0, sizeof(_cachedIdGameId));
+        memset(_cachedIdTitleID, 0, sizeof(_cachedIdTitleID));
         memset(_cachedIdRegion, 0, sizeof(_cachedIdRegion));
         _hasCachedIdPrefix = false;
-        _hasCachedIdGameId = false;
+        _hasCachedIdTitleID = false;
         _hasCachedIdRegion = false;
         _hasCachedRomVersion = false;
         _cachedRomVersion = 0;
+        _hasCachedGameTitle = false;
+        _cachedGameTitle[0] = '\0';
 
         char statsPath[256];
         bool hasStatsPath = BuildStatsPath(statsPath, sizeof(statsPath), item);
@@ -842,138 +882,137 @@ void RomBrowserTopScreenView::Update()
                     fileNameAsTitle = false;
                 }
 
-                // Try to get cached ID and CRC from stats
-                char cachedId[16] = {0};
-                bool hasCachedId = false;
-                u32 cachedCrc = 0;
-                bool hasCachedCrc = false;
-                u8 cachedRomVersion = 0;
-                bool hasCachedRomVersion = false;
-
-                if (hasStatsPath)
-                {
-                    LaunchStatsService::Instance().TryGetCachedData(statsPath,
-                        &cachedRomVersion, &hasCachedRomVersion,
-                        cachedId, sizeof(cachedId), &hasCachedId,
-                        &cachedCrc, &hasCachedCrc);
-                }
-
                 char idStr[16] = {0};
                 bool hasId = false;
                 u32 headerCrc = 0;
                 bool hasHeaderCrc = false;
                 u8 romVersion = 0;
                 bool hasRomVersion = false;
-                bool cacheNeedsRefresh = false;
 
-                if (hasCachedId && cachedId[0] != 0)
+                LaunchStatsService::RomType cachedRomType = LaunchStatsService::RomType::Unknown;
+                LaunchStatsService::RomMetadata cachedMeta = {};
+                bool hasCachedMeta = hasStatsPath &&
+                    LaunchStatsService::Instance().TryGetRomMetadata(
+                        statsPath, &cachedRomType, &cachedMeta);
+
+                if (hasCachedMeta)
                 {
-                    CopyCStringTrunc(idStr, sizeof(idStr), cachedId);
-                    hasId = true;
+                    headerCrc    = cachedMeta.headerCrc32;
+                    hasHeaderCrc = (headerCrc != 0);
+                    romVersion   = cachedMeta.romVersion;
+                    hasRomVersion = true;
+
+                    const char* gc = cachedMeta.gameCode;
+                    if (gc[0] != '\0')
+                    {
+                        if (cachedRomType == LaunchStatsService::RomType::Gba)
+                            BuildGbaId(idStr, sizeof(idStr), gc);
+                        else
+                            BuildNdsId(idStr, sizeof(idStr), cachedMeta.unitCode, gc);
+                        hasId = true;
+                    }
+
+                    if (cachedMeta.gameTitle[0] != '\0')
+                    {
+                        mini_snprintf(_cachedGameTitle, sizeof(_cachedGameTitle), "%s", cachedMeta.gameTitle);
+                        _hasCachedGameTitle = true;
+                    }
                 }
-
-                if (hasCachedCrc)
+                else
                 {
-                    headerCrc = cachedCrc;
-                    hasHeaderCrc = true;
-                }
+                    const char* shortName = item.GetFileType()->GetShortName();
+                    if (shortName && !strcasecmp(shortName, "nds"))
+                    {
+                        const char* gameCode = info->GetGameCode();
+                        if (gameCode && gameCode[0] != 0)
+                        {
+                            auto* ndsInfo = static_cast<const NdsInternalFileInfo*>(info);
+                            BuildNdsId(idStr, sizeof(idStr), ndsInfo->GetUnitCode(), gameCode);
+                            hasId = true;
+                            romVersion = ndsInfo->GetRomVersion();
+                            hasRomVersion = true;
+                        }
+                    }
+                    else if (shortName && !strcasecmp(shortName, "gba"))
+                    {
+                        const char* gameCode = info->GetGameCode();
+                        if (gameCode && gameCode[0] != 0)
+                        {
+                            BuildGbaId(idStr, sizeof(idStr), gameCode);
+                            hasId = true;
+                        }
+                    }
 
-                if (!hasHeaderCrc)
-                {
+                    bool isGba = shortName && !strcasecmp(shortName, "gba");
+                    u32 headerSize = isGba ? 0xC0u : 512u;
+
                     File romFile;
-                    romFile.Open(item.GetFastFileRef(), FA_READ);
-                    if (romFile.GetSize() >= 512)
+                    if (romFile.Open(item.GetFastFileRef(), FA_READ) == FR_OK && romFile.GetSize() >= headerSize)
                     {
                         u8 header[512];
-                        if (romFile.ReadExact(header, sizeof(header)))
+                        if (romFile.ReadExact(header, headerSize))
                         {
-                            headerCrc = ComputeCrc32(header, sizeof(header));
+                            headerCrc = ComputeCrc32(header, headerSize);
                             hasHeaderCrc = true;
+
+                            if (isGba)
+                            {
+                                memcpy(_cachedGameTitle, header + 0xA0, 12);
+                                romVersion = header[0xBC];
+                                hasRomVersion = true;
+                            }
+                            else
+                            {
+                                memcpy(_cachedGameTitle, header + 0x00, 12);
+                            }
+                            _cachedGameTitle[12] = '\0';
+                            _hasCachedGameTitle = true;
                         }
                     }
                 }
 
-                if (hasCachedRomVersion)
+                if (!_hasCachedGameTitle)
                 {
-                    romVersion = cachedRomVersion;
-                    hasRomVersion = true;
-                }
-
-                const char* shortName = item.GetFileType()->GetShortName();
-                if (shortName && !strcasecmp(shortName, "nds"))
-                {
-                    const char* gameCode = info->GetGameCode();
-                    if (gameCode && gameCode[0] != 0)
+                    const char16_t* gameTitle = info->GetGameTitle();
+                    if (gameTitle && gameTitle[0] != u'\0')
                     {
-                        char canonicalId[16] = {0};
-                        auto* ndsInfo = static_cast<const NdsInternalFileInfo*>(info);
-                        BuildNdsId(canonicalId, sizeof(canonicalId), ndsInfo->GetUnitCode(), gameCode);
-                        mini_snprintf(idStr, sizeof(idStr), "%s", canonicalId);
-                        hasId = true;
-
-                        const u8 actualRomVersion = ndsInfo->GetRomVersion();
-                        if (!hasCachedId || strcasecmp(cachedId, canonicalId) != 0)
-                            cacheNeedsRefresh = true;
-                        if (!hasCachedRomVersion || cachedRomVersion != actualRomVersion)
-                            cacheNeedsRefresh = true;
-
-                        romVersion = actualRomVersion;
-                        hasRomVersion = true;
+                        size_t len = 0;
+                        while (len < sizeof(_cachedGameTitle) - 1 && gameTitle[len] != u'\0')
+                        {
+                            _cachedGameTitle[len] = (char)gameTitle[len];
+                            len++;
+                        }
+                        _cachedGameTitle[len] = '\0';
+                        _hasCachedGameTitle = true;
                     }
-                }
-                else if (!hasId)
-                {
-                    const char* gameCode = info->GetGameCode();
-                    if (gameCode && gameCode[0] != 0 && shortName && !strcasecmp(shortName, "gba"))
-                    {
-                        BuildGbaId(idStr, sizeof(idStr), gameCode);
-                        hasId = true;
-                    }
-                }
-
-                // Save to stats if anything was not cached
-                if (hasStatsPath && (!hasCachedId || !hasCachedCrc || !hasCachedRomVersion || cacheNeedsRefresh))
-                {
-                    LaunchStatsService::Instance().SetCachedData(statsPath,
-                        romVersion, hasRomVersion,
-                        idStr, hasId,
-                        headerCrc, hasHeaderCrc);
                 }
 
                 _hasCachedRomVersion = hasRomVersion;
-                _cachedRomVersion = romVersion;
+                _cachedRomVersion    = romVersion;
 
-                // Display PREFIX/GAME ID/REGION labels
                 if (hasId)
                 {
                     IdParts parts;
                     ParseIdParts(idStr, parts);
 
-                    memset(_cachedIdPrefix, 0, sizeof(_cachedIdPrefix));
-                    memset(_cachedIdGameId, 0, sizeof(_cachedIdGameId));
-                    memset(_cachedIdRegion, 0, sizeof(_cachedIdRegion));
                     _hasCachedIdPrefix = parts.hasPrefix;
-                    _hasCachedIdGameId = parts.hasGameId;
+                    _hasCachedIdTitleID = parts.hasTitleID;
                     _hasCachedIdRegion = parts.hasRegion;
 
                     if (_hasCachedIdPrefix)
                         CopyCStringTrunc(_cachedIdPrefix, sizeof(_cachedIdPrefix), parts.prefix);
-                    if (_hasCachedIdGameId)
-                        CopyCStringTrunc(_cachedIdGameId, sizeof(_cachedIdGameId), parts.gameId);
+                    if (_hasCachedIdTitleID)
+                        CopyCStringTrunc(_cachedIdTitleID, sizeof(_cachedIdTitleID), parts.TitleID);
                     if (_hasCachedIdRegion)
                         CopyCStringTrunc(_cachedIdRegion, sizeof(_cachedIdRegion), parts.region);
                 }
                 else
                 {
-                    memset(_cachedIdPrefix, 0, sizeof(_cachedIdPrefix));
-                    memset(_cachedIdGameId, 0, sizeof(_cachedIdGameId));
-                    memset(_cachedIdRegion, 0, sizeof(_cachedIdRegion));
                     _hasCachedIdPrefix = false;
-                    _hasCachedIdGameId = false;
+                    _hasCachedIdTitleID = false;
                     _hasCachedIdRegion = false;
                 }
 
-                // Display CRC
                 if (hasHeaderCrc)
                 {
                     char crcBuf[12];
@@ -989,10 +1028,7 @@ void RomBrowserTopScreenView::Update()
                 if (!_selectedFileIcon)
                     _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
                 if (_selectedFileIcon)
-                {
                     _selectedFileIcon->SetAnimFrame(_viewModel->GetIconFrameCounter());
-                    _iconGraphicsUploaded = false;
-                }
                 _fileInfoView->SetIcon(std::move(_selectedFileIcon));
                 _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), fileNameAsTitle);
 
@@ -1015,27 +1051,26 @@ void RomBrowserTopScreenView::Update()
                 _coverGraphicsUploaded = false;
 
                 _prefixLabel.SetText("");
-                _gameIdLabel.SetText("");
+                _TitleIDLabel.SetText("");
                 _regionLabel.SetText("");
                 _crcLabel.SetText("");
 
                 _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
                 if (_selectedFileIcon)
-                {
                     _selectedFileIcon->SetAnimFrame(_viewModel->GetIconFrameCounter());
-                    _iconGraphicsUploaded = false;
-                }
                 _fileInfoView->SetIcon(std::move(_selectedFileIcon));
                 _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), true);
 
                 memset(_cachedIdPrefix, 0, sizeof(_cachedIdPrefix));
-                memset(_cachedIdGameId, 0, sizeof(_cachedIdGameId));
+                memset(_cachedIdTitleID, 0, sizeof(_cachedIdTitleID));
                 memset(_cachedIdRegion, 0, sizeof(_cachedIdRegion));
                 _hasCachedIdPrefix = false;
-                _hasCachedIdGameId = false;
+                _hasCachedIdTitleID = false;
                 _hasCachedIdRegion = false;
                 _hasCachedRomVersion = false;
                 _cachedRomVersion = 0;
+                _hasCachedGameTitle = false;
+                _cachedGameTitle[0] = '\0';
 
                 _lastSelectedItem = selectedItem;
             }
@@ -1051,13 +1086,14 @@ void RomBrowserTopScreenView::Draw(GraphicsContext& graphicsContext)
 
     _dateTime1Label.Draw(graphicsContext);
     _dateTime2Label.Draw(graphicsContext);
-    _prefixLabel.Draw(graphicsContext);
-    _gameIdTagLabel.Draw(graphicsContext);
-    _gameIdLabel.Draw(graphicsContext);
-    _regionLabel.Draw(graphicsContext);
-    _versionLabel.Draw(graphicsContext);
-    _crcLabel.Draw(graphicsContext);
     _usernameLabel.Draw(graphicsContext);
+    _gameTitleLabel.Draw(graphicsContext);
+    _prefixLabel.Draw(graphicsContext);
+    _TitleIDTagLabel.Draw(graphicsContext);
+    _TitleIDLabel.Draw(graphicsContext);
+    _regionLabel.Draw(graphicsContext);
+    _crcLabel.Draw(graphicsContext);
+    _versionLabel.Draw(graphicsContext);
 }
 
 void RomBrowserTopScreenView::VBlank()
@@ -1066,13 +1102,14 @@ void RomBrowserTopScreenView::VBlank()
 
     _dateTime1Label.VBlank();
     _dateTime2Label.VBlank();
-    _prefixLabel.VBlank();
-    _gameIdTagLabel.VBlank();
-    _gameIdLabel.VBlank();
-    _regionLabel.VBlank();
-    _versionLabel.VBlank();
-    _crcLabel.VBlank();
     _usernameLabel.VBlank();
+    _gameTitleLabel.VBlank();
+    _prefixLabel.VBlank();
+    _TitleIDTagLabel.VBlank();
+    _TitleIDLabel.VBlank();
+    _regionLabel.VBlank();
+    _crcLabel.VBlank();
+    _versionLabel.VBlank();
 
     const auto& layout = _layoutService->GetCurrentLayout();
 
@@ -1108,9 +1145,5 @@ void RomBrowserTopScreenView::VBlank()
         REG_WININ_SUB = 0x002A;
         REG_WINOUT_SUB = ~(1 << 3);
     }
-    if (!_iconGraphicsUploaded)
-    {
-        _fileInfoView->UploadIconGraphics();
-        _iconGraphicsUploaded = true;
-    }
+    _fileInfoView->UploadIconGraphics();
 }

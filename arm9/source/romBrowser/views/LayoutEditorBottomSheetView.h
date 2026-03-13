@@ -40,6 +40,14 @@ private:
     IAppSettingsService*       _appSettingsService;
     /// The theme actually loaded 
     String<char, 64>           _appliedThemeName;
+
+    mutable bool _themeColorLoaded = false;
+    mutable bool _themeDarkMode = false;
+    mutable int  _themeColorR = 0;
+    mutable int  _themeColorG = 0;
+    mutable int  _themeColorB = 0;
+    bool         _themeColorDirty = false;
+    bool         _themePreviewApplied = false;
     const MaterialColorScheme* _materialColorScheme;
 
     Label2DView _titleLabel;
@@ -67,6 +75,7 @@ private:
     Label2DView _itemValue7;
     Label2DView _itemValue8;
     Label2DView _scrollHintLabel;
+    MaterialColorScheme _originalMaterialColorScheme;
 
     static constexpr int kFocusSlot       = 0;
     static constexpr int kFocusSave       = 1;
@@ -107,15 +116,6 @@ private:
     u16  _holdRight = 0;
     u16  _holdUp    = 0;
     u16  _holdDown  = 0;
-
-    mutable bool _themeColorLoaded = false;
-    mutable bool _themeDarkMode = false;
-    mutable int  _themeColorR = 0;
-    mutable int  _themeColorG = 0;
-    mutable int  _themeColorB = 0;
-    bool         _themeColorDirty = false;
-    bool         _themePreviewApplied = false;
-    MaterialColorScheme _originalMaterialColorScheme;
 
     Label2DView* GetItemNameLabel(int visRow);
     Label2DView* GetItemValueLabel(int visRow);

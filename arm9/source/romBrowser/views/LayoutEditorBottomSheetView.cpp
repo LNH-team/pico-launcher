@@ -43,36 +43,37 @@
 
 #define LE_FOCUS_OFFSET_X 6
 
-// submenus.
-#define UI_SUBMENU_DATETIME1  0
-#define UI_SUBMENU_DATETIME2  1
-#define UI_SUBMENU_PREFIX     2
-#define UI_SUBMENU_TITLE_ID   3
-#define UI_SUBMENU_REGION     4
-#define UI_SUBMENU_VERSION    5
-#define UI_SUBMENU_CRC        6
-#define UI_SUBMENU_USERNAME   7
-#define UI_SUBMENU_BOXART     8
-#define UI_SUBMENU_ICON       9
-#define UI_SUBMENU_ROMNAME    10
-#define UI_SUBMENU_FILENAME   11
-#define UI_SUBMENU_THEMECOLOR 12
-#define UI_SUBMENU_COUNT      13
+#define UI_SUBMENU_DATETIME1    0
+#define UI_SUBMENU_DATETIME2    1
+#define UI_SUBMENU_USERNAME     2
+#define UI_SUBMENU_GAME_TITLE   3
+#define UI_SUBMENU_PREFIX       4
+#define UI_SUBMENU_TITLE_ID     5
+#define UI_SUBMENU_REGION       6
+#define UI_SUBMENU_CRC          7
+#define UI_SUBMENU_VERSION      8
+#define UI_SUBMENU_BOXART       9
+#define UI_SUBMENU_ICON         10
+#define UI_SUBMENU_ROMNAME      11
+#define UI_SUBMENU_FILENAME     12
+#define UI_SUBMENU_THEMECOLOR   13
+#define UI_SUBMENU_COUNT        14
 
 static const char* const kUiSubMenuNames[UI_SUBMENU_COUNT] = {
-    "DateTime1",
-    "DateTime2",
-    "PREFIX",
-    "TITLE ID",
-    "Region",
-    "Version",
-    "CRC",
-    "Username",
-    "Box Art",
-    "Icon",
-    "ROM Name",
-    "File Name",
-    "Theme Color",
+    "DateTime1",        // 0
+    "DateTime2",        // 1
+    "Username",         // 2
+    "Game Title",       // 3
+    "Prefix",           // 4
+    "Title ID",         // 5
+    "Region",           // 6
+    "CRC",              // 7
+    "Version",          // 8
+    "Box Art",          // 9
+    "Icon",             // 10
+    "ROM Name",         // 11
+    "File Name",        // 12
+    "Theme Color"       // 13
 };
 
 static const char* const kItemNamesDateTime[] = {
@@ -81,7 +82,7 @@ static const char* const kItemNamesDateTime[] = {
 static const char* const kItemNamesPrefix[] = {
     "Visible", "X", "Y", "Font", "Trailing -", "GBA Text", "NTR Text", "TWL Text", "Color Red", "Color Green", "Color Blue"
 };
-static const char* const kItemNamesTitleId[] = {
+static const char* const kItemNamesTitleID[] = {
     "Visible", "X", "Y", "Font", "Trailing -", "Color Red", "Color Green", "Color Blue", "Show TID", "TID Font", "TID X", "TID Y", "TID Color Red", "TID Color Green", "TID Color Blue"
 };
 static const char* const kItemNamesRegion[] = {
@@ -104,19 +105,20 @@ static const char* const kItemNamesThemeColor[] = {
 };
 
 static const u8 kSubMenuItemCounts[UI_SUBMENU_COUNT] = {
-    9,
-    9,
-    11,
-    15,
-    8,
-    7,
-    7,
-    7,
-    3,
-    3,
-    8,
-    9,
-    5,
+    9,  // DateTime1
+    9,  // DateTime2
+    7,  // Username
+    7,  // Game Title
+    11, // Prefix
+    15, // Title ID
+    8,  // Region
+    7,  // CRC
+    7,  // Version
+    3,  // Box Art
+    3,  // Icon
+    8,  // ROM Name
+    9,  // File Name
+    5,  // Theme Color
 };
 
 #define THEME_COLOR_JSON_RESERVED_SIZE 3072
@@ -165,12 +167,13 @@ static void ResetSubMenuToDefaults(LayoutData& data, int subMenu)
     {
         case UI_SUBMENU_DATETIME1: data.dateTime1 = defaults.dateTime1; break;
         case UI_SUBMENU_DATETIME2: data.dateTime2 = defaults.dateTime2; break;
-        case UI_SUBMENU_PREFIX: data.prefix = defaults.prefix; break;
-        case UI_SUBMENU_TITLE_ID: data.gameId = defaults.gameId; break;
-        case UI_SUBMENU_REGION: data.region = defaults.region; break;
-        case UI_SUBMENU_VERSION: data.version = defaults.version; break;
-        case UI_SUBMENU_CRC: data.crc = defaults.crc; break;
         case UI_SUBMENU_USERNAME: data.username = defaults.username; break;
+        case UI_SUBMENU_GAME_TITLE: data.gameTitle = defaults.gameTitle; break;
+        case UI_SUBMENU_PREFIX: data.prefix = defaults.prefix; break;
+        case UI_SUBMENU_TITLE_ID: data.TitleID = defaults.TitleID; break;
+        case UI_SUBMENU_REGION: data.region = defaults.region; break;
+        case UI_SUBMENU_CRC: data.crc = defaults.crc; break;
+        case UI_SUBMENU_VERSION: data.version = defaults.version; break;
         case UI_SUBMENU_BOXART: data.boxArt = defaults.boxArt; break;
         case UI_SUBMENU_ICON: data.icon = defaults.icon; break;
         case UI_SUBMENU_ROMNAME:
@@ -554,17 +557,17 @@ const char* LayoutEditorBottomSheetView::GetItemName(int subMenu, int itemIdx) c
         case UI_SUBMENU_DATETIME1:
         case UI_SUBMENU_DATETIME2:
             return (u32)itemIdx < 9 ? kItemNamesDateTime[itemIdx] : "";
+        case UI_SUBMENU_USERNAME:
+        case UI_SUBMENU_GAME_TITLE:
+            return (u32)itemIdx < 7 ? kItemNamesElement[itemIdx] : "";
         case UI_SUBMENU_PREFIX:
             return (u32)itemIdx < 11 ? kItemNamesPrefix[itemIdx] : "";
         case UI_SUBMENU_TITLE_ID:
-            return (u32)itemIdx < 15 ? kItemNamesTitleId[itemIdx] : "";
+            return (u32)itemIdx < 15 ? kItemNamesTitleID[itemIdx] : "";
         case UI_SUBMENU_REGION:
             return (u32)itemIdx < 8 ? kItemNamesRegion[itemIdx] : "";
-        case UI_SUBMENU_VERSION:
-            return (u32)itemIdx < 7 ? kItemNamesElement[itemIdx] : "";
         case UI_SUBMENU_CRC:
-            return (u32)itemIdx < 7 ? kItemNamesElement[itemIdx] : "";
-        case UI_SUBMENU_USERNAME:
+        case UI_SUBMENU_VERSION:
             return (u32)itemIdx < 7 ? kItemNamesElement[itemIdx] : "";
         case UI_SUBMENU_BOXART:
         case UI_SUBMENU_ICON:
@@ -622,6 +625,30 @@ void LayoutEditorBottomSheetView::GetItemValueText(
                 case 8: WRITE_COORD(d.dateTime2.colorB); break;
             }
             break;
+        case UI_SUBMENU_USERNAME:
+            switch (itemIdx)
+            {
+                case 0: WRITE_VISIBLE(d.username.visible); break;
+                case 1: WRITE_COORD(d.username.x); break;
+                case 2: WRITE_COORD(d.username.y); break;
+                case 3: WRITE_FONT(d.username.font); break;
+                case 4: WRITE_COORD(d.username.colorR); break;
+                case 5: WRITE_COORD(d.username.colorG); break;
+                case 6: WRITE_COORD(d.username.colorB); break;
+            }
+            break;
+        case UI_SUBMENU_GAME_TITLE:
+            switch (itemIdx)
+            {
+                case 0: WRITE_VISIBLE(d.gameTitle.visible); break;
+                case 1: WRITE_COORD(d.gameTitle.x); break;
+                case 2: WRITE_COORD(d.gameTitle.y); break;
+                case 3: WRITE_FONT(d.gameTitle.font); break;
+                case 4: WRITE_COORD(d.gameTitle.colorR); break;
+                case 5: WRITE_COORD(d.gameTitle.colorG); break;
+                case 6: WRITE_COORD(d.gameTitle.colorB); break;
+            }
+            break;
         case UI_SUBMENU_PREFIX:
             switch (itemIdx)
             {
@@ -641,21 +668,21 @@ void LayoutEditorBottomSheetView::GetItemValueText(
         case UI_SUBMENU_TITLE_ID:
             switch (itemIdx)
             {
-                case 0: WRITE_VISIBLE(d.gameId.visible); break;
-                case 1: WRITE_COORD(d.gameId.x); break;
-                case 2: WRITE_COORD(d.gameId.y); break;
-                case 3: WRITE_FONT(d.gameId.font); break;
-                case 4: WRITE_VISIBLE(d.gameId.trailingDash); break;
-                case 5: WRITE_COORD(d.gameId.colorR); break;
-                case 6: WRITE_COORD(d.gameId.colorG); break;
-                case 7: WRITE_COORD(d.gameId.colorB); break;
-                case 8: WRITE_VISIBLE(d.gameId.showLabelText); break;
-                case 9: WRITE_FONT(d.gameId.labelFont); break;
-                case 10: WRITE_COORD(d.gameId.labelX); break;
-                case 11: WRITE_COORD(d.gameId.labelY); break;
-                case 12: WRITE_COORD(d.gameId.labelColorR); break;
-                case 13: WRITE_COORD(d.gameId.labelColorG); break;
-                case 14: WRITE_COORD(d.gameId.labelColorB); break;
+                case 0: WRITE_VISIBLE(d.TitleID.visible); break;
+                case 1: WRITE_COORD(d.TitleID.x); break;
+                case 2: WRITE_COORD(d.TitleID.y); break;
+                case 3: WRITE_FONT(d.TitleID.font); break;
+                case 4: WRITE_VISIBLE(d.TitleID.trailingDash); break;
+                case 5: WRITE_COORD(d.TitleID.colorR); break;
+                case 6: WRITE_COORD(d.TitleID.colorG); break;
+                case 7: WRITE_COORD(d.TitleID.colorB); break;
+                case 8: WRITE_VISIBLE(d.TitleID.showLabelText); break;
+                case 9: WRITE_FONT(d.TitleID.labelFont); break;
+                case 10: WRITE_COORD(d.TitleID.labelX); break;
+                case 11: WRITE_COORD(d.TitleID.labelY); break;
+                case 12: WRITE_COORD(d.TitleID.labelColorR); break;
+                case 13: WRITE_COORD(d.TitleID.labelColorG); break;
+                case 14: WRITE_COORD(d.TitleID.labelColorB); break;
             }
             break;
         case UI_SUBMENU_REGION:
@@ -671,18 +698,6 @@ void LayoutEditorBottomSheetView::GetItemValueText(
                 case 7: WRITE_COORD(d.region.colorB); break;
             }
             break;
-        case UI_SUBMENU_VERSION:
-            switch (itemIdx)
-            {
-                case 0: WRITE_VISIBLE(d.version.visible); break;
-                case 1: WRITE_COORD(d.version.x); break;
-                case 2: WRITE_COORD(d.version.y); break;
-                case 3: WRITE_FONT(d.version.font); break;
-                case 4: WRITE_COORD(d.version.colorR); break;
-                case 5: WRITE_COORD(d.version.colorG); break;
-                case 6: WRITE_COORD(d.version.colorB); break;
-            }
-            break;
         case UI_SUBMENU_CRC:
             switch (itemIdx)
             {
@@ -695,16 +710,16 @@ void LayoutEditorBottomSheetView::GetItemValueText(
                 case 6: WRITE_COORD(d.crc.colorB); break;
             }
             break;
-        case UI_SUBMENU_USERNAME:
+        case UI_SUBMENU_VERSION:
             switch (itemIdx)
             {
-                case 0: WRITE_VISIBLE(d.username.visible); break;
-                case 1: WRITE_COORD(d.username.x); break;
-                case 2: WRITE_COORD(d.username.y); break;
-                case 3: WRITE_FONT(d.username.font); break;
-                case 4: WRITE_COORD(d.username.colorR); break;
-                case 5: WRITE_COORD(d.username.colorG); break;
-                case 6: WRITE_COORD(d.username.colorB); break;
+                case 0: WRITE_VISIBLE(d.version.visible); break;
+                case 1: WRITE_COORD(d.version.x); break;
+                case 2: WRITE_COORD(d.version.y); break;
+                case 3: WRITE_FONT(d.version.font); break;
+                case 4: WRITE_COORD(d.version.colorR); break;
+                case 5: WRITE_COORD(d.version.colorG); break;
+                case 6: WRITE_COORD(d.version.colorB); break;
             }
             break;
         case UI_SUBMENU_BOXART:
@@ -839,6 +854,30 @@ void LayoutEditorBottomSheetView::ChangeItemValue(int subMenu, int itemIdx, int 
                 case 8: changeColor(d.dateTime2.colorB); break;
             }
             break;
+        case UI_SUBMENU_USERNAME:
+            switch (itemIdx)
+            {
+                case 0: toggleU8(d.username.visible); break;
+                case 1: changeX(d.username.x); break;
+                case 2: changeY(d.username.y); break;
+                case 3: cycleU8(d.username.font, delta, LAYOUT_FONT_COUNT); break;
+                case 4: changeColor(d.username.colorR); break;
+                case 5: changeColor(d.username.colorG); break;
+                case 6: changeColor(d.username.colorB); break;
+            }
+            break;
+        case UI_SUBMENU_GAME_TITLE:
+            switch (itemIdx)
+            {
+                case 0: toggleU8(d.gameTitle.visible); break;
+                case 1: changeX(d.gameTitle.x); break;
+                case 2: changeY(d.gameTitle.y); break;
+                case 3: cycleU8(d.gameTitle.font, delta, LAYOUT_FONT_COUNT); break;
+                case 4: changeColor(d.gameTitle.colorR); break;
+                case 5: changeColor(d.gameTitle.colorG); break;
+                case 6: changeColor(d.gameTitle.colorB); break;
+            }
+            break;
         case UI_SUBMENU_PREFIX:
             switch (itemIdx)
             {
@@ -858,21 +897,21 @@ void LayoutEditorBottomSheetView::ChangeItemValue(int subMenu, int itemIdx, int 
         case UI_SUBMENU_TITLE_ID:
             switch (itemIdx)
             {
-                case 0: toggleU8(d.gameId.visible); break;
-                case 1: changeX(d.gameId.x); break;
-                case 2: changeY(d.gameId.y); break;
-                case 3: cycleU8(d.gameId.font, delta, LAYOUT_FONT_COUNT); break;
-                case 4: toggleU8(d.gameId.trailingDash); break;
-                case 5: changeColor(d.gameId.colorR); break;
-                case 6: changeColor(d.gameId.colorG); break;
-                case 7: changeColor(d.gameId.colorB); break;
-                case 8: toggleU8(d.gameId.showLabelText); break;
-                case 9: cycleU8(d.gameId.labelFont, delta, LAYOUT_FONT_COUNT); break;
-                case 10: changeX(d.gameId.labelX); break;
-                case 11: changeY(d.gameId.labelY); break;
-                case 12: changeColor(d.gameId.labelColorR); break;
-                case 13: changeColor(d.gameId.labelColorG); break;
-                case 14: changeColor(d.gameId.labelColorB); break;
+                case 0: toggleU8(d.TitleID.visible); break;
+                case 1: changeX(d.TitleID.x); break;
+                case 2: changeY(d.TitleID.y); break;
+                case 3: cycleU8(d.TitleID.font, delta, LAYOUT_FONT_COUNT); break;
+                case 4: toggleU8(d.TitleID.trailingDash); break;
+                case 5: changeColor(d.TitleID.colorR); break;
+                case 6: changeColor(d.TitleID.colorG); break;
+                case 7: changeColor(d.TitleID.colorB); break;
+                case 8: toggleU8(d.TitleID.showLabelText); break;
+                case 9: cycleU8(d.TitleID.labelFont, delta, LAYOUT_FONT_COUNT); break;
+                case 10: changeX(d.TitleID.labelX); break;
+                case 11: changeY(d.TitleID.labelY); break;
+                case 12: changeColor(d.TitleID.labelColorR); break;
+                case 13: changeColor(d.TitleID.labelColorG); break;
+                case 14: changeColor(d.TitleID.labelColorB); break;
             }
             break;
         case UI_SUBMENU_REGION:
@@ -888,18 +927,6 @@ void LayoutEditorBottomSheetView::ChangeItemValue(int subMenu, int itemIdx, int 
                 case 7: changeColor(d.region.colorB); break;
             }
             break;
-        case UI_SUBMENU_VERSION:
-            switch (itemIdx)
-            {
-                case 0: toggleU8(d.version.visible); break;
-                case 1: changeX(d.version.x); break;
-                case 2: changeY(d.version.y); break;
-                case 3: cycleU8(d.version.font, delta, LAYOUT_FONT_COUNT); break;
-                case 4: changeColor(d.version.colorR); break;
-                case 5: changeColor(d.version.colorG); break;
-                case 6: changeColor(d.version.colorB); break;
-            }
-            break;
         case UI_SUBMENU_CRC:
             switch (itemIdx)
             {
@@ -912,16 +939,16 @@ void LayoutEditorBottomSheetView::ChangeItemValue(int subMenu, int itemIdx, int 
                 case 6: changeColor(d.crc.colorB); break;
             }
             break;
-        case UI_SUBMENU_USERNAME:
+        case UI_SUBMENU_VERSION:
             switch (itemIdx)
             {
-                case 0: toggleU8(d.username.visible); break;
-                case 1: changeX(d.username.x); break;
-                case 2: changeY(d.username.y); break;
-                case 3: cycleU8(d.username.font, delta, LAYOUT_FONT_COUNT); break;
-                case 4: changeColor(d.username.colorR); break;
-                case 5: changeColor(d.username.colorG); break;
-                case 6: changeColor(d.username.colorB); break;
+                case 0: toggleU8(d.version.visible); break;
+                case 1: changeX(d.version.x); break;
+                case 2: changeY(d.version.y); break;
+                case 3: cycleU8(d.version.font, delta, LAYOUT_FONT_COUNT); break;
+                case 4: changeColor(d.version.colorR); break;
+                case 5: changeColor(d.version.colorG); break;
+                case 6: changeColor(d.version.colorB); break;
             }
             break;
         case UI_SUBMENU_BOXART:
@@ -1053,6 +1080,12 @@ bool LayoutEditorBottomSheetView::GetChoiceListForCurrentFocus(
             if (itemIdx == 4) { kind = ChoiceKind::Separator; count = LAYOUT_SEP_COUNT; selectedValue = d.dateTime2.separator; return true; }
             if (itemIdx == 5) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.dateTime2.font; return true; }
             break;
+        case UI_SUBMENU_USERNAME:
+            if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.username.font; return true; }
+            break;
+        case UI_SUBMENU_GAME_TITLE:
+            if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.gameTitle.font; return true; }
+            break;
         case UI_SUBMENU_PREFIX:
             if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.prefix.font; return true; }
             if (itemIdx == 5) { kind = ChoiceKind::PrefixGbaMode; count = LAYOUT_PREFIX_GBA_COUNT; selectedValue = d.prefix.gbaPrefixMode; return true; }
@@ -1060,20 +1093,17 @@ bool LayoutEditorBottomSheetView::GetChoiceListForCurrentFocus(
             if (itemIdx == 7) { kind = ChoiceKind::PrefixTwlMode; count = LAYOUT_PREFIX_TWL_COUNT; selectedValue = d.prefix.twlPrefixMode; return true; }
             break;
         case UI_SUBMENU_TITLE_ID:
-            if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.gameId.font; return true; }
-            if (itemIdx == 9) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.gameId.labelFont; return true; }
+            if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.TitleID.font; return true; }
+            if (itemIdx == 9) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.TitleID.labelFont; return true; }
             break;
         case UI_SUBMENU_REGION:
             if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.region.font; return true; }
             break;
-        case UI_SUBMENU_VERSION:
-            if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.version.font; return true; }
-            break;
         case UI_SUBMENU_CRC:
             if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.crc.font; return true; }
             break;
-        case UI_SUBMENU_USERNAME:
-            if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.username.font; return true; }
+        case UI_SUBMENU_VERSION:
+            if (itemIdx == 3) { kind = ChoiceKind::Font; count = LAYOUT_FONT_COUNT; selectedValue = d.version.font; return true; }
             break;
         case UI_SUBMENU_ROMNAME:
             if (itemIdx == 4)
@@ -1157,6 +1187,12 @@ void LayoutEditorBottomSheetView::ApplyChoiceValue(ChoiceKind kind, int valueIdx
             if (_choiceTargetIdx == 4 && kind == ChoiceKind::Separator) d.dateTime2.separator = (u8)valueIdx;
             if (_choiceTargetIdx == 5 && kind == ChoiceKind::Font) d.dateTime2.font = (u8)valueIdx;
             break;
+        case UI_SUBMENU_USERNAME:
+            if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.username.font = (u8)valueIdx;
+            break;
+        case UI_SUBMENU_GAME_TITLE:
+            if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.gameTitle.font = (u8)valueIdx;
+            break;
         case UI_SUBMENU_PREFIX:
             if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.prefix.font = (u8)valueIdx;
             if (_choiceTargetIdx == 5 && kind == ChoiceKind::PrefixGbaMode) d.prefix.gbaPrefixMode = (u8)valueIdx;
@@ -1164,20 +1200,17 @@ void LayoutEditorBottomSheetView::ApplyChoiceValue(ChoiceKind kind, int valueIdx
             if (_choiceTargetIdx == 7 && kind == ChoiceKind::PrefixTwlMode) d.prefix.twlPrefixMode = (u8)valueIdx;
             break;
         case UI_SUBMENU_TITLE_ID:
-            if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.gameId.font = (u8)valueIdx;
-            if (_choiceTargetIdx == 9 && kind == ChoiceKind::Font) d.gameId.labelFont = (u8)valueIdx;
+            if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.TitleID.font = (u8)valueIdx;
+            if (_choiceTargetIdx == 9 && kind == ChoiceKind::Font) d.TitleID.labelFont = (u8)valueIdx;
             break;
         case UI_SUBMENU_REGION:
             if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.region.font = (u8)valueIdx;
             break;
-        case UI_SUBMENU_VERSION:
-            if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.version.font = (u8)valueIdx;
-            break;
         case UI_SUBMENU_CRC:
             if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.crc.font = (u8)valueIdx;
             break;
-        case UI_SUBMENU_USERNAME:
-            if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.username.font = (u8)valueIdx;
+        case UI_SUBMENU_VERSION:
+            if (_choiceTargetIdx == 3 && kind == ChoiceKind::Font) d.version.font = (u8)valueIdx;
             break;
         case UI_SUBMENU_ROMNAME:
             if (_choiceTargetIdx == 4 && kind == ChoiceKind::Font)
@@ -1526,21 +1559,6 @@ bool LayoutEditorBottomSheetView::HandleInput(
             return true;
         }
 
-        bool selectionChanged = false;
-
-        if (selectionChanged
-            && _choiceKind != ChoiceKind::Slot
-            && _choiceKind != ChoiceKind::SubMenu)
-        {
-            ApplyChoiceValue(_choiceKind, _choiceSelected);
-            return true;
-        }
-
-        if (selectionChanged)
-        {
-            return true;
-        }
-
         if (inputProvider.Triggered(InputKey::A))
         {
             ConfirmChoice();
@@ -1734,6 +1752,12 @@ bool LayoutEditorBottomSheetView::HandleInput(
                         case UI_SUBMENU_DATETIME2:
                             isToggle = (itemIdx == 0);
                             break;
+
+                        case UI_SUBMENU_USERNAME:
+                        case UI_SUBMENU_GAME_TITLE:
+                            isToggle = (itemIdx == 0);
+                            break;
+
                         case UI_SUBMENU_PREFIX:
                             isToggle = (itemIdx == 0 || itemIdx == 4);
                             break;
@@ -1743,9 +1767,8 @@ bool LayoutEditorBottomSheetView::HandleInput(
                         case UI_SUBMENU_REGION:
                             isToggle = (itemIdx == 0 || itemIdx == 4);
                             break;
-                        case UI_SUBMENU_VERSION:
                         case UI_SUBMENU_CRC:
-                        case UI_SUBMENU_USERNAME:
+                        case UI_SUBMENU_VERSION:
                             isToggle = (itemIdx == 0);
                             break;
                         case UI_SUBMENU_BOXART:

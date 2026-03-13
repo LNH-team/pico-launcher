@@ -9,6 +9,8 @@
 #include "CoverRepository.h"
 #include "FileType/ExtensionFileTypeProvider.h"
 #include "services/settings/IAppSettingsService.h"
+#include "services/LaunchStats/LaunchStatsService.h"
+#include "fat/FastFileRef.h"
 #include "cheats/ICheatRepository.h"
 
 class RomBrowserController : public IRomBrowserController
@@ -123,6 +125,17 @@ private:
     int _cheatFocusSavedViewFolderIndex = -1;
     QueueTask<void> _navigateTask;
     QueueTask<void> _favoritesTask;
+    QueueTask<void> _metadataScanTask;
+
+    struct MetadataScanEntry
+    {
+        char path[256];
+        LaunchStatsService::RomType romType;
+        FastFileRef fileRef;
+    };
+    std::unique_ptr<MetadataScanEntry[]> _scanEntries;
+    u32 _scanEntryCount = 0;
+
     bool _favoritesViewActive = false;
     bool _favoritesLoadPending = false;
     bool _saveSettingsPending = false;
@@ -136,6 +149,7 @@ private:
     void HandleTrigger();
     void HandleNavigateTrigger();
     void HandleFolderLoadDoneTrigger();
+    void ScheduleMetadataScan();
     void HandleLaunchTrigger();
     void HandleChangeDisplayModeTrigger();
     void StartFavoritesLoad();

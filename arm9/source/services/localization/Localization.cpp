@@ -7,15 +7,26 @@
 #include "Localization.h"
 
 /*
- * * Header:
- * - magic:        u8[4]    "LANG"
- * - version:      u8       1
- * - entryCount:   u16 (LE) Number of translation entries
- * * Per Entry (Repeat entryCount times):
- * - keyLen:       u8       Length of key string in bytes (max 31)
- * - key:          char[]   ASCII key string (NOT null-terminated)
- * - valueLen:     u8       Number of char16_t units (max 63)
- * - value:        u16[]    UTF-16 LE string (NOT null-terminated)
+ * translations/LANGUAGE.bin  –  version 1
+ *
+ * Global Header (7 bytes):
+ *   magic:       u8[4]  "LANG"
+ *   version:     u8     1
+ *   entryCount:  u16 LE      Number of key‑value pairs
+ *
+ * Data Records (repeated entryCount times, VARIABLE SIZE):
+ *   keyLen:      u8          Length of key string in bytes (1‑31, ASCII)
+ *   key:         char[]      Key string (ASCII, NOT null‑terminated)
+ *   valueLen:    u8          Number of UTF‑16 code units (1‑63)
+ *   value:       u16[]       Value string (UTF‑16 LE, NOT null‑terminated)
+ *
+ * Notes:
+ *   - All multi‑byte integers are stored in little‑endian order.
+ *   - Strings are NOT null‑terminated; their exact length is given by the
+ *     preceding length field.
+ *   - Keys contain only printable ASCII characters.
+ *   - Values are stored as UTF‑16 little‑endian (each code unit = 2 bytes).
+ *   - Maximum key length: 31 bytes. Maximum value length: 63 UTF‑16 units (126 bytes).
  */
 
 static char s_languageBuf[32] = "english";

@@ -6,28 +6,73 @@
 #include "LayoutService.h"
 
 /*
- * * Header (5 bytes):
- * - magic:        u8[4]    "LYOT"
- * - version:      u8       1
- * * * Data Block (139 bytes - Packed Data):
- * - DateTime1:    (10b)    visible(u8), y(s16 LE), x(s16 LE), format(u8), separator(u8), font(u8), R,G,B(u8)
- * - DateTime2:    (10b)    visible(u8), y(s16 LE), x(s16 LE), format(u8), separator(u8), font(u8), R,G,B(u8)
- * - Prefix:       (12b)    visible(u8), y,x(s16 LE), font(u8), dash(u8), R,G,B(u8), gbaMode,ntrMode,twlMode(u8)
- * - Game ID:      (17b)    visible(u8), y,x(s16 LE), font(u8), dash(u8), R,G,B(u8), showLbl(u8), lblFont(u8), lblY,lblX(s16 LE), lblR,lblG,lblB(u8)
- * - Region:       (10b)    visible(u8), y,x(s16 LE), font(u8), dash(u8), R,G,B(u8)
- * - Version:      (9b)     visible(u8), y,x(s16 LE), font(u8), R,G,B(u8)
- * - CRC:          (9b)     visible(u8), y,x(s16 LE), font(u8), R,G,B(u8)
- * - Username:     (9b)     visible(u8), y,x(s16 LE), font(u8), R,G,B(u8)
- * - Box Art:      (5b)     visible(u8), y,x(s16 LE)
- * - Icon:         (5b)     visible(u8), y,x(s16 LE)
- * - ROM Row 1:    (9b)     visible(u8), y,x(s16 LE), font(u8), R,G,B(u8)
- * - ROM Row 2:    (9b)     visible(u8), y,x(s16 LE), font(u8), R,G,B(u8)
- * - ROM Row 3:    (9b)     visible(u8), y,x(s16 LE), font(u8), R,G,B(u8)
- * - File Name:    (11b)    visible(u8), y,x(s16 LE), font(u8), scroll(u8), speed(u8), R,G,B(u8)
+ * layoutN.bin  –  version 1
+ *
+ * Global Header (5 bytes):
+ *   magic:       u8[4]  "LYOT"
+ *   version:     u8     1
+ *
+ * Data Block (150 bytes total, actual used = 148 bytes)
+ *
+ * Field order:
+ *
+ *   DateTime1 (11 bytes):
+ *     visible:      u8         0 = hidden, 1 = shown
+ *     y:            s16        Y coordinate
+ *     x:            s16        X coordinate
+ *     format:       u8         0…13  
+ *     separator:    u8         0…6
+ *     font:         u8         0…3
+ *     colorR:       u8         red component (0–255)
+ *     colorG:       u8         green component (0–255)
+ *     colorB:       u8         blue component (0–255)
+ *
+ *   DateTime2 (11 bytes) – same layout as DateTime1
+ *
+ *   Username (9 bytes):
+ *     visible, y, x, font, colorR, colorG, colorB
+ *
+ *   GameTitle (9 bytes) – same as Username
+ *
+ *   Prefix (13 bytes):
+ *     visible, y, x, font, trailingDash (0/1), colorR, colorG, colorB,
+ *     gbaPrefixMode (0…1), ntrPrefixMode (0…2), twlPrefixMode (0…4)
+ *
+ *   TitleID (19 bytes):
+ *     visible, y, x, font, trailingDash (0/1), colorR, colorG, colorB,
+ *     showLabelText (0/1), labelFont (0…3),
+ *     labelY (s16), labelX (s16),
+ *     labelColorR, labelColorG, labelColorB
+ *
+ *   Region (10 bytes):
+ *     visible, y, x, font, trailingDash (0/1), colorR, colorG, colorB
+ *
+ *   CRC (9 bytes):
+ *     visible, y, x, font, colorR, colorG, colorB
+ *
+ *   Version (9 bytes):
+ *     visible, y, x, font, colorR, colorG, colorB
+ *
+ *   BoxArt (5 bytes):
+ *     visible, y (s16), x (s16)
+ *
+ *   Icon (5 bytes):
+ *     visible, y (s16), x (s16)
+ *
+ *   ROM Row 1 (9 bytes):
+ *     visible, y, x, font, colorR, colorG, colorB
+ *
+ *   ROM Row 2 (9 bytes) – same as ROM Row 1
+ *
+ *   ROM Row 3 (9 bytes) – same as ROM Row 1
+ *
+ *   FileName (11 bytes):
+ *     visible, y, x, font, scroll (0/1), scrollSpeed (1…20),
+ *     colorR, colorG, colorB
  */
 
 #define LAYOUT_HEADER_SIZE  5u   // magic(4) + version(1)
-#define LAYOUT_PACKED_DATA_SIZE 139u
+#define LAYOUT_PACKED_DATA_SIZE 150u
 #define LAYOUT_MAX_DATA_SIZE LAYOUT_PACKED_DATA_SIZE
 #define LAYOUT_FILE_SIZE    (LAYOUT_HEADER_SIZE + LAYOUT_MAX_DATA_SIZE)
 
@@ -63,6 +108,24 @@ static void PackLayoutData(const LayoutData& d, u8* buf)
     writeU8(d.dateTime2.colorG);
     writeU8(d.dateTime2.colorB);
 
+    // Username
+    writeU8(d.username.visible);
+    writeS16(d.username.y);
+    writeS16(d.username.x);
+    writeU8(d.username.font);
+    writeU8(d.username.colorR);
+    writeU8(d.username.colorG);
+    writeU8(d.username.colorB);
+
+    // Game Title
+    writeU8(d.gameTitle.visible);
+    writeS16(d.gameTitle.y);
+    writeS16(d.gameTitle.x);
+    writeU8(d.gameTitle.font);
+    writeU8(d.gameTitle.colorR);
+    writeU8(d.gameTitle.colorG);
+    writeU8(d.gameTitle.colorB);
+
     // Prefix
     writeU8(d.prefix.visible);
     writeS16(d.prefix.y);
@@ -77,21 +140,21 @@ static void PackLayoutData(const LayoutData& d, u8* buf)
     writeU8(d.prefix.twlPrefixMode);
 
     // Title ID
-    writeU8(d.gameId.visible);
-    writeS16(d.gameId.y);
-    writeS16(d.gameId.x);
-    writeU8(d.gameId.font);
-    writeU8(d.gameId.trailingDash);
-    writeU8(d.gameId.colorR);
-    writeU8(d.gameId.colorG);
-    writeU8(d.gameId.colorB);
-    writeU8(d.gameId.showLabelText);
-    writeU8(d.gameId.labelFont);
-    writeS16(d.gameId.labelY);
-    writeS16(d.gameId.labelX);
-    writeU8(d.gameId.labelColorR);
-    writeU8(d.gameId.labelColorG);
-    writeU8(d.gameId.labelColorB);
+    writeU8(d.TitleID.visible);
+    writeS16(d.TitleID.y);
+    writeS16(d.TitleID.x);
+    writeU8(d.TitleID.font);
+    writeU8(d.TitleID.trailingDash);
+    writeU8(d.TitleID.colorR);
+    writeU8(d.TitleID.colorG);
+    writeU8(d.TitleID.colorB);
+    writeU8(d.TitleID.showLabelText);
+    writeU8(d.TitleID.labelFont);
+    writeS16(d.TitleID.labelY);
+    writeS16(d.TitleID.labelX);
+    writeU8(d.TitleID.labelColorR);
+    writeU8(d.TitleID.labelColorG);
+    writeU8(d.TitleID.labelColorB);
 
     // Region
     writeU8(d.region.visible);
@@ -103,15 +166,6 @@ static void PackLayoutData(const LayoutData& d, u8* buf)
     writeU8(d.region.colorG);
     writeU8(d.region.colorB);
 
-    // Version
-    writeU8(d.version.visible);
-    writeS16(d.version.y);
-    writeS16(d.version.x);
-    writeU8(d.version.font);
-    writeU8(d.version.colorR);
-    writeU8(d.version.colorG);
-    writeU8(d.version.colorB);
-
     // CRC
     writeU8(d.crc.visible);
     writeS16(d.crc.y);
@@ -121,14 +175,14 @@ static void PackLayoutData(const LayoutData& d, u8* buf)
     writeU8(d.crc.colorG);
     writeU8(d.crc.colorB);
 
-    // Username
-    writeU8(d.username.visible);
-    writeS16(d.username.y);
-    writeS16(d.username.x);
-    writeU8(d.username.font);
-    writeU8(d.username.colorR);
-    writeU8(d.username.colorG);
-    writeU8(d.username.colorB);
+    // Version
+    writeU8(d.version.visible);
+    writeS16(d.version.y);
+    writeS16(d.version.x);
+    writeU8(d.version.font);
+    writeU8(d.version.colorR);
+    writeU8(d.version.colorG);
+    writeU8(d.version.colorB);
 
     // Box Art
     writeU8(d.boxArt.visible);
@@ -239,7 +293,25 @@ static void UnpackLayoutData(const u8* buf, u32 dataSize, LayoutData& d)
     if (!readU8OrReturn(d.dateTime2.colorG)) return;
     if (!readU8OrReturn(d.dateTime2.colorB)) return;
 
-    // PREFIX
+    // Username
+    if (!readU8OrReturn(d.username.visible)) return;
+    if (!readS16OrReturn(d.username.y)) return;
+    if (!readS16OrReturn(d.username.x)) return;
+    if (!readU8OrReturn(d.username.font)) return;
+    if (!readU8OrReturn(d.username.colorR)) return;
+    if (!readU8OrReturn(d.username.colorG)) return;
+    if (!readU8OrReturn(d.username.colorB)) return;
+    
+    // Game Title
+    if (!readU8OrReturn(d.gameTitle.visible)) return;
+    if (!readS16OrReturn(d.gameTitle.y)) return;
+    if (!readS16OrReturn(d.gameTitle.x)) return;
+    if (!readU8OrReturn(d.gameTitle.font)) return;
+    if (!readU8OrReturn(d.gameTitle.colorR)) return;
+    if (!readU8OrReturn(d.gameTitle.colorG)) return;
+    if (!readU8OrReturn(d.gameTitle.colorB)) return;
+
+    // Prefix
     if (!readU8OrReturn(d.prefix.visible)) return;
     if (!readS16OrReturn(d.prefix.y)) return;
     if (!readS16OrReturn(d.prefix.x)) return;
@@ -252,22 +324,22 @@ static void UnpackLayoutData(const u8* buf, u32 dataSize, LayoutData& d)
     if (!readU8OrReturn(d.prefix.ntrPrefixMode)) return;
     if (!readU8OrReturn(d.prefix.twlPrefixMode)) return;
 
-    // TITLE ID
-    if (!readU8OrReturn(d.gameId.visible)) return;
-    if (!readS16OrReturn(d.gameId.y)) return;
-    if (!readS16OrReturn(d.gameId.x)) return;
-    if (!readU8OrReturn(d.gameId.font)) return;
-    if (!readU8OrReturn(d.gameId.trailingDash)) return;
-    if (!readU8OrReturn(d.gameId.colorR)) return;
-    if (!readU8OrReturn(d.gameId.colorG)) return;
-    if (!readU8OrReturn(d.gameId.colorB)) return;
-    if (!readU8OrReturn(d.gameId.showLabelText)) return;
-    if (!readU8OrReturn(d.gameId.labelFont)) return;
-    if (!readS16OrReturn(d.gameId.labelY)) return;
-    if (!readS16OrReturn(d.gameId.labelX)) return;
-    if (!readU8OrReturn(d.gameId.labelColorR)) return;
-    if (!readU8OrReturn(d.gameId.labelColorG)) return;
-    if (!readU8OrReturn(d.gameId.labelColorB)) return;
+    // Title ID
+    if (!readU8OrReturn(d.TitleID.visible)) return;
+    if (!readS16OrReturn(d.TitleID.y)) return;
+    if (!readS16OrReturn(d.TitleID.x)) return;
+    if (!readU8OrReturn(d.TitleID.font)) return;
+    if (!readU8OrReturn(d.TitleID.trailingDash)) return;
+    if (!readU8OrReturn(d.TitleID.colorR)) return;
+    if (!readU8OrReturn(d.TitleID.colorG)) return;
+    if (!readU8OrReturn(d.TitleID.colorB)) return;
+    if (!readU8OrReturn(d.TitleID.showLabelText)) return;
+    if (!readU8OrReturn(d.TitleID.labelFont)) return;
+    if (!readS16OrReturn(d.TitleID.labelY)) return;
+    if (!readS16OrReturn(d.TitleID.labelX)) return;
+    if (!readU8OrReturn(d.TitleID.labelColorR)) return;
+    if (!readU8OrReturn(d.TitleID.labelColorG)) return;
+    if (!readU8OrReturn(d.TitleID.labelColorB)) return;
 
     // Region
     if (!readU8OrReturn(d.region.visible)) return;
@@ -279,15 +351,6 @@ static void UnpackLayoutData(const u8* buf, u32 dataSize, LayoutData& d)
     if (!readU8OrReturn(d.region.colorG)) return;
     if (!readU8OrReturn(d.region.colorB)) return;
 
-    // Version
-    if (!readU8OrReturn(d.version.visible)) return;
-    if (!readS16OrReturn(d.version.y)) return;
-    if (!readS16OrReturn(d.version.x)) return;
-    if (!readU8OrReturn(d.version.font)) return;
-    if (!readU8OrReturn(d.version.colorR)) return;
-    if (!readU8OrReturn(d.version.colorG)) return;
-    if (!readU8OrReturn(d.version.colorB)) return;
-
     // CRC
     if (!readU8OrReturn(d.crc.visible)) return;
     if (!readS16OrReturn(d.crc.y)) return;
@@ -297,14 +360,14 @@ static void UnpackLayoutData(const u8* buf, u32 dataSize, LayoutData& d)
     if (!readU8OrReturn(d.crc.colorG)) return;
     if (!readU8OrReturn(d.crc.colorB)) return;
 
-    // Username
-    if (!readU8OrReturn(d.username.visible)) return;
-    if (!readS16OrReturn(d.username.y)) return;
-    if (!readS16OrReturn(d.username.x)) return;
-    if (!readU8OrReturn(d.username.font)) return;
-    if (!readU8OrReturn(d.username.colorR)) return;
-    if (!readU8OrReturn(d.username.colorG)) return;
-    if (!readU8OrReturn(d.username.colorB)) return;
+    // Version
+    if (!readU8OrReturn(d.version.visible)) return;
+    if (!readS16OrReturn(d.version.y)) return;
+    if (!readS16OrReturn(d.version.x)) return;
+    if (!readU8OrReturn(d.version.font)) return;
+    if (!readU8OrReturn(d.version.colorR)) return;
+    if (!readU8OrReturn(d.version.colorG)) return;
+    if (!readU8OrReturn(d.version.colorB)) return;
 
     // Box Art
     if (!readU8OrReturn(d.boxArt.visible)) return;
@@ -361,25 +424,26 @@ static void UnpackLayoutData(const u8* buf, u32 dataSize, LayoutData& d)
     d.dateTime2.format    %= LAYOUT_FORMAT_COUNT;
     d.dateTime2.separator %= LAYOUT_SEP_COUNT;
     d.dateTime2.font      %= LAYOUT_FONT_COUNT;
-    d.prefix.font %= LAYOUT_FONT_COUNT;
-    d.gameId.font %= LAYOUT_FONT_COUNT;
-    d.region.font %= LAYOUT_FONT_COUNT;
-    d.version.font %= LAYOUT_FONT_COUNT;
     d.username.font %= LAYOUT_FONT_COUNT;
+    d.gameTitle.font      %= LAYOUT_FONT_COUNT;
+    d.prefix.font %= LAYOUT_FONT_COUNT;
+    d.TitleID.font %= LAYOUT_FONT_COUNT;
+    d.region.font %= LAYOUT_FONT_COUNT;
+    d.crc.font            %= LAYOUT_FONT_COUNT;
+    d.version.font %= LAYOUT_FONT_COUNT;
     d.prefix.trailingDash = d.prefix.trailingDash ? 1u : 0u;
-    d.gameId.trailingDash = d.gameId.trailingDash ? 1u : 0u;
+    d.TitleID.trailingDash = d.TitleID.trailingDash ? 1u : 0u;
     d.region.trailingDash = d.region.trailingDash ? 1u : 0u;
     d.prefix.gbaPrefixMode %= LAYOUT_PREFIX_GBA_COUNT;
     d.prefix.ntrPrefixMode %= LAYOUT_PREFIX_NTR_COUNT;
     d.prefix.twlPrefixMode %= LAYOUT_PREFIX_TWL_COUNT;
-    d.gameId.showLabelText = d.gameId.showLabelText ? 1u : 0u;
-    d.gameId.labelFont %= LAYOUT_FONT_COUNT;
-    if (d.gameId.labelX < -30) d.gameId.labelX = -30;
-    if (d.gameId.labelX > 260) d.gameId.labelX = 260;
-    if (d.gameId.labelY < -20) d.gameId.labelY = -20;
-    if (d.gameId.labelY > 200) d.gameId.labelY = 200;
+    d.TitleID.showLabelText = d.TitleID.showLabelText ? 1u : 0u;
+    d.TitleID.labelFont %= LAYOUT_FONT_COUNT;
+    if (d.TitleID.labelX < -30) d.TitleID.labelX = -30;
+    if (d.TitleID.labelX > 260) d.TitleID.labelX = 260;
+    if (d.TitleID.labelY < -20) d.TitleID.labelY = -20;
+    if (d.TitleID.labelY > 200) d.TitleID.labelY = 200;
 
-    d.crc.font            %= LAYOUT_FONT_COUNT;
     d.romNameRow1.font    %= LAYOUT_FONT_COUNT;
     d.romNameRow2.font    %= LAYOUT_FONT_COUNT;
     d.romNameRow3.font    %= LAYOUT_FONT_COUNT;

@@ -38,6 +38,11 @@ public:
 private:
     SharedPtr<RomBrowserViewModel> _viewModel;
     const IThemeFileIconFactory* _themeFileIconFactory;
+    const IBgmService* _bgmService;
+    bool _showCover;
+    const IFontRepository* _fontRepository;
+    const LayoutService* _layoutService;
+
     std::unique_ptr<BannerView> _fileInfoView;
     std::unique_ptr<FileIcon> _selectedFileIcon;
     SharedPtr<FileCover> _selectedFileCover;
@@ -45,54 +50,49 @@ private:
 
     Label2DView _dateTime1Label;
     Label2DView _dateTime2Label;
-    Label2DView _prefixLabel;
-    Label2DView _gameIdTagLabel;
-    Label2DView _gameIdLabel;
-    Label2DView _regionLabel;
-    Label2DView _versionLabel;
-    Label2DView _crcLabel;
     Label2DView _usernameLabel;
+    Label2DView _gameTitleLabel;
+    Label2DView _prefixLabel;
+    Label2DView _TitleIDTagLabel;
+    Label2DView _TitleIDLabel;
+    Label2DView _regionLabel;
+    Label2DView _crcLabel;
+    Label2DView _versionLabel;
 
-    bool _iconGraphicsUploaded = false;
     bool _coverGraphicsUploaded = false;
     bool _lastIconVisible = true;
-    bool _showCover;
-    const IBgmService* _bgmService;
-    const IFontRepository* _fontRepository;
-    const LayoutService* _layoutService;
 
     u64 _lastTimeUpdateTick = 0;
-    u8 _lastYear     = 0xFF;
-    u8 _lastMonth    = 0xFF;
-    u8 _lastMonthDay = 0xFF;
-    u8 _lastHour     = 0xFF;
-    u8 _lastMinute   = 0xFF;
-    u8 _lastSecond   = 0xFF;
+    u8 _lastYear = 0xFF, _lastMonth = 0xFF, _lastMonthDay = 0xFF;
+    u8 _lastHour = 0xFF, _lastMinute = 0xFF, _lastSecond = 0xFF;
 
-    u8 _lastDt1Format = 0xFF;
-    u8 _lastDt1Sep    = 0xFF;
-    u8 _lastDt2Format = 0xFF;
-    u8 _lastDt2Sep    = 0xFF;
-    u8 _lastDt1Font   = 0xFF;
-    u8 _lastDt2Font   = 0xFF;
-    u8 _lastPrefixFont = 0xFF;
-    u8 _lastGameIdTagFont = 0xFF;
-    u8 _lastGameIdFont = 0xFF;
-    u8 _lastRegionFont = 0xFF;
-    u8 _lastVersionFont = 0xFF;
-    u8 _lastCrcFont   = 0xFF;
+    u8 _lastDt1Format = 0xFF, _lastDt1Sep = 0xFF, _lastDt1Font = 0xFF;
+    u8 _lastDt2Format = 0xFF, _lastDt2Sep = 0xFF, _lastDt2Font = 0xFF;
     u8 _lastUsernameFont = 0xFF;
-
-    char _cachedIdPrefix[24] = { 0 };
-    char _cachedIdGameId[5] = { 0 };
-    char _cachedIdRegion[4] = { 0 };
-    bool _hasCachedIdPrefix = false;
-    bool _hasCachedIdGameId = false;
-    bool _hasCachedIdRegion = false;
-    u8 _cachedRomVersion = 0;
-    bool _hasCachedRomVersion = false;
+    u8 _lastGameTitleFont = 0xFF;
+    u8 _lastPrefixFont = 0xFF;
+    u8 _lastTitleIDTagFont = 0xFF;
+    u8 _lastTitleIDFont = 0xFF;
+    u8 _lastRegionFont = 0xFF;
+    u8 _lastCrcFont = 0xFF;
+    u8 _lastVersionFont = 0xFF;
 
     char16_t _cachedUserName[24] = { 0 };
+    
+    char _cachedGameTitle[13] = { 0 };
+    bool _hasCachedGameTitle = false;
+
+    char _cachedIdPrefix[24] = { 0 };
+    bool _hasCachedIdPrefix = false;
+    
+    char _cachedIdTitleID[5] = { 0 };
+    bool _hasCachedIdTitleID = false;
+    
+    char _cachedIdRegion[4] = { 0 };
+    bool _hasCachedIdRegion = false;
+
+    u8   _cachedRomVersion = 0;
+    bool _hasCachedRomVersion = false;
 
     void UpdateDateTimeLabels(bool forceUpdate);
     void UpdateLayoutFonts();
