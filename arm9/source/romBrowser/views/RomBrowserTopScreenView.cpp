@@ -899,8 +899,13 @@ void RomBrowserTopScreenView::Update()
                 {
                     headerCrc    = cachedMeta.headerCrc32;
                     hasHeaderCrc = (headerCrc != 0);
-                    romVersion   = cachedMeta.romVersion;
-                    hasRomVersion = true;
+
+                    bool isNds = (cachedRomType != LaunchStatsService::RomType::Gba);
+                    if (isNds)
+                    {
+                        romVersion   = cachedMeta.romVersion;
+                        hasRomVersion = true;
+                    }
 
                     const char* gc = cachedMeta.gameCode;
                     if (gc[0] != '\0')
@@ -912,7 +917,7 @@ void RomBrowserTopScreenView::Update()
                         hasId = true;
                     }
 
-                    if (cachedMeta.gameTitle[0] != '\0')
+                    if (isNds && cachedMeta.gameTitle[0] != '\0')
                     {
                         mini_snprintf(_cachedGameTitle, sizeof(_cachedGameTitle), "%s", cachedMeta.gameTitle);
                         _hasCachedGameTitle = true;
@@ -955,35 +960,34 @@ void RomBrowserTopScreenView::Update()
                             headerCrc = ComputeCrc32(header, headerSize);
                             hasHeaderCrc = true;
 
-                            if (isGba)
-                            {
-                                memcpy(_cachedGameTitle, header + 0xA0, 12);
-                                romVersion = header[0xBC];
-                                hasRomVersion = true;
-                            }
-                            else
+                            if (!isGba)
                             {
                                 memcpy(_cachedGameTitle, header + 0x00, 12);
+                                _cachedGameTitle[12] = '\0';
+                                _hasCachedGameTitle = true;
                             }
-                            _cachedGameTitle[12] = '\0';
-                            _hasCachedGameTitle = true;
                         }
                     }
                 }
 
                 if (!_hasCachedGameTitle)
                 {
-                    const char16_t* gameTitle = info->GetGameTitle();
-                    if (gameTitle && gameTitle[0] != u'\0')
+                    const char* sn = item.GetFileType()->GetShortName();
+                    bool isNdsType = sn && !strcasecmp(sn, "nds");
+                    if (isNdsType)
                     {
-                        size_t len = 0;
-                        while (len < sizeof(_cachedGameTitle) - 1 && gameTitle[len] != u'\0')
+                        const char16_t* gameTitle = info->GetGameTitle();
+                        if (gameTitle && gameTitle[0] != u'\0')
                         {
-                            _cachedGameTitle[len] = (char)gameTitle[len];
-                            len++;
+                            size_t len = 0;
+                            while (len < sizeof(_cachedGameTitle) - 1 && gameTitle[len] != u'\0')
+                            {
+                                _cachedGameTitle[len] = (char)gameTitle[len];
+                                len++;
+                            }
+                            _cachedGameTitle[len] = '\0';
+                            _hasCachedGameTitle = true;
                         }
-                        _cachedGameTitle[len] = '\0';
-                        _hasCachedGameTitle = true;
                     }
                 }
 

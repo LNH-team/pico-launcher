@@ -68,7 +68,6 @@ private:
     IRomBrowserController* _romBrowserController;
     const MaterialColorScheme* _materialColorScheme;
 
-    Label2DView _titleLabel;
     ChipView _chips[kMaxChips];
     MenuItem _chipMenuItem[kMaxChips];
     int _chipCount = 0;

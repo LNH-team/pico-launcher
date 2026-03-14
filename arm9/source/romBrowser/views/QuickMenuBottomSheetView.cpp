@@ -33,7 +33,6 @@ QuickMenuBottomSheetView::QuickMenuBottomSheetView(
     bool hasSelectedRom, bool isNdsRom)
     : _romBrowserController(romBrowserController)
     , _materialColorScheme(materialColorScheme)
-    , _titleLabel(kTitleWidth, kTitleHeight, 24, fontRepository->GetFont(FontType::Medium11))
     , _chips {
         ChipView(md::sys::color::surfaceContainerHighest, materialColorScheme, fontRepository),
         ChipView(md::sys::color::surfaceContainerHighest, materialColorScheme, fontRepository),
@@ -43,10 +42,6 @@ QuickMenuBottomSheetView::QuickMenuBottomSheetView(
     }
 {
     _position.x = 0;
-
-    _titleLabel.SetText(u"Quick Menu");
-    _titleLabel.SetHorizontalAlignment(Alignment::Center);
-    AddChildTail(&_titleLabel);
 
     _chipCount = 0;
 
@@ -141,10 +136,6 @@ void QuickMenuBottomSheetView::Update()
     _panelBounds = Rectangle(panelX, panelY, kPanelWidth, totalHeight);
 
     const int contentX = panelX + kPanelPaddingX;
-
-    _titleLabel.SetPosition(contentX, panelY + kPanelPaddingTop);
-    _titleLabel.SetBackgroundColor(_materialColorScheme->surfaceContainerHighest);
-    _titleLabel.SetForegroundColor(_materialColorScheme->onSurface);
 
     const int chipAreaY = panelY + kPanelPaddingTop + kTitleHeight + kTitleSpacing;
     int chipY = chipAreaY;
