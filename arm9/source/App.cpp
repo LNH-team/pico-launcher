@@ -237,6 +237,7 @@ void App::Run()
 
     _chipViewVram = ChipView::UploadGraphics(_mainObjVram);
     _iconButtonViewVram = IconButton2DView::UploadGraphics(_mainObjVram);
+    _displaySettingsIconVram = DisplaySettingsBottomSheetView::UploadIconGraphics(_mainObjVram);
 
     mem_setVramEMapping(MEM_VRAM_E_LCDC);
     _rgb6Palette.UploadGraphics(_mainVramContext);
@@ -567,6 +568,7 @@ void App::HandleShowDisplaySettingsTrigger()
         _theme->GetFontRepository(), &_appSettingsService,
         _effectiveThemeName.GetString());
     displaySettingsDialog->SetGraphics(_iconButtonViewVram);
+    displaySettingsDialog->SetIconGraphics(_displaySettingsIconVram);
     _dialogPresenter.ShowDialog(std::move(displaySettingsDialog));
 }
 

@@ -10,11 +10,30 @@
 class IRomBrowserController;
 class MaterialColorScheme;
 class IFontRepository;
+class IVramManager;
 struct TouchEvent;
 
 class DisplaySettingsBottomSheetView : public BottomSheetView
 {
 public:
+    class IconVramToken
+    {
+        u32 _layoutOffsets[4];
+        u32 _sortOffsets[2];
+    public:
+        IconVramToken()
+            : _layoutOffsets { 0, 0, 0, 0 }
+            , _sortOffsets { 0, 0 } { }
+
+        IconVramToken(u32 layout0, u32 layout1, u32 layout2, u32 layout3,
+            u32 sort0, u32 sort1)
+            : _layoutOffsets { layout0, layout1, layout2, layout3 }
+            , _sortOffsets { sort0, sort1 } { }
+
+        constexpr u32 GetLayoutOffset(int idx) const { return _layoutOffsets[idx]; }
+        constexpr u32 GetSortOffset(int idx) const { return _sortOffsets[idx]; }
+    };
+
     /// @param appliedThemeName  The theme that is actually running
 
     DisplaySettingsBottomSheetView(DisplaySettingsViewModel* viewModel,
@@ -31,6 +50,9 @@ public:
         FocusMoveDirection direction, View* source) override;
 
     void SetGraphics(const IconButton2DView::VramToken& iconButtonVramToken);
+    void SetIconGraphics(const IconVramToken& iconVramToken);
+
+    static IconVramToken UploadIconGraphics(IVramManager& vramManager);
 
     void Focus(FocusManager& focusManager) override
     {
@@ -101,4 +123,5 @@ private:
 
     bool _settingsDirty = false;
     bool _themeLongPressConsumed = false;
+    bool _usePreloadedIcons = false;
 };

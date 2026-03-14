@@ -47,6 +47,16 @@
 #define LANGUAGE_LABEL_Y    130
 #define LANGUAGE_VALUE_X    100
 
+namespace
+{
+    u32 LoadDisplaySettingsIcon(IVramManager& vramManager, const unsigned int* tiles, u32 tilesLength)
+    {
+        u32 vramOffset = vramManager.Alloc(tilesLength);
+        dma_ntrCopy32(3, tiles, vramManager.GetVramAddress(vramOffset), tilesLength);
+        return vramOffset;
+    }
+}
+
 static RomBrowserLayout sRomBrowserDisplayModes[4] =
 {
     [0] = RomBrowserLayout::HorizontalIconGrid,
@@ -388,6 +398,9 @@ IconButton2DView DisplaySettingsBottomSheetView::CreateSortOptionIconButton()
 void DisplaySettingsBottomSheetView::InitVram(const VramContext& vramContext)
 {
     BottomSheetView::InitVram(vramContext);
+
+    if (_usePreloadedIcons)
+        return;
 
     const auto objVramManager = vramContext.GetObjVramManager();
     if (objVramManager)
@@ -865,6 +878,30 @@ void DisplaySettingsBottomSheetView::SetGraphics(
         sortOption.SetGraphics(iconButtonVramToken);
     // for (auto& filterOption : _filterOptions)
     // filterOption.SetGraphics(iconButtonVramToken);
+}
+
+void DisplaySettingsBottomSheetView::SetIconGraphics(
+    const IconVramToken& iconVramToken)
+{
+    _layoutOptions[0].SetIconVramOffset(iconVramToken.GetLayoutOffset(0));
+    _layoutOptions[1].SetIconVramOffset(iconVramToken.GetLayoutOffset(1));
+    _layoutOptions[2].SetIconVramOffset(iconVramToken.GetLayoutOffset(2));
+    _layoutOptions[3].SetIconVramOffset(iconVramToken.GetLayoutOffset(3));
+    _sortOptions[0].SetIconVramOffset(iconVramToken.GetSortOffset(0));
+    _sortOptions[1].SetIconVramOffset(iconVramToken.GetSortOffset(1));
+    _usePreloadedIcons = true;
+}
+
+DisplaySettingsBottomSheetView::IconVramToken
+DisplaySettingsBottomSheetView::UploadIconGraphics(IVramManager& vramManager)
+{
+    return IconVramToken(
+        LoadDisplaySettingsIcon(vramManager, hGridIconTiles, hGridIconTilesLen),
+        LoadDisplaySettingsIcon(vramManager, vGridIconTiles, vGridIconTilesLen),
+        LoadDisplaySettingsIcon(vramManager, bannerListIconTiles, bannerListIconTilesLen),
+        LoadDisplaySettingsIcon(vramManager, coverflowIconTiles, coverflowIconTilesLen),
+        LoadDisplaySettingsIcon(vramManager, sortNameAscendingIconTiles, sortNameAscendingIconTilesLen),
+        LoadDisplaySettingsIcon(vramManager, sortNameDescendingIconTiles, sortNameDescendingIconTilesLen));
 }
 
 u32 DisplaySettingsBottomSheetView::LoadIcon(IVramManager& vramManager,

@@ -257,25 +257,38 @@ static const char16_t* GetFallbackEnglishValue(const char* key)
 
 void Localization::Initialize(IAppSettingsService* appSettingsService)
 {
-    s_appSettingsService = appSettingsService;
-    if (!s_appSettingsService)
+    if (!appSettingsService)
         return;
 
-    auto& settings = s_appSettingsService->GetAppSettings();
+    auto& settings = appSettingsService->GetAppSettings();
     const char* lang = settings.language.GetString();
     if (!lang || !lang[0])
         lang = kEnglishFileName;
 
-    NormalizeLanguageName(lang, s_languageBuf, sizeof(s_languageBuf));
-    if (s_languageBuf[0] == '\0')
-        NormalizeLanguageName(kEnglishFileName, s_languageBuf, sizeof(s_languageBuf));
+    char normalizedLanguage[sizeof(s_languageBuf)];
+    NormalizeLanguageName(lang, normalizedLanguage, sizeof(normalizedLanguage));
+    if (normalizedLanguage[0] == '\0')
+        NormalizeLanguageName(kEnglishFileName, normalizedLanguage, sizeof(normalizedLanguage));
 
-    if (!LoadFromBin(s_languageBuf))
+    if (s_loaded
+        && s_appSettingsService == appSettingsService
+        && strcasecmp(normalizedLanguage, s_languageBuf) == 0)
+    {
+        return;
+    }
+
+    s_appSettingsService = appSettingsService;
+
+    if (!LoadFromBin(normalizedLanguage))
     {
         LoadFallbackEnglish();
         WriteDefaultEnglishBin();
         NormalizeLanguageName(kEnglishFileName, s_languageBuf, sizeof(s_languageBuf));
         PersistFallbackLanguageIfNeeded(s_appSettingsService);
+    }
+    else
+    {
+        StringUtil::Copy(s_languageBuf, normalizedLanguage, sizeof(s_languageBuf));
     }
 
     s_loaded = true;
