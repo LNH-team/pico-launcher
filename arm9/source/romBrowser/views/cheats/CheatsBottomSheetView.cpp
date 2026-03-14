@@ -54,6 +54,10 @@ CheatsBottomSheetView::CheatsBottomSheetView(std::unique_ptr<CheatsViewModel> vi
         bool categoryChanged = self->_viewModel->ItemActivated();
         if (categoryChanged)
         {
+            if (itemIdx >= 0)
+            {
+                self->_lastFocusedFolderIndex = itemIdx;
+            }
             self->UpdateCheatList(0);
         }
         else
@@ -337,10 +341,13 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
         if (focusManager.IsFocusInside(_cheatListRecycler.get()))
         {
             int selectedIdx = _cheatListRecycler->GetSelectedItem();
-            _lastFocusedFolderIndex = selectedIdx;
             bool categoryChanged = _viewModel->ItemActivated();
             if (categoryChanged)
             {
+                if (selectedIdx >= 0)
+                {
+                    _lastFocusedFolderIndex = selectedIdx;
+                }
                 UpdateCheatList(0);
             }
             else
