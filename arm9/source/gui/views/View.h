@@ -104,6 +104,12 @@ public:
     /// @return True if the view is currently focused, or false otherwise.
     bool IsFocused() const { return _isFocused; }
 
+    /// @brief Retains the focused appearance even when real input focus moved elsewhere.
+    void SetVisualFocusRetained(bool retained) { _visualFocusRetained = retained; }
+
+    /// @brief Gets whether the view should look focused.
+    bool HasVisualFocus() const { return _isFocused || _visualFocusRetained; }
+
 protected:
     Point _position;
     bool _isFocused;
@@ -113,4 +119,5 @@ protected:
 
 private:
     View* _parent;
+    bool _visualFocusRetained = false;
 };

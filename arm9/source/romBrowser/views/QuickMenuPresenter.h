@@ -19,6 +19,7 @@ public:
     void Update();
     void Draw(GraphicsContext& graphicsContext);
     void VBlank();
+    void DismissImmediately();
 
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager);
     bool HandleTouch(const TouchEvent& event, FocusManager& focusManager);
@@ -27,7 +28,18 @@ public:
     bool IsActive() const { return _state != State::Idle; }
     bool IsTransitioning() const { return _state == State::Opening || _state == State::Closing; }
 
-    void ClearOldFocus() { _oldFocus = nullptr; }
+    void ClearOldFocus()
+    {
+        if (_oldFocus)
+            _oldFocus->SetVisualFocusRetained(false);
+        _oldFocus = nullptr;
+    }
+    View* DetachOldFocus()
+    {
+        View* oldFocus = _oldFocus;
+        _oldFocus = nullptr;
+        return oldFocus;
+    }
     constexpr View* GetOldFocus() const { return _oldFocus; }
 
 private:

@@ -18,8 +18,9 @@ void IconButton3DView::Draw(GraphicsContext& graphicsContext)
     if (!graphicsContext.IsVisible(GetBounds()))
         return;
 
+    const bool hasVisualFocus = HasVisualFocus();
     u32 iconPaletteRow;
-    if (_isFocused)
+    if (hasVisualFocus)
     {
         const auto& selectorBaseColor = _materialColorScheme->GetColor(GetCircleBackgroundColor());
         const auto& fgColor = _materialColorScheme->GetColor(GetForegroundColor());

@@ -20,11 +20,12 @@ void ChipView::Draw(GraphicsContext& graphicsContext)
 
     u32 paletteRow;
     auto bgColor = _materialColorScheme->GetColor(_backgroundColor);
+    const bool hasVisualFocus = HasVisualFocus();
     Rgb<8, 8, 8> fgColor;
     if (_isSelected)
     {
         fgColor = _materialColorScheme->secondaryContainer;
-        if (_isFocused)
+        if (hasVisualFocus)
             fgColor = RgbMixer::Lerp(fgColor, _materialColorScheme->onSurfaceVariant, 12, 100);
         u16 chipPltt[16];
         for (int i = 0; i < 16; i++)
@@ -38,7 +39,7 @@ void ChipView::Draw(GraphicsContext& graphicsContext)
         }
         paletteRow = graphicsContext.GetPaletteManager().AllocRow(
             DirectPalette(chipPltt), _position.y, _position.y + 20);
-        if (!_isFocused)
+        if (!hasVisualFocus)
         {
             _label.SetBackgroundColor(_materialColorScheme->secondaryContainer);
             _label.SetForegroundColor(_materialColorScheme->onSecondaryContainer);
@@ -56,8 +57,8 @@ void ChipView::Draw(GraphicsContext& graphicsContext)
     else
     {
         auto selectorFullColor = _materialColorScheme->onSurfaceVariant;
-        auto outlineColor = _isFocused ? _materialColorScheme->onSurfaceVariant : _materialColorScheme->outline;
-        fgColor = _isFocused ? RgbMixer::Lerp(bgColor, selectorFullColor, 12, 100) : bgColor;
+        auto outlineColor = hasVisualFocus ? _materialColorScheme->onSurfaceVariant : _materialColorScheme->outline;
+        fgColor = hasVisualFocus ? RgbMixer::Lerp(bgColor, selectorFullColor, 12, 100) : bgColor;
 
         u16 chipPltt[16];
         for (int i = 0; i < 16; i++)
@@ -72,7 +73,7 @@ void ChipView::Draw(GraphicsContext& graphicsContext)
         paletteRow = graphicsContext.GetPaletteManager().AllocRow(
             DirectPalette(chipPltt), _position.y, _position.y + 20);
 
-        if (!_isFocused)
+        if (!hasVisualFocus)
         {
             _label.SetBackgroundColor(_materialColorScheme->GetColor(_backgroundColor));
             _label.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
@@ -166,8 +167,9 @@ void ChipView::DrawIcon(GraphicsContext& graphicsContext, const Rgb<8, 8, 8>& fg
     if (_iconVramOffset == 0xFFFFFFFF)
         return;
 
+    const bool hasVisualFocus = HasVisualFocus();
     u32 iconPaletteRow;
-    if (_isFocused)
+    if (hasVisualFocus)
     {
         iconPaletteRow = graphicsContext.GetPaletteManager().AllocRow(
             GradientPalette(fgColor, _materialColorScheme->primary),

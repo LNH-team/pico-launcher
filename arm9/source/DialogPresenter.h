@@ -54,6 +54,8 @@ public:
     /// @brief Clears the focus that was stored when a dialog was opened.
     void ClearOldFocus()
     {
+        if (_oldFocus)
+            _oldFocus->SetVisualFocusRetained(false);
         _oldFocus = nullptr;
     }
 
@@ -62,6 +64,18 @@ public:
     constexpr View* GetOldFocus() const
     {
         return _oldFocus;
+    }
+
+    /// @brief Transfers an existing focus anchor to this presenter so dialog
+    ///        transitions can avoid restoring focus in-between overlays.
+    void SetOldFocus(View* oldFocus)
+    {
+        if (_oldFocus && _oldFocus != oldFocus)
+            _oldFocus->SetVisualFocusRetained(false);
+
+        _oldFocus = oldFocus;
+        if (_oldFocus)
+            _oldFocus->SetVisualFocusRetained(true);
     }
 
     /// @brief Returns true if no dialog is being shown or animated.

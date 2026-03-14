@@ -54,6 +54,8 @@ public:
         return _romBrowserAppBarView.GetFocusedButton(focusManager);
     }
 
+    bool IsViewInsideRomBrowser(const View* view) const;
+
     void RomBrowserViewModelInvalidated(const VramContext& vramContext);
 
     bool IsAppBarFocused(const FocusManager& focusManager) const

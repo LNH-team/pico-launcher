@@ -69,7 +69,11 @@ void DialogPresenter::Update()
                 _yAnimator.Goto(32, md::sys::motion::duration::long2,
                     &md::sys::motion::easing::emphasizedDecelerate);
                 if (!_oldFocus)
+                {
                     _oldFocus = _focusManager->GetCurrentFocus();
+                    if (_oldFocus)
+                        _oldFocus->SetVisualFocusRetained(true);
+                }
                 _currentDialog->Focus(*_focusManager);
                 break;
             }
@@ -82,6 +86,7 @@ void DialogPresenter::Update()
                 if (_oldFocus && !_nextDialog)
                 {
                     _focusManager->Focus(_oldFocus);
+                    _oldFocus->SetVisualFocusRetained(false);
                     _oldFocus = nullptr;
                 }
                 break;

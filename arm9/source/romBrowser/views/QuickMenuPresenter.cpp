@@ -48,6 +48,27 @@ void QuickMenuPresenter::Close()
     BeginClose();
 }
 
+void QuickMenuPresenter::DismissImmediately()
+{
+    if (!_currentView)
+        return;
+
+    if (_focusManager->IsFocusInside(_currentView.get()))
+        _focusManager->Unfocus();
+
+    if (_oldFocus)
+        _oldFocus->SetVisualFocusRetained(false);
+    _oldFocus = nullptr;
+
+    _currentView.reset();
+    _initVram = false;
+    _state = State::Idle;
+    _scrimAnimator = Animator<int>(0);
+    _yAnimator = Animator<int>(kHiddenY);
+    ClearBg1Map();
+    REG_BLDALPHA = (16 << 8) | 0;
+}
+
 void QuickMenuPresenter::BeginOpen()
 {
     _state = State::Opening;
@@ -57,7 +78,11 @@ void QuickMenuPresenter::BeginOpen()
         &md::sys::motion::easing::emphasizedDecelerate);
 
     if (!_oldFocus)
+    {
         _oldFocus = _focusManager->GetCurrentFocus();
+        if (_oldFocus)
+            _oldFocus->SetVisualFocusRetained(true);
+    }
     _currentView->Focus(*_focusManager);
 }
 
@@ -93,6 +118,7 @@ void QuickMenuPresenter::Update()
             if (_oldFocus)
             {
                 _focusManager->Focus(_oldFocus);
+                _oldFocus->SetVisualFocusRetained(false);
                 _oldFocus = nullptr;
             }
             return;

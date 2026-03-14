@@ -59,21 +59,6 @@ public:
         _romBrowserController->RequestThemeReload();
     }
 
-    void ShowInfo()
-    {
-        _romBrowserController->ShowDisplayInfo();
-    }
-
-    void HideInfo()
-    {
-        _romBrowserController->HideDisplayInfo();
-    }
-
-    void ShowLayoutEditor()
-    {
-        _romBrowserController->ShowLayoutEditor();
-    }
-
 private:
     IRomBrowserController* _romBrowserController;
 };

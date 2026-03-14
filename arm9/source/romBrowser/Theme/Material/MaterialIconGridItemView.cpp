@@ -19,8 +19,9 @@ void MaterialIconGridItemView::Draw(GraphicsContext& graphicsContext)
     if (!graphicsContext.IsVisible(Rectangle(_position.x - 2, _position.y - 2, 48, 48)))
         return;
 
+    const bool hasVisualFocus = HasVisualFocus();
     auto backColor = _materialColorScheme->inverseOnSurface;
-    auto frontColor = _isFocused
+    auto frontColor = hasVisualFocus
         ? _materialColorScheme->mainIconBg
         : _materialColorScheme->surfaceBright;
     u16 selectedIconCellPltt[16];

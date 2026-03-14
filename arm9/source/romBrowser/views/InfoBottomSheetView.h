@@ -1,16 +1,16 @@
 #pragma once
 #include "BottomSheetView.h"
 #include "gui/views/Label2DView.h"
-#include "../viewModels/DisplaySettingsViewModel.h"
 
 class MaterialColorScheme;
 class IFontRepository;
+class IRomBrowserController;
 struct TouchEvent;
 
 class SettingsInfoBottomSheetView : public BottomSheetView
 {
 public:
-    SettingsInfoBottomSheetView(DisplaySettingsViewModel* viewModel,
+    SettingsInfoBottomSheetView(IRomBrowserController* romBrowserController,
         const MaterialColorScheme* materialColorScheme,
         const IFontRepository* fontRepository);
 
@@ -23,7 +23,9 @@ public:
     void OnDismissed() override;
 
 private:
-    DisplaySettingsViewModel* _viewModel;
+    void UpdateTouchLabelText(int x, int y);
+
+    IRomBrowserController* _romBrowserController;
     const MaterialColorScheme* _materialColorScheme;
 
     Label2DView _titleLabel;
@@ -37,7 +39,8 @@ private:
     Label2DView _usrcheatLabel;
     Label2DView _touchLabel;
 
-    bool _touchPressed = false;
     int  _touchX = 0;
     int  _touchY = 0;
+    int  _displayedTouchX = -1;
+    int  _displayedTouchY = -1;
 };

@@ -76,6 +76,17 @@ public:
     void Update() override { }
 };
 
+static bool IsViewInside(const View* view, const View* root)
+{
+    for (auto current = view; current; current = current->GetParent())
+    {
+        if (current == root)
+            return true;
+    }
+
+    return false;
+}
+
 App::App(IAppSettingsService& appSettingsService, IBgmService& bgmService)
     : _mainObjPltt(GFX_PLTT_OBJ_MAIN)
     , _mainObjVram(GFX_OBJ_MAIN)
@@ -508,9 +519,8 @@ void App::HandleHideCheatsTrigger()
 {
     if (_romBrowserController.ConsumeDirectMenuAccess())
     {
-        _dialogPresenter.ClearOldFocus();
         _dialogPresenter.CloseDialog();
-        _romBrowserBottomScreenView->Focus(_focusManager);
+        RestoreDirectMenuAccessFocus();
         if (_romBrowserController.GetStateMachine().GetCurrentState() == RomBrowserState::GameInfo)
             _romBrowserController.HideGameInfo();
         return;
@@ -540,6 +550,18 @@ void App::HandleShowDisplaySettingsTrigger()
         return;
     }
 
+    if (_dialogPresenter.IsIdle()
+        && _romBrowserBottomScreenView->IsAppBarFocused(_focusManager))
+    {
+        _displaySettingsReturnToAppBar = true;
+        _displaySettingsReturnAppBarButton =
+            _romBrowserBottomScreenView->GetFocusedAppBarButton(_focusManager);
+    }
+    else if (_dialogPresenter.IsIdle())
+    {
+        _displaySettingsReturnToAppBar = false;
+    }
+
     auto displaySettingsDialog = std::make_unique<DisplaySettingsBottomSheetView>(
         &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(),
         _theme->GetFontRepository(), &_appSettingsService,
@@ -559,7 +581,14 @@ void App::HandleHideDisplaySettingsTrigger()
     }
 
     if (!_dialogPresenter.GetOldFocus())
-        _romBrowserBottomScreenView->Focus(_focusManager);
+    {
+        if (_displaySettingsReturnToAppBar)
+            _romBrowserBottomScreenView->FocusAppBar(_focusManager, _displaySettingsReturnAppBarButton);
+        else
+            _romBrowserBottomScreenView->Focus(_focusManager);
+    }
+
+    _displaySettingsReturnToAppBar = false;
 }
 
 void App::HandleShowDisplayInfoTrigger()
@@ -573,30 +602,22 @@ void App::HandleShowDisplayInfoTrigger()
     _dialogPresenter.CloseDialog();
 
     auto displayInfoDialog = std::make_unique<SettingsInfoBottomSheetView>(
-        &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository());
+        &_romBrowserController, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository());
     _dialogPresenter.ShowDialog(std::move(displayInfoDialog));
 }
 
 void App::HandleHideDisplayInfoTrigger()
 {
+    _dialogPresenter.CloseDialog();
+
     if (_romBrowserController.ConsumeDirectMenuAccess())
     {
-        _dialogPresenter.ClearOldFocus();
-        _dialogPresenter.CloseDialog();
-        _romBrowserBottomScreenView->Focus(_focusManager);
-        if (_romBrowserController.GetStateMachine().GetCurrentState() == RomBrowserState::DisplaySettings)
-            _romBrowserController.HideDisplaySettings();
+        RestoreDirectMenuAccessFocus();
         return;
     }
 
-    _dialogPresenter.CloseDialog();
-
-    auto displaySettingsDialog = std::make_unique<DisplaySettingsBottomSheetView>(
-        &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(),
-        _theme->GetFontRepository(), &_appSettingsService,
-        _effectiveThemeName.GetString());
-    displaySettingsDialog->SetGraphics(_iconButtonViewVram);
-    _dialogPresenter.ShowDialog(std::move(displaySettingsDialog));
+    if (!_dialogPresenter.GetOldFocus())
+        _romBrowserBottomScreenView->Focus(_focusManager);
 }
 
 void App::HandleShowLayoutEditorTrigger()
@@ -622,28 +643,32 @@ void App::HandleHideLayoutEditorTrigger()
     _appSettingsService.GetAppSettings().layoutSlot = _layoutService.GetCurrentSlot();
     SaveAppStateBinAsync();
 
+    _dialogPresenter.CloseDialog();
+
     if (_romBrowserController.ConsumeDirectMenuAccess())
     {
-        _dialogPresenter.ClearOldFocus();
-        _dialogPresenter.CloseDialog();
-        _romBrowserBottomScreenView->Focus(_focusManager);
-        if (_romBrowserController.GetStateMachine().GetCurrentState() == RomBrowserState::DisplaySettings)
-            _romBrowserController.HideDisplaySettings();
+        RestoreDirectMenuAccessFocus();
         return;
     }
 
-    _dialogPresenter.CloseDialog();
-
-    auto displaySettingsDialog = std::make_unique<DisplaySettingsBottomSheetView>(
-        &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(),
-        _theme->GetFontRepository(), &_appSettingsService,
-        _effectiveThemeName.GetString());
-    displaySettingsDialog->SetGraphics(_iconButtonViewVram);
-    _dialogPresenter.ShowDialog(std::move(displaySettingsDialog));
+    if (!_dialogPresenter.GetOldFocus())
+        _romBrowserBottomScreenView->Focus(_focusManager);
 }
 
 void App::HandleShowQuickMenuTrigger()
 {
+    if (_quickMenuPresenter.IsIdle()
+        && _romBrowserBottomScreenView->IsAppBarFocused(_focusManager))
+    {
+        _directMenuAccessReturnToAppBar = true;
+        _directMenuAccessReturnAppBarButton =
+            _romBrowserBottomScreenView->GetFocusedAppBarButton(_focusManager);
+    }
+    else if (_quickMenuPresenter.IsIdle())
+    {
+        _directMenuAccessReturnToAppBar = false;
+    }
+
     const FileInfo* selectedFileInfo = nullptr;
     auto viewModel = _romBrowserController.GetRomBrowserViewModel();
     if (viewModel.IsValid())
@@ -703,20 +728,33 @@ void App::HandleShowQuickMenuTrigger()
 
 void App::HandleHideQuickMenuTrigger()
 {
-    _quickMenuPresenter.Close();
-
     auto action = _romBrowserController.ConsumeQuickMenuAction();
+    const bool opensDialog = action != IRomBrowserController::QuickMenuAction::None;
+    if (opensDialog)
+    {
+        View* transferredFocus = _quickMenuPresenter.DetachOldFocus();
+        _quickMenuPresenter.DismissImmediately();
+        if (transferredFocus)
+            _dialogPresenter.SetOldFocus(transferredFocus);
+    }
+    else
+    {
+        _quickMenuPresenter.Close();
+    }
+
     if (action != IRomBrowserController::QuickMenuAction::None)
     {
         switch (action)
         {
             case IRomBrowserController::QuickMenuAction::GameDetails:
+                _directMenuAccessReturnToAppBar = false;
                 _romBrowserController.ShowGameInfo(_romBrowserController.GetTriggerFileInfo());
                 return;
             case IRomBrowserController::QuickMenuAction::Cheats:
                 _romBrowserController.ShowCheats();
                 return;
             case IRomBrowserController::QuickMenuAction::DisplaySettings:
+                _directMenuAccessReturnToAppBar = false;
                 _romBrowserController.ShowDisplaySettings();
                 return;
             case IRomBrowserController::QuickMenuAction::LayoutEditor:
@@ -726,8 +764,13 @@ void App::HandleHideQuickMenuTrigger()
                 _romBrowserController.ShowDisplayInfo();
                 return;
             default:
+                _directMenuAccessReturnToAppBar = false;
                 break;
         }
+    }
+    else
+    {
+        _directMenuAccessReturnToAppBar = false;
     }
 
     if (!_quickMenuPresenter.GetOldFocus())
@@ -772,6 +815,8 @@ void App::HandleFolderLoadDoneTrigger()
 {
     DrainTaskQueues();
 
+    ClearRetainedRomBrowserFocus(false);
+
     if (_romBrowserBottomScreenView
         && _focusManager.IsFocusInside(_romBrowserBottomScreenView.get()))
     {
@@ -800,6 +845,8 @@ void App::HandleFolderLoadDoneTrigger()
 void App::HandleRomBrowserViewModelInvalidated()
 {
     DrainTaskQueues();
+
+    ClearRetainedRomBrowserFocus(false);
 
     if (_romBrowserBottomScreenView
         && _focusManager.IsFocusInside(_romBrowserBottomScreenView.get()))
@@ -862,6 +909,8 @@ void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)
 {
     DrainTaskQueues();
 
+    ClearRetainedRomBrowserFocus(true);
+
     if (_romBrowserBottomScreenView
         && _focusManager.IsFocusInside(_romBrowserBottomScreenView.get()))
     {
@@ -875,7 +924,6 @@ void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)
         ? _romBrowserBottomScreenView->GetFocusedAppBarButton(_focusManager)
         : RomBrowserAppBarView::APP_BAR_BUTTON_BACK;
 
-    _dialogPresenter.ClearOldFocus();
     RestoreVramState(_vramStateBeforeMakeBottomScreenView);
     auto displayMode = RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
         _romBrowserController.GetRomBrowserDisplaySettings().layout);
@@ -905,6 +953,45 @@ void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)
         else
             _romBrowserBottomScreenView->Focus(_focusManager);
     }
+}
+
+void App::ClearRetainedRomBrowserFocus(bool includeAppBar)
+{
+    if (!_romBrowserBottomScreenView)
+        return;
+
+    View* dialogOldFocus = _dialogPresenter.GetOldFocus();
+    if (dialogOldFocus
+        && (includeAppBar
+            ? IsViewInside(dialogOldFocus, _romBrowserBottomScreenView.get())
+            : _romBrowserBottomScreenView->IsViewInsideRomBrowser(dialogOldFocus)))
+        _dialogPresenter.ClearOldFocus();
+
+    View* quickMenuOldFocus = _quickMenuPresenter.GetOldFocus();
+    if (quickMenuOldFocus
+        && (includeAppBar
+            ? IsViewInside(quickMenuOldFocus, _romBrowserBottomScreenView.get())
+            : _romBrowserBottomScreenView->IsViewInsideRomBrowser(quickMenuOldFocus)))
+        _quickMenuPresenter.ClearOldFocus();
+}
+
+void App::RestoreDirectMenuAccessFocus()
+{
+    if (_directMenuAccessReturnToAppBar)
+    {
+        if (!_dialogPresenter.GetOldFocus())
+        {
+            _romBrowserBottomScreenView->FocusAppBar(
+                _focusManager, _directMenuAccessReturnAppBarButton);
+        }
+    }
+    else
+    {
+        _dialogPresenter.ClearOldFocus();
+        _romBrowserBottomScreenView->Focus(_focusManager);
+    }
+
+    _directMenuAccessReturnToAppBar = false;
 }
 
 bool App::IsRomBrowserVisible() const

@@ -120,6 +120,22 @@ bool RomBrowserBottomScreenView::HandleInput(const InputProvider& inputProvider,
     return View::HandleInput(inputProvider, focusManager);
 }
 
+bool RomBrowserBottomScreenView::IsViewInsideRomBrowser(const View* view) const
+{
+    if (!_romBrowserView || !view)
+        return false;
+
+    for (auto current = view; current; current = current->GetParent())
+    {
+        if (current == _romBrowserView.get())
+            return true;
+        if (current == this || current == &_romBrowserAppBarView)
+            return false;
+    }
+
+    return false;
+}
+
 void RomBrowserBottomScreenView::RomBrowserViewModelInvalidated(const VramContext& vramContext)
 {
     _touchCaptureChild = nullptr;

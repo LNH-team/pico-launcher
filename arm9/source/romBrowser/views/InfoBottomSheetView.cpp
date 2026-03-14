@@ -10,6 +10,7 @@
 #include "themes/IFontRepository.h"
 #include "picoLoaderBootstrap.h"
 #include "services/Localization/Localization.h"
+#include "../IRomBrowserController.h"
 #include "InfoBottomSheetView.h"
 
 #define TITLE_LABEL_X       15
@@ -103,10 +104,18 @@ static const char16_t* getFirmwareLanguageText()
 
 static bool hasUsrcheatFile()
 {
-    FILINFO fileInfo;
+    static bool s_cached = false;
+    static bool s_loaded = false;
 
-    return f_stat("/_pico/extras/usrcheat.dat", &fileInfo) == FR_OK
+    if (s_loaded)
+        return s_cached;
+
+    FILINFO fileInfo;
+    s_cached = f_stat("/_pico/extras/usrcheat.dat", &fileInfo) == FR_OK
         && (fileInfo.fattrib & AM_DIR) == 0;
+    s_loaded = true;
+
+    return s_cached;
 }
 
 static void copyAsciiToUtf16(char16_t* outText, u32 outTextLength, const char* text)
@@ -252,11 +261,23 @@ static void buildTouchLine(char16_t* outText, u32 outTextLength, int x, int y)
     buildInfoLine(outText, outTextLength, u"Touch", coords16);
 }
 
+void SettingsInfoBottomSheetView::UpdateTouchLabelText(int x, int y)
+{
+    if (_displayedTouchX == x && _displayedTouchY == y)
+        return;
+
+    char16_t touchLine[72];
+    buildTouchLine(touchLine, sizeof(touchLine) / sizeof(touchLine[0]), x, y);
+    _touchLabel.SetText(touchLine);
+    _displayedTouchX = x;
+    _displayedTouchY = y;
+}
+
 SettingsInfoBottomSheetView::SettingsInfoBottomSheetView(
-    DisplaySettingsViewModel* viewModel,
+    IRomBrowserController* romBrowserController,
     const MaterialColorScheme* materialColorScheme,
     const IFontRepository* fontRepository)
-    : _viewModel(viewModel)
+    : _romBrowserController(romBrowserController)
     , _materialColorScheme(materialColorScheme)
     , _titleLabel(170, 16, 25, fontRepository->GetFont(FontType::Medium11))
     , _userLabel(116, 16, 64, fontRepository->GetFont(FontType::Regular10))
@@ -288,7 +309,6 @@ SettingsInfoBottomSheetView::SettingsInfoBottomSheetView(
     char16_t modeLine[72];
     char16_t consoleLine[72];
     char16_t usrcheatLine[96];
-    char16_t touchLine[72];
 
     buildInfoLine(userLine, sizeof(userLine) / sizeof(userLine[0]),
         Localization::Translate("information_user"), userName);
@@ -315,8 +335,6 @@ SettingsInfoBottomSheetView::SettingsInfoBottomSheetView(
         u"usrcheat.dat",
         hasUsrcheatFile() ? Localization::Translate("information_usrcheat_found") : Localization::Translate("information_usrcheat_not_found"));
 
-    buildTouchLine(touchLine, sizeof(touchLine) / sizeof(touchLine[0]), 0, 0);
-
     _userLabel.SetText(userLine);
     _birthdayLabel.SetText(birthdayLine);
     _colorLabel.SetText(colorLine);
@@ -325,7 +343,7 @@ SettingsInfoBottomSheetView::SettingsInfoBottomSheetView(
     _consoleLabel.SetText(consoleLine);
     _modeLabel.SetText(modeLine);
     _usrcheatLabel.SetText(usrcheatLine);
-    _touchLabel.SetText(touchLine);
+    UpdateTouchLabelText(0, 0);
 
     AddChildTail(&_titleLabel);
     AddChildTail(&_userLabel);
@@ -342,12 +360,6 @@ SettingsInfoBottomSheetView::SettingsInfoBottomSheetView(
 void SettingsInfoBottomSheetView::Update()
 {
     BottomSheetView::Update();
-
-    char16_t touchLine[72];
-    int displayX = _touchPressed ? _touchX : 0;
-    int displayY = _touchPressed ? _touchY : 0;
-    buildTouchLine(touchLine, sizeof(touchLine) / sizeof(touchLine[0]), displayX, displayY);
-    _touchLabel.SetText(touchLine);
 
     _titleLabel.SetPosition(TITLE_LABEL_X, _position.y + TITLE_LABEL_Y);
     int lineY = _position.y + INFO_FIRST_LABEL_Y;
@@ -424,13 +436,13 @@ bool SettingsInfoBottomSheetView::HandleInput(
 
     if (inputProvider.Triggered(InputKey::B))
     {
-        _viewModel->HideInfo();
+        _romBrowserController->HideDisplayInfo();
         return true;
     }
 
     if (inputProvider.Triggered(InputKey::L))
     {
-        _viewModel->HideInfo();
+        _romBrowserController->HideDisplayInfo();
         return true;
     }
 
@@ -443,17 +455,18 @@ bool SettingsInfoBottomSheetView::HandleTouch(const TouchEvent& event, FocusMana
 
     if (event.type == TouchEventType::Down || event.type == TouchEventType::Move)
     {
-        _touchPressed = true;
         _touchX = event.position.x;
         _touchY = event.position.y;
+        // Avoid rewriting the label every frame when the coordinates are unchanged.
+        UpdateTouchLabelText(_touchX, _touchY);
         return false;
     }
 
     if (event.type == TouchEventType::Up)
     {
-        _touchPressed = false;
         _touchX = 0;
         _touchY = 0;
+        UpdateTouchLabelText(0, 0);
     }
     else
     {
@@ -465,5 +478,5 @@ bool SettingsInfoBottomSheetView::HandleTouch(const TouchEvent& event, FocusMana
 
 void SettingsInfoBottomSheetView::OnDismissed()
 {
-    _viewModel->HideInfo();
+    _romBrowserController->HideDisplayInfo();
 }

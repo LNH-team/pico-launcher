@@ -123,6 +123,12 @@ private:
     bool _changeDisplayMode = false;
     bool _pendingAppRestart = false;
     bool _sleepModeWasActive = false;
+    bool _displaySettingsReturnToAppBar = false;
+    RomBrowserAppBarView::AppBarButton _displaySettingsReturnAppBarButton
+        = RomBrowserAppBarView::APP_BAR_BUTTON_BACK;
+    bool _directMenuAccessReturnToAppBar = false;
+    RomBrowserAppBarView::AppBarButton _directMenuAccessReturnAppBarButton
+        = RomBrowserAppBarView::APP_BAR_BUTTON_BACK;
 
     ChipView::VramToken _chipViewVram;
     IconButton2DView::VramToken _iconButtonViewVram;
@@ -153,6 +159,8 @@ private:
     void HandleFolderLoadDoneTrigger();
     void HandleRomBrowserViewModelInvalidated();
     void HandleChangeDisplayModeTrigger(RomBrowserState newState);
+    void ClearRetainedRomBrowserFocus(bool includeAppBar);
+    void RestoreDirectMenuAccessFocus();
     void DrainTaskQueues();
     void ShowPendingDialog();
 
