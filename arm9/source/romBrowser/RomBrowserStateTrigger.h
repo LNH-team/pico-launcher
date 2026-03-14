@@ -18,5 +18,7 @@ enum class RomBrowserStateTrigger
     ShowCheatDescription,
     HideCheatDescription,
     ShowLayoutEditor,
-    HideLayoutEditor
+    HideLayoutEditor,
+    ShowQuickMenu,
+    HideQuickMenu
 };

@@ -23,6 +23,20 @@ DialogPresenter::DialogPresenter(FocusManager* focusManager, StackVramManager* v
     _baseVramState = _vramManager->GetState();
 }
 
+void DialogPresenter::ApplyBottomSheetBg(bool visible)
+{
+    vu16* bgMap = reinterpret_cast<vu16*>((vu8*)BG_GFX + 0x4000);
+    if (visible)
+    {
+        dma_ntrCopy32(3, bottomSheetBgMap, bgMap, bottomSheetBgMapLen);
+    }
+    else
+    {
+        for (u32 i = 0; i < bottomSheetBgMapLen / sizeof(u16); i++)
+            bgMap[i] = 0;
+    }
+}
+
 void DialogPresenter::ShowDialog(std::unique_ptr<DialogView> dialog)
 {
     if (!_nextDialog)
@@ -46,11 +60,16 @@ void DialogPresenter::Update()
         {
             case State::BottomSheetVisible:
             {
-                _scrimAnimator.Goto(5, md::sys::motion::duration::short2,
+                _useBottomSheetBg = _currentDialog->UseBottomSheetBackground();
+                _scrimTargetBlend = _currentDialog->GetScrimTargetBlend();
+                ApplyBottomSheetBg(_useBottomSheetBg);
+
+                _scrimAnimator.Goto(_scrimTargetBlend, md::sys::motion::duration::short2,
                     &md::sys::motion::easing::linear);
                 _yAnimator.Goto(32, md::sys::motion::duration::long2,
                     &md::sys::motion::easing::emphasizedDecelerate);
-                _oldFocus = _focusManager->GetCurrentFocus();
+                if (!_oldFocus)
+                    _oldFocus = _focusManager->GetCurrentFocus();
                 _currentDialog->Focus(*_focusManager);
                 break;
             }
@@ -60,7 +79,7 @@ void DialogPresenter::Update()
                     &md::sys::motion::easing::emphasizedAccelerate);
                 _yAnimator.Goto(192, md::sys::motion::duration::short4,
                     &md::sys::motion::easing::emphasizedAccelerate);
-                if (_oldFocus)
+                if (_oldFocus && !_nextDialog)
                 {
                     _focusManager->Focus(_oldFocus);
                     _oldFocus = nullptr;

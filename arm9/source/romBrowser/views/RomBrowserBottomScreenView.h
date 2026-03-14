@@ -72,6 +72,4 @@ private:
     VBlankTextureLoader* _vblankTextureLoader;
 
     View* _touchCaptureChild = nullptr;
-
-    bool _touchSwipeUpCandidate = false;
 };

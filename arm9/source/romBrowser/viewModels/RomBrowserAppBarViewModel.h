@@ -25,6 +25,11 @@ public:
         _romBrowserController->NavigateUp();
     }
 
+    void ShowQuickMenu()
+    {
+        _romBrowserController->ShowQuickMenu();
+    }
+
     void ShowDisplaySettings()
     {
         _romBrowserController->ShowDisplaySettings();

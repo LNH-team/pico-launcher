@@ -33,6 +33,15 @@ public:
     void HideCheatDescription() override;
     void ShowLayoutEditor() override;
     void HideLayoutEditor() override;
+    void ShowQuickMenu() override;
+    void HideQuickMenu() override;
+    void SetDirectMenuAccess(bool direct) override { _directMenuAccess = direct; }
+    bool ConsumeDirectMenuAccess() override
+    {
+        bool v = _directMenuAccess;
+        _directMenuAccess = false;
+        return v;
+    }
     void ShowDisplaySettings() override;
     void HideDisplaySettings() override;
     void ShowDisplayInfo() override;
@@ -95,6 +104,14 @@ public:
     }
 
     virtual const FileInfo& GetTriggerFileInfo() const override { return _launchFileInfo; }
+    void SetActiveFile(const FileInfo& fileInfo) override { _launchFileInfo = FileInfo(fileInfo); }
+    void SetQuickMenuAction(QuickMenuAction action) override { _quickMenuAction = action; }
+    QuickMenuAction ConsumeQuickMenuAction() override
+    {
+        QuickMenuAction action = _quickMenuAction;
+        _quickMenuAction = QuickMenuAction::None;
+        return action;
+    }
 
 private:
     IAppSettingsService* _appSettingsService;
@@ -142,6 +159,8 @@ private:
     bool _saveStateBinPending = false;
     bool _viewModelInvalidated = false;
     bool _themeReloadRequested = false;
+    bool _directMenuAccess = false;
+    QuickMenuAction _quickMenuAction = QuickMenuAction::None;
     std::unique_ptr<CoverRepository> _coverRepository;
     ExtensionFileTypeProvider _fileTypeProvider;
     std::unique_ptr<ICheatRepository> _cheatRepository;

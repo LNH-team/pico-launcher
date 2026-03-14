@@ -26,6 +26,14 @@ public:
     /// @return A rectangle that is fully covered by the dialog.
     virtual Rectangle GetFullyCoveredArea() const = 0;
 
+    /// @brief Determines whether the standard bottom-sheet background
+    ///        layer should be rendered for this dialog.
+    /// @return True to keep the shared background, false to leave it blank.
+    virtual bool UseBottomSheetBackground() const { return true; }
+
+    /// @brief Target scrim blend level (0-16) applied while the dialog is visible.
+    virtual int GetScrimTargetBlend() const { return 5; }
+
     /// @brief Called when the dialog is dismissed by a touch gesture
     ///        (swipe-down or scrim tap).
     virtual void OnDismissed() { }

@@ -102,7 +102,7 @@ bool RomBrowserBottomScreenView::HandleInput(const InputProvider& inputProvider,
 {
     if (inputProvider.Triggered(InputKey::Select))
     {
-            if (_viewModel->TryShowDisplaySettings()) {
+        if (_viewModel->TryShowQuickMenu()) {
             return true;
         }
     }
@@ -123,7 +123,6 @@ bool RomBrowserBottomScreenView::HandleInput(const InputProvider& inputProvider,
 void RomBrowserBottomScreenView::RomBrowserViewModelInvalidated(const VramContext& vramContext)
 {
     _touchCaptureChild = nullptr;
-    _touchSwipeUpCandidate = false;
 
     if (_viewModel->GetRomBrowserViewModel().IsValid())
     {
@@ -144,7 +143,6 @@ bool RomBrowserBottomScreenView::HandleTouch(const TouchEvent& event, FocusManag
     if (event.type == TouchEventType::Down)
     {
         _touchCaptureChild = nullptr;
-        _touchSwipeUpCandidate = false;
 
         static constexpr int RECYCLER_START = 42;
         bool inAppBarZone = _romBrowserDisplayMode->IsVertical()
@@ -164,8 +162,6 @@ bool RomBrowserBottomScreenView::HandleTouch(const TouchEvent& event, FocusManag
             return true;
         }
 
-        _touchSwipeUpCandidate = event.position.y >= 170;
-
         if (_romBrowserView && _viewModel->IsRomBrowserVisible())
         {
             if (_romBrowserView->HandleTouch(event, focusManager))
@@ -175,54 +171,15 @@ bool RomBrowserBottomScreenView::HandleTouch(const TouchEvent& event, FocusManag
             }
         }
 
-        return _touchSwipeUpCandidate;
+        return false;
     }
     else
     {
-        if (_touchSwipeUpCandidate && event.type == TouchEventType::Move)
-        {
-            int deltaY = event.startPosition.y - event.position.y;
-            int deltaX = event.position.x - event.startPosition.x;
-            int absDeltaX = deltaX < 0 ? -deltaX : deltaX;
-
-            if (deltaY > 14 && deltaY > absDeltaX + 6)
-            {
-                _touchCaptureChild = nullptr;
-                return true;
-            }
-
-            if ((event.position.y - event.startPosition.y) > 8 || absDeltaX > 18)
-            {
-                _touchSwipeUpCandidate = false;
-            }
-        }
-
-        if (_touchSwipeUpCandidate && event.type == TouchEventType::Up)
-        {
-            _touchSwipeUpCandidate = false;
-            int deltaY = event.startPosition.y - event.position.y;
-            int deltaX = event.position.x - event.startPosition.x;
-            int absDeltaX = deltaX < 0 ? -deltaX : deltaX;
-            if (deltaY > 48 && deltaY > absDeltaX + 10)
-            {
-                _touchCaptureChild = nullptr;
-                _viewModel->TryShowDisplaySettings();
-                return true;
-            }
-        }
-
         if (_touchCaptureChild)
         {
             _touchCaptureChild->HandleTouch(event, focusManager);
             if (event.type == TouchEventType::Up)
                 _touchCaptureChild = nullptr;
-            return true;
-        }
-
-        if (_touchSwipeUpCandidate)
-        {
-            if (event.type == TouchEventType::Up)
-                _touchSwipeUpCandidate = false;
             return true;
         }
 

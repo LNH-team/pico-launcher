@@ -20,6 +20,7 @@ public:
         return state == RomBrowserState::Browser
             || state == RomBrowserState::GameInfo
             || state == RomBrowserState::DisplaySettings
+            || state == RomBrowserState::QuickMenu
             || state == RomBrowserState::Launching;
     }
 
@@ -38,13 +39,13 @@ public:
         _romBrowserController->NavigateUp();
     }
 
-    bool TryShowDisplaySettings()
+    bool TryShowQuickMenu()
     {
         auto state = _romBrowserController->GetStateMachine().GetCurrentState();
         if (state != RomBrowserState::Browser)
             return false;
 
-        _romBrowserController->ShowDisplaySettings();
+        _romBrowserController->ShowQuickMenu();
         return true;
     }
 

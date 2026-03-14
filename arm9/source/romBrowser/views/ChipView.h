@@ -86,7 +86,7 @@ public:
     int GetWidth() const
     {
         if (_fixedWidth > 0)
-            return std::clamp(_fixedWidth, _minWidth, CHIP_VIEW_MAX_WIDTH);
+            return std::max(_fixedWidth, _minWidth);
 
         int width;
         int primaryTextWidth = _label.GetStringWidth();

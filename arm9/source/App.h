@@ -27,6 +27,7 @@
 #include "romBrowser/views/RomBrowserTopScreenView.h"
 #include "romBrowser/views/IconButton2DView.h"
 #include "romBrowser/views/ChipView.h"
+#include "romBrowser/views/QuickMenuPresenter.h"
 #include "romBrowser/Theme/Material/MaterialThemeFileIconFactory.h"
 #include "romBrowser/RomBrowserController.h"
 #include "romBrowser/layout/LayoutService.h"
@@ -102,6 +103,19 @@ private:
     RomBrowserBottomScreenViewModel _romBrowserBottomScreenViewModel;
 
     DialogPresenter _dialogPresenter;
+    QuickMenuPresenter _quickMenuPresenter;
+
+    enum class PendingDialog
+    {
+        None,
+        GameInfo,
+        Cheats,
+        DisplaySettings,
+        LayoutEditor,
+        DisplayInfo
+    };
+
+    PendingDialog _pendingDialog = PendingDialog::None;
 
     VramState _vramStateBeforeThemeLoad;
     VramState _vramStateBeforeMakeBottomScreenView;
@@ -133,11 +147,14 @@ private:
     void HandleHideDisplayInfoTrigger();
     void HandleShowLayoutEditorTrigger();
     void HandleHideLayoutEditorTrigger();
+    void HandleShowQuickMenuTrigger();
+    void HandleHideQuickMenuTrigger();
     void HandleNavigateTrigger();
     void HandleFolderLoadDoneTrigger();
     void HandleRomBrowserViewModelInvalidated();
     void HandleChangeDisplayModeTrigger(RomBrowserState newState);
     void DrainTaskQueues();
+    void ShowPendingDialog();
 
     bool IsRomBrowserVisible() const;
 

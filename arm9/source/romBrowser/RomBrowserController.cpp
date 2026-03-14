@@ -125,6 +125,16 @@ void RomBrowserController::HideLayoutEditor()
     _stateMachine.Fire(RomBrowserStateTrigger::HideLayoutEditor);
 }
 
+void RomBrowserController::ShowQuickMenu()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::ShowQuickMenu);
+}
+
+void RomBrowserController::HideQuickMenu()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::HideQuickMenu);
+}
+
 void RomBrowserController::ShowDisplaySettings()
 {
     _stateMachine.Fire(RomBrowserStateTrigger::ShowDisplaySettings);

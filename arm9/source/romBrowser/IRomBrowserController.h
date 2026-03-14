@@ -67,7 +67,26 @@ public:
     virtual void ShowLayoutEditor() = 0;
     virtual void HideLayoutEditor() = 0;
 
+    virtual void ShowQuickMenu() = 0;
+    virtual void HideQuickMenu() = 0;
+
+    virtual void SetDirectMenuAccess(bool direct) = 0;
+    virtual bool ConsumeDirectMenuAccess() = 0;
+
     virtual const FileInfo& GetTriggerFileInfo() const = 0;
+    virtual void SetActiveFile(const FileInfo& fileInfo) = 0;
+
+    enum class QuickMenuAction
+    {
+        None,
+        GameDetails,
+        Cheats,
+        DisplaySettings,
+        LayoutEditor,
+        Information
+    };
+    virtual void SetQuickMenuAction(QuickMenuAction action) = 0;
+    virtual QuickMenuAction ConsumeQuickMenuAction() = 0;
 };
 
 inline IRomBrowserController::~IRomBrowserController() { }

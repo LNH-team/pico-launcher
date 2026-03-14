@@ -11,5 +11,6 @@ enum class RomBrowserState
     DisplayInfo,
     Cheats,
     CheatDescription,
-    LayoutEditor
+    LayoutEditor,
+    QuickMenu
 };

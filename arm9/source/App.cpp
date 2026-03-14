@@ -1,5 +1,6 @@
 #include "common.h"
 #include <algorithm>
+#include <cstring>
 #include <libtwl/mem/memVram.h>
 #include <libtwl/gfx/gfx.h>
 #include <libtwl/gfx/gfxOam.h>
@@ -28,6 +29,9 @@
 #include "romBrowser/views/DisplaySettingsBottomSheetView.h"
 #include "romBrowser/views/InfoBottomSheetView.h"
 #include "romBrowser/views/LayoutEditorBottomSheetView.h"
+#include "romBrowser/views/QuickMenuBottomSheetView.h"
+#include "romBrowser/FileType/FileTypeClassification.h"
+#include "romBrowser/FileType/Nds/NdsFileType.h"
 #include "bgm/AudioStreamPlayer.h"
 #include "bgm/BgmService.h"
 #include "themes/ThemeInfoFactory.h"
@@ -90,7 +94,8 @@ App::App(IAppSettingsService& appSettingsService, IBgmService& bgmService)
     , _romBrowserController(&appSettingsService, &_ioTaskQueue, &_bgTaskQueue)
     , _displaySettingsBottomSheetViewModel(&_romBrowserController)
     , _romBrowserBottomScreenViewModel(&_romBrowserController)
-    , _dialogPresenter(&_focusManager, &_mainObjDialogVram) { }
+    , _dialogPresenter(&_focusManager, &_mainObjDialogVram)
+    , _quickMenuPresenter(&_focusManager, &_mainObjDialogVram) { }
 
 void App::InitVramMapping() const
 {
@@ -421,6 +426,16 @@ void App::HandleTrigger(RomBrowserStateTrigger trigger, RomBrowserState newState
             HandleFolderLoadDoneTrigger();
             break;
         }
+        case RomBrowserStateTrigger::ShowQuickMenu:
+        {
+            HandleShowQuickMenuTrigger();
+            break;
+        }
+        case RomBrowserStateTrigger::HideQuickMenu:
+        {
+            HandleHideQuickMenuTrigger();
+            break;
+        }
         case RomBrowserStateTrigger::ChangeDisplayMode:
         {
             _changeDisplayMode = true;
@@ -431,6 +446,12 @@ void App::HandleTrigger(RomBrowserStateTrigger trigger, RomBrowserState newState
 
 void App::HandleShowGameInfoTrigger()
 {
+    if (!_quickMenuPresenter.IsIdle())
+    {
+        _pendingDialog = PendingDialog::GameInfo;
+        return;
+    }
+
     auto gameInfoDialog = std::make_unique<NdsGameDetailsBottomSheetView>(
         &_romBrowserController, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository());
     gameInfoDialog->SetGraphics(_chipViewVram);
@@ -469,6 +490,12 @@ void App::HandleHideGameInfoTrigger()
 
 void App::HandleShowCheatsTrigger()
 {
+    if (!_quickMenuPresenter.IsIdle())
+    {
+        _pendingDialog = PendingDialog::Cheats;
+        return;
+    }
+
     _dialogPresenter.CloseDialog();
 
     auto cheatsViewModel = std::make_unique<CheatsViewModel>(_romBrowserController.GetTriggerFileInfo(), &_romBrowserController);
@@ -479,6 +506,16 @@ void App::HandleShowCheatsTrigger()
 
 void App::HandleHideCheatsTrigger()
 {
+    if (_romBrowserController.ConsumeDirectMenuAccess())
+    {
+        _dialogPresenter.ClearOldFocus();
+        _dialogPresenter.CloseDialog();
+        _romBrowserBottomScreenView->Focus(_focusManager);
+        if (_romBrowserController.GetStateMachine().GetCurrentState() == RomBrowserState::GameInfo)
+            _romBrowserController.HideGameInfo();
+        return;
+    }
+
     _dialogPresenter.CloseDialog();
 
     auto gameInfoDialog = std::make_unique<NdsGameDetailsBottomSheetView>(
@@ -497,6 +534,12 @@ void App::HandleHideCheatDescriptionTrigger()
 
 void App::HandleShowDisplaySettingsTrigger()
 {
+    if (!_quickMenuPresenter.IsIdle())
+    {
+        _pendingDialog = PendingDialog::DisplaySettings;
+        return;
+    }
+
     auto displaySettingsDialog = std::make_unique<DisplaySettingsBottomSheetView>(
         &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(),
         _theme->GetFontRepository(), &_appSettingsService,
@@ -521,6 +564,12 @@ void App::HandleHideDisplaySettingsTrigger()
 
 void App::HandleShowDisplayInfoTrigger()
 {
+    if (!_quickMenuPresenter.IsIdle())
+    {
+        _pendingDialog = PendingDialog::DisplayInfo;
+        return;
+    }
+
     _dialogPresenter.CloseDialog();
 
     auto displayInfoDialog = std::make_unique<SettingsInfoBottomSheetView>(
@@ -530,6 +579,16 @@ void App::HandleShowDisplayInfoTrigger()
 
 void App::HandleHideDisplayInfoTrigger()
 {
+    if (_romBrowserController.ConsumeDirectMenuAccess())
+    {
+        _dialogPresenter.ClearOldFocus();
+        _dialogPresenter.CloseDialog();
+        _romBrowserBottomScreenView->Focus(_focusManager);
+        if (_romBrowserController.GetStateMachine().GetCurrentState() == RomBrowserState::DisplaySettings)
+            _romBrowserController.HideDisplaySettings();
+        return;
+    }
+
     _dialogPresenter.CloseDialog();
 
     auto displaySettingsDialog = std::make_unique<DisplaySettingsBottomSheetView>(
@@ -542,6 +601,12 @@ void App::HandleHideDisplayInfoTrigger()
 
 void App::HandleShowLayoutEditorTrigger()
 {
+    if (!_quickMenuPresenter.IsIdle())
+    {
+        _pendingDialog = PendingDialog::LayoutEditor;
+        return;
+    }
+
     _dialogPresenter.CloseDialog();
 
     auto layoutEditorDialog = std::make_unique<LayoutEditorBottomSheetView>(
@@ -557,6 +622,16 @@ void App::HandleHideLayoutEditorTrigger()
     _appSettingsService.GetAppSettings().layoutSlot = _layoutService.GetCurrentSlot();
     SaveAppStateBinAsync();
 
+    if (_romBrowserController.ConsumeDirectMenuAccess())
+    {
+        _dialogPresenter.ClearOldFocus();
+        _dialogPresenter.CloseDialog();
+        _romBrowserBottomScreenView->Focus(_focusManager);
+        if (_romBrowserController.GetStateMachine().GetCurrentState() == RomBrowserState::DisplaySettings)
+            _romBrowserController.HideDisplaySettings();
+        return;
+    }
+
     _dialogPresenter.CloseDialog();
 
     auto displaySettingsDialog = std::make_unique<DisplaySettingsBottomSheetView>(
@@ -565,6 +640,126 @@ void App::HandleHideLayoutEditorTrigger()
         _effectiveThemeName.GetString());
     displaySettingsDialog->SetGraphics(_iconButtonViewVram);
     _dialogPresenter.ShowDialog(std::move(displaySettingsDialog));
+}
+
+void App::HandleShowQuickMenuTrigger()
+{
+    const FileInfo* selectedFileInfo = nullptr;
+    auto viewModel = _romBrowserController.GetRomBrowserViewModel();
+    if (viewModel.IsValid())
+    {
+        int selectedIndex = viewModel->GetSelectedItem();
+        if (selectedIndex >= 0 && selectedIndex < (int)viewModel->GetFileInfoManager().GetItemCount())
+            selectedFileInfo = &viewModel->GetFileInfoManager().GetItem(selectedIndex);
+    }
+
+    bool hasSelectedRom = false;
+    bool isNdsRom = false;
+    FileInfo selectedFileInfoCopy;
+    if (selectedFileInfo)
+    {
+        const FileType* fileType = selectedFileInfo->GetFileType();
+        hasSelectedRom = fileType && fileType->GetClassification() != FileTypeClassification::Folder;
+        if (hasSelectedRom)
+        {
+            selectedFileInfoCopy = FileInfo(selectedFileInfo->GetFileName(),
+                selectedFileInfo->GetFileType(), selectedFileInfo->GetFastFileRef(),
+                selectedFileInfo->GetFullPath());
+            _romBrowserController.SetActiveFile(selectedFileInfoCopy);
+        }
+        const char* name = selectedFileInfo->GetFullPath();
+        if (!name)
+            name = selectedFileInfo->GetFileName();
+        auto hasExt = [] (const char* path, const char* ext)
+        {
+            if (!path)
+                return false;
+            size_t len = strlen(path);
+            size_t extLen = strlen(ext);
+            if (len < extLen)
+                return false;
+            const char* tail = path + len - extLen;
+            for (size_t i = 0; i < extLen; i++)
+            {
+                char a = tail[i];
+                char b = ext[i];
+                if (a >= 'A' && a <= 'Z') a = a - 'A' + 'a';
+                if (b >= 'A' && b <= 'Z') b = b - 'A' + 'a';
+                if (a != b)
+                    return false;
+            }
+            return true;
+        };
+        isNdsRom = fileType == &NdsFileType::sInstance
+            || hasExt(name, ".nds") || hasExt(name, ".dsi") || hasExt(name, ".srl");
+    }
+
+    auto quickMenuDialog = std::make_unique<QuickMenuBottomSheetView>(
+        &_romBrowserController, &_theme->GetMaterialColorScheme(),
+        _theme->GetFontRepository(), hasSelectedRom, isNdsRom);
+    quickMenuDialog->SetGraphics(_chipViewVram);
+    _quickMenuPresenter.Show(std::move(quickMenuDialog));
+}
+
+void App::HandleHideQuickMenuTrigger()
+{
+    _quickMenuPresenter.Close();
+
+    auto action = _romBrowserController.ConsumeQuickMenuAction();
+    if (action != IRomBrowserController::QuickMenuAction::None)
+    {
+        switch (action)
+        {
+            case IRomBrowserController::QuickMenuAction::GameDetails:
+                _romBrowserController.ShowGameInfo(_romBrowserController.GetTriggerFileInfo());
+                return;
+            case IRomBrowserController::QuickMenuAction::Cheats:
+                _romBrowserController.ShowCheats();
+                return;
+            case IRomBrowserController::QuickMenuAction::DisplaySettings:
+                _romBrowserController.ShowDisplaySettings();
+                return;
+            case IRomBrowserController::QuickMenuAction::LayoutEditor:
+                _romBrowserController.ShowLayoutEditor();
+                return;
+            case IRomBrowserController::QuickMenuAction::Information:
+                _romBrowserController.ShowDisplayInfo();
+                return;
+            default:
+                break;
+        }
+    }
+
+    if (!_quickMenuPresenter.GetOldFocus())
+        _romBrowserBottomScreenView->Focus(_focusManager);
+}
+
+void App::ShowPendingDialog()
+{
+    PendingDialog pending = _pendingDialog;
+    _pendingDialog = PendingDialog::None;
+
+    switch (pending)
+    {
+        case PendingDialog::GameInfo:
+            HandleShowGameInfoTrigger();
+            break;
+        case PendingDialog::Cheats:
+            HandleShowCheatsTrigger();
+            break;
+        case PendingDialog::DisplaySettings:
+            HandleShowDisplaySettingsTrigger();
+            break;
+        case PendingDialog::LayoutEditor:
+            HandleShowLayoutEditorTrigger();
+            break;
+        case PendingDialog::DisplayInfo:
+            HandleShowDisplayInfoTrigger();
+            break;
+        case PendingDialog::None:
+        default:
+            break;
+    }
 }
 
 void App::HandleNavigateTrigger()
@@ -723,6 +918,7 @@ bool App::IsRomBrowserVisible() const
         || curState == RomBrowserState::DisplaySettings
         || curState == RomBrowserState::DisplayInfo
         || curState == RomBrowserState::LayoutEditor
+        || curState == RomBrowserState::QuickMenu
         || curState == RomBrowserState::Launching;
 }
 
@@ -762,14 +958,18 @@ void App::Update()
     bool isRomBrowserVisible = IsRomBrowserVisible();
     if (isRomBrowserVisible && !_exit && curState != RomBrowserState::Launching)
     {
-        const bool blockNonBInput = _dialogPresenter.IsTransitioning();
+        const bool quickMenuActive = !_quickMenuPresenter.IsIdle();
+        const bool blockNonBInput = _dialogPresenter.IsTransitioning()
+            || _quickMenuPresenter.IsTransitioning();
         auto* currentDialog = _dialogPresenter.GetCurrentDialog();
         const MaskedInputProvider bOnlyInput(_inputRepeater, InputKey::B);
         const InputProvider& activeInput = blockNonBInput
             ? static_cast<const InputProvider&>(bOnlyInput)
             : static_cast<const InputProvider&>(_inputRepeater);
 
-        if (currentDialog && !_focusManager.GetCurrentFocus())
+        if (quickMenuActive && !_focusManager.GetCurrentFocus())
+            _quickMenuPresenter.HandleInput(activeInput, _focusManager);
+        else if (currentDialog && !_focusManager.GetCurrentFocus())
             currentDialog->HandleInput(activeInput, _focusManager);
         else if (!blockNonBInput)
             _focusManager.Update(_inputRepeater);
@@ -790,6 +990,12 @@ void App::Update()
         _bottomBackground->Update();
 
     _dialogPresenter.Update();
+    _quickMenuPresenter.Update();
+
+    if (_pendingDialog != PendingDialog::None && _quickMenuPresenter.IsIdle())
+    {
+        ShowPendingDialog();
+    }
 
     if (_pendingAppRestart && _dialogPresenter.IsIdle())
     {
@@ -865,6 +1071,7 @@ void App::Draw()
     mainGraphicsContext.ResetClipArea();
 
     _dialogPresenter.Draw(mainGraphicsContext);
+    _quickMenuPresenter.Draw(mainGraphicsContext);
 
     _mainObjPltt.EndOfFrame();
 
@@ -895,6 +1102,7 @@ void App::VBlank()
         _bottomBackground->VBlank();
 
     _dialogPresenter.VBlank();
+    _quickMenuPresenter.VBlank();
 
     if (IsRomBrowserVisible())
     {
@@ -972,6 +1180,12 @@ void App::SaveAppStateBinAsync()
 
 void App::DispatchTouch(const TouchEvent& event)
 {
+    if (!_quickMenuPresenter.IsIdle())
+    {
+        _quickMenuPresenter.HandleTouch(event, _focusManager);
+        return;
+    }
+
     if (event.type == TouchEventType::Down)
     {
         _touchCapturedByDialog = false;

@@ -528,28 +528,6 @@ bool DisplaySettingsBottomSheetView::HandleInput(
     if (_languageValueLabel.IsFocused())
         EnsureLanguagesLoaded();
 
-    if (inputProvider.Triggered(InputKey::R))
-    {
-        ReleaseLazyLists();
-        _viewModel->ShowInfo();
-        return true;
-    }
-
-    if (inputProvider.Triggered(InputKey::L))
-    {
-        if (_themeSettleCounter > 0)
-        {
-            _themeSettleCounter = 0;
-            _appSettingsService->GetAppSettings().theme = _pendingThemeName.GetString();
-            _settingsDirty = true;
-        }
-        _languageSettleCounter = 0;
-        SaveIfDirty();
-        ReleaseLazyLists();
-        _viewModel->ShowLayoutEditor();
-        return true;
-    }
-
     if (_themeValueLabel.IsFocused() && inputProvider.Triggered(InputKey::A))
     {
         ApplyTheme();

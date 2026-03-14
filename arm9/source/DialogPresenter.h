@@ -71,6 +71,9 @@ public:
     bool IsTransitioning() const;
 
 private:
+    void ApplyBottomSheetBg(bool visible);
+
+private:
     enum class State
     {
         Idle,
@@ -87,6 +90,8 @@ private:
     View* _oldFocus = nullptr;
     Animator<int> _scrimAnimator;
     Animator<int> _yAnimator;
+    int _scrimTargetBlend = 5;
+    bool _useBottomSheetBg = true;
     State _curState = State::Idle;
     State _newState = State::Idle;
 
