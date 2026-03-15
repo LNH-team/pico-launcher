@@ -43,8 +43,6 @@ void RomBrowserController::NavigateToPath(const TCHAR* name)
         _favoritesTask.CancelTask();
         _favoritesLoadPending = false;
     }
-    if (_metadataScanTask.IsValid())
-        _metadataScanTask.CancelTask();
     _favoritesViewActive = false;
     StringUtil::Copy(_navigatePath, name, sizeof(_navigatePath) / sizeof(_navigatePath[0]));
     _stateMachine.Fire(RomBrowserStateTrigger::Navigate);
@@ -368,78 +366,6 @@ void RomBrowserController::HandleFolderLoadDoneTrigger()
     _romBrowserViewModel.Reset();
     _sdFolder = std::move(_newSdFolder);
     _romBrowserViewModel = SharedPtr(new RomBrowserViewModel(this, _navigateFileName));
-    ScheduleMetadataScan();
-}
-
-void RomBrowserController::ScheduleMetadataScan()
-{
-    if (_metadataScanTask.IsValid())
-        _metadataScanTask.CancelTask();
-
-    if (!_sdFolder)
-        return;
-
-    const int fileCount = _sdFolder->GetFileCount();
-    if (fileCount <= 0)
-        return;
-
-    u32 needCount = 0;
-    const FileInfo* const* files = _sdFolder->GetFiles();
-    for (int i = 0; i < fileCount; i++)
-    {
-        const FileInfo* fi = files[i];
-        const char* fullPath = fi->GetFullPath();
-        if (!fullPath || fullPath[0] == 0)
-            continue;
-        if (LaunchStatsService::Instance().NeedsMetadataScan(fullPath))
-            needCount++;
-    }
-    if (needCount == 0)
-        return;
-
-    _scanEntries = std::make_unique_for_overwrite<MetadataScanEntry[]>(needCount);
-    _scanEntryCount = 0;
-
-    for (int i = 0; i < fileCount && _scanEntryCount < needCount; i++)
-    {
-        const FileInfo* fi = files[i];
-        const char* fullPath = fi->GetFullPath();
-        if (!fullPath || fullPath[0] == 0)
-            continue;
-        if (!LaunchStatsService::Instance().NeedsMetadataScan(fullPath))
-            continue;
-
-        const char* dot = strrchr(fullPath, '.');
-        if (!dot) continue;
-        LaunchStatsService::RomType rt = LaunchStatsService::GetRomTypeFromExtension(dot + 1);
-        if (rt == LaunchStatsService::RomType::Unknown) continue;
-
-        MetadataScanEntry& e = _scanEntries[_scanEntryCount];
-        const char* norm = strchr(fullPath, ':');
-        if (norm && norm < fullPath + 6)
-            strncpy(e.path, norm, sizeof(e.path) - 1);
-        else
-            strncpy(e.path, fullPath, sizeof(e.path) - 1);
-        e.path[sizeof(e.path) - 1] = '\0';
-        e.romType = rt;
-        e.fileRef = fi->GetFastFileRef();
-        _scanEntryCount++;
-    }
-
-    if (_scanEntryCount == 0)
-        return;
-
-    _metadataScanTask = _ioTaskQueue->Enqueue([this](const vu8& cancelRequested)
-    {
-        for (u32 i = 0; i < _scanEntryCount; i++)
-        {
-            if (cancelRequested)
-                break;
-            const MetadataScanEntry& e = _scanEntries[i];
-            LaunchStatsService::Instance().ScanRomFile(e.path, e.romType, e.fileRef);
-        }
-        return TaskResult<void>::Completed();
-    });
 }
 
 void RomBrowserController::HandleLaunchTrigger()

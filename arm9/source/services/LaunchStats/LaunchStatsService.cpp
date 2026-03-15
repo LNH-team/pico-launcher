@@ -12,21 +12,11 @@
  *   version:     u8     1
  *   entryCount:  u32 LE
  *
- * Data Record  (repeated entryCount times, VARIABLE SIZE):
- *   pathLen:     u8          Length of the ROM path string
- *   path:        char[]      ROM path (ASCII, NO null-terminator)
+ * Data Record (repeated entryCount times, VARIABLE SIZE):
+ *   path:        char[]      ROM path (ASCII, null-terminated)
  *   launchCount: u32 LE      Total launches
  *   date:        u8[10]      Last launch date (ASCII "YYYY-MM-DD")
  *   time:        u8[8]       Last launch time (ASCII "HH:MM:SS")
- *   romType:     u8          ROM type: 0 = Unknown, 1 = NDS, 2 = GBA
- *   metaFlags:   u8          Bit flags: bit0 = metaScanned, bit1 = metaValid
- *
- *   [if metaScanned (bit0 of metaFlags) == 1]:
- *     headerCrc32: u32 LE    CRC32 of the ROM header
- *     gameCode:    u8[4]     Game code (ASCII, e.g., "AMQE")
- *     romVersion:  u8        Internal ROM version
- *     gameTitle:   u8[12]    Game title (ASCII, padded with spaces)
- *     unitCode:    u8        Unit code
  */
 static const u8 STATS_VERSION = 1;
 
@@ -79,19 +69,6 @@ static void getCurrentTimeString(char* out, u32 outSize)
     if (minute > 59) minute = 0;
     if (second > 59) second = 0;
     mini_snprintf(out, outSize, "%02lu:%02lu:%02lu", hour, minute, second);
-}
-
-static u32 computeCrc32(const u8* p, u32 length)
-{
-    static const u32 POLY = 0xEDB88320u;
-    u32 crc = ~0u;
-    while (length--)
-    {
-        crc ^= *p++;
-        for (int i = 0; i < 8; i++)
-            crc = (crc >> 1) ^ ((crc & 1) ? POLY : 0);
-    }
-    return ~crc;
 }
 
 LaunchStatsService& LaunchStatsService::Instance()
@@ -190,17 +167,20 @@ void LaunchStatsService::Load()
         Info& info = _infos[i];
         info = Info{};
 
-        if (p >= end) break;
-        u8 pathLen = *p++;
-        if (p + pathLen > end) break;
+        // Read null-terminated path
+        const u8* pathStart = p;
+        while (p < end && *p != '\0')
+            p++;
+        if (p >= end) break; // No null terminator found
+        u32 pathLen = p - pathStart;
         {
             char tmp[256];
-            u8 len = pathLen < 255 ? pathLen : 255;
-            memcpy(tmp, p, len);
+            u32 len = pathLen < 255 ? pathLen : 255;
+            memcpy(tmp, pathStart, len);
             tmp[len] = '\0';
             info.path = tmp;
         }
-        p += pathLen;
+        p++; // Skip null terminator
 
         if (p + 4 > end) break;
         info.launchCount = readU32LE(p);
@@ -216,25 +196,6 @@ void LaunchStatsService::Load()
         info.lastLaunchTime[8] = '\0';
         p += 8;
 
-        if (p >= end) break;
-        info.romType = (RomType)(*p++);
-
-        if (p >= end) break;
-        u8 metaFlags = *p++;
-        info.metaScanned = (metaFlags & 0x01) != 0;
-        info.metaValid   = (metaFlags & 0x02) != 0;
-
-        if (info.metaScanned)
-        {
-            if (p + 22 > end) break;
-
-            info.meta.headerCrc32 = readU32LE(p); p += 4;
-            memcpy(info.meta.gameCode, p, 4); info.meta.gameCode[4] = '\0'; p += 4;
-            info.meta.romVersion = *p++;
-            memcpy(info.meta.gameTitle, p, 12); info.meta.gameTitle[12] = '\0'; p += 12;
-            info.meta.unitCode = *p++;
-        }
-
         i++;
     }
     _count = i;
@@ -242,13 +203,11 @@ void LaunchStatsService::Load()
 
 void LaunchStatsService::Save() const
 {
-    u32 totalSize = 4 + 1 + 4;
+    u32 totalSize = 4 + 1 + 4; // magic + version + entryCount
     for (u32 i = 0; i < _count; i++)
     {
-        u8 pathLen = (u8)strlen(_infos[i].path.GetString());
-        totalSize += 1u + pathLen + 4u + 10u + 8u + 1u + 1u;
-        if (_infos[i].metaScanned)
-            totalSize += 22u;
+        totalSize += strlen(_infos[i].path.GetString()) + 1; // path + null terminator
+        totalSize += 4 + 10 + 8; // launchCount + date + time
     }
 
     std::unique_ptr<u8[]> buf(new(cache_align) u8[totalSize]);
@@ -265,11 +224,10 @@ void LaunchStatsService::Save() const
         const Info& info = _infos[i];
 
         const char* path = info.path.GetString();
-        u8 pathLen = (u8)strlen(path);
-        *p++ = pathLen;
-        if (pathLen > 0)
-            memcpy(p, path, pathLen);
+        u32 pathLen = strlen(path);
+        memcpy(p, path, pathLen);
         p += pathLen;
+        *p++ = '\0'; // null terminator
 
         writeU32LE(p, info.launchCount);
         p += 4;
@@ -279,22 +237,6 @@ void LaunchStatsService::Save() const
 
         memcpy(p, info.lastLaunchTime, 8);
         p += 8;
-
-        *p++ = (u8)info.romType;
-
-        u8 metaFlags = 0;
-        if (info.metaScanned) metaFlags |= 0x01;
-        if (info.metaValid)   metaFlags |= 0x02;
-        *p++ = metaFlags;
-
-        if (info.metaScanned)
-        {
-            writeU32LE(p, info.meta.headerCrc32); p += 4;
-            memcpy(p, info.meta.gameCode, 4);     p += 4;
-            *p++ = info.meta.romVersion;
-            memcpy(p, info.meta.gameTitle, 12);   p += 12;
-            *p++ = info.meta.unitCode;
-        }
     }
 
     const auto file = std::make_unique<File>();
@@ -317,13 +259,6 @@ void LaunchStatsService::Increment(const char* path)
     info.launchCount++;
     getCurrentDateString(info.lastLaunchDate, sizeof(info.lastLaunchDate));
     getCurrentTimeString(info.lastLaunchTime, sizeof(info.lastLaunchTime));
-
-    if (info.romType == RomType::Unknown)
-    {
-        const char* dot = strrchr(norm, '.');
-        if (dot)
-            info.romType = GetRomTypeFromExtension(dot + 1);
-    }
 
     Save();
 }
@@ -368,137 +303,4 @@ bool LaunchStatsService::TryGetInfo(const char* path,
         mini_snprintf(outTime, outTimeSize, "%s", info->lastLaunchTime);
 
     return true;
-}
-
-bool LaunchStatsService::NeedsMetadataScan(const char* path) const
-{
-    if (!path)
-        return false;
-
-    const char* dot = strrchr(path, '.');
-    if (!dot)
-        return false;
-
-    RomType rt = GetRomTypeFromExtension(dot + 1);
-    if (rt == RomType::Unknown)
-        return false;
-
-    const_cast<LaunchStatsService*>(this)->EnsureLoaded();
-
-    const char* norm = NormalizePath(path);
-    const Info* info = FindInfo(norm);
-    return (!info || !info->metaScanned);
-}
-
-bool LaunchStatsService::TryGetRomMetadata(const char* path,
-    RomType* outRomType,
-    RomMetadata* outMeta) const
-{
-    if (!path)
-        return false;
-
-    const_cast<LaunchStatsService*>(this)->EnsureLoaded();
-
-    const char* norm = NormalizePath(path);
-    const Info* info = FindInfo(norm);
-    if (!info || !info->metaScanned || !info->metaValid)
-        return false;
-
-    if (outRomType) *outRomType = info->romType;
-    if (outMeta)    *outMeta    = info->meta;
-    return true;
-}
-
-void LaunchStatsService::ScanRomFile(const char* normalizedPath, RomType romType,
-    const FastFileRef& fileRef)
-{
-    if (!normalizedPath || normalizedPath[0] == 0)
-        return;
-    if (romType == RomType::Unknown)
-        return;
-
-    EnsureLoaded();
-
-    {
-        const Info* existing = FindInfo(normalizedPath);
-        if (existing && existing->metaScanned)
-            return;
-    }
-
-    RomMetadata meta = {};
-    bool valid = false;
-
-    if (romType == RomType::Nds)
-    {
-        u8 header[512];
-        File romFile;
-        if (romFile.Open(fileRef, FA_READ) == FR_OK && romFile.GetSize() >= 512)
-        {
-            u32 br = 0;
-            if (romFile.Read(header, 512, br) == FR_OK && br == 512)
-            {
-                memcpy(meta.gameTitle, header + 0x00, 12);
-                meta.gameTitle[12] = '\0';
-
-                memcpy(meta.gameCode, header + 0x0C, 4);
-                meta.gameCode[4] = '\0';
-
-                meta.unitCode = header[0x12];
-
-                meta.romVersion = header[0x1E];
-
-                meta.headerCrc32 = computeCrc32(header, 512);
-
-                valid = true;
-            }
-        }
-    }
-    else if (romType == RomType::Gba)
-    {
-        u8 header[0xC0];
-        File romFile;
-        if (romFile.Open(fileRef, FA_READ) == FR_OK && romFile.GetSize() >= 0xC0)
-        {
-            u32 br = 0;
-            if (romFile.Read(header, 0xC0, br) == FR_OK && br == 0xC0)
-            {
-                memcpy(meta.gameTitle, header + 0xA0, 12);
-                meta.gameTitle[12] = '\0';
-
-                memcpy(meta.gameCode, header + 0xAC, 4);
-                meta.gameCode[4] = '\0';
-
-                meta.romVersion = header[0xBC];
-
-                meta.unitCode = 0;
-
-                meta.headerCrc32 = computeCrc32(header, 0xC0);
-
-                valid = true;
-            }
-        }
-    }
-
-    Info& info = FindOrCreateInfo(normalizedPath);
-    info.romType    = romType;
-    info.metaScanned = true;
-    info.metaValid   = valid;
-    if (valid)
-        info.meta = meta;
-
-    if (info.romType == RomType::Unknown)
-        info.romType = romType;
-
-    Save();
-}
-
-LaunchStatsService::RomType LaunchStatsService::GetRomTypeFromExtension(const char* ext)
-{
-    if (!ext)
-        return RomType::Unknown;
-    if (!strcasecmp(ext, "nds") || !strcasecmp(ext, "dsi") || !strcasecmp(ext, "srl"))
-        return RomType::Nds;
-    if (!strcasecmp(ext, "gba"))
-        return RomType::Gba;
-    return RomType::Unknown;
 }

@@ -15,27 +15,12 @@
 #include "services/Localization/Localization.h"
 #include "services/LaunchStats/LaunchStatsService.h"
 #include "../FileType/Nds/NdsFileType.h"
-#include "../FileType/Nds/NdsInternalFileInfo.h"
 #include "../FileType/Gba/GbaFileType.h"
 #include "core/mini-printf.h"
 #include "fat/File.h"
 
-#define CRCPOLY 0xEDB88320
 static constexpr int GAME_DETAILS_CHEATS_CHIP_WIDTH    = 64;
 static constexpr int GAME_DETAILS_FAVORITES_CHIP_WIDTH = 80;
-
-static u32 ComputeCrc32(const void* buffer, u32 length)
-{
-    u32 crc = ~0u;
-    const u8* p = (const u8*)buffer;
-    while (length--)
-    {
-        crc ^= *p++;
-        for (int i = 0; i < 8; i++)
-            crc = (crc >> 1) ^ ((crc & 1) ? CRCPOLY : 0);
-    }
-    return ~crc;
-}
 
 static bool BuildNormalizedPath(const FileInfo& fileInfo, char* outBuf, u32 bufSize)
 {
@@ -68,25 +53,11 @@ static bool BuildNormalizedPath(const FileInfo& fileInfo, char* outBuf, u32 bufS
     return outBuf[0] != '\0';
 }
 
-static int AsciiToU16(const char* src, char16_t* wc, int maxChars)
-{
-    int i = 0;
-    while (i < maxChars && src[i] != '\0')
-    {
-        wc[i] = (char16_t)(unsigned char)src[i];
-        i++;
-    }
-    wc[i] = u'\0';
-    return i;
-}
-
 NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     IRomBrowserController* romBrowserController,
     const MaterialColorScheme* materialColorScheme,
     const IFontRepository* fontRepository)
     : _titleLabel(128, 16, 25, fontRepository->GetFont(FontType::Medium11))
-    , _gameCodeLabel(40, 14, 20, fontRepository->GetFont(FontType::Medium7_5))
-    , _crcLabel(60, 14, 20, fontRepository->GetFont(FontType::Medium7_5))
     , _romBrowserController(romBrowserController)
     , _cheatsChip(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository)
     , _favoriteChip(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository)
@@ -100,14 +71,6 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     _titleLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
     _titleLabel.SetForegroundColor(materialColorScheme->GetColor(md::sys::color::onSurface));
     AddChildTail(&_titleLabel);
-
-    _gameCodeLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-    _gameCodeLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
-    _gameCodeLabel.SetText(u"");
-
-    _crcLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-    _crcLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
-    _crcLabel.SetText(u"");
 
     bool isNds = false;
 
@@ -132,106 +95,12 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
                             isNds = true;
                     }
                 }
-
-                if (isNds)
-                {
-                    char statsPath[256];
-                    const bool hasPath = BuildNormalizedPath(fileInfo, statsPath, sizeof(statsPath));
-
-                    LaunchStatsService::RomType cachedType = LaunchStatsService::RomType::Unknown;
-                    LaunchStatsService::RomMetadata cachedMeta = {};
-                    bool hasCachedMeta = false;
-
-                    if (hasPath)
-                    {
-                        hasCachedMeta = LaunchStatsService::Instance().TryGetRomMetadata(
-                            statsPath, &cachedType, &cachedMeta);
-                    }
-
-                    if (hasCachedMeta)
-                    {
-                        memcpy(_gameCode, cachedMeta.gameCode, 4);
-                        _gameCode[4] = '\0';
-                        _crc         = cachedMeta.headerCrc32;
-                        _hasValidCrc = (_crc != 0);
-                    }
-                    else
-                    {
-                        _gameCode[0] = '\0';
-                        _crc         = 0;
-                        _hasValidCrc = false;
-
-                        std::unique_ptr<InternalFileInfo> internalInfo(
-                            fileInfo.CreateInternalFileInfo());
-
-                        if (internalInfo)
-                        {
-                            const char* gc = internalInfo->GetGameCode();
-                            if (gc && gc[0] != '\0')
-                            {
-                                strncpy(_gameCode, gc, 4);
-                                _gameCode[4] = '\0';
-                            }
-                        }
-
-                        // CRC from file
-                        {
-                            File romFile;
-                            if (romFile.Open(fileInfo.GetFastFileRef(), FA_READ) == FR_OK
-                                && romFile.GetSize() >= 512)
-                            {
-                                u8 header[512];
-                                if (romFile.ReadExact(header, sizeof(header)))
-                                {
-                                    _crc         = ComputeCrc32(header, sizeof(header));
-                                    _hasValidCrc = true;
-                                }
-                            }
-                        }
-
-                        if (hasPath && internalInfo)
-                        {
-                            auto* ndsInfo = static_cast<NdsInternalFileInfo*>(internalInfo.get());
-                            const u8 unitCode   = ndsInfo->GetUnitCode();
-                            const char* gc      = ndsInfo->GetGameCode();
-
-                            LaunchStatsService::RomMetadata fallbackMeta = {};
-                            if (gc) strncpy(fallbackMeta.gameCode, gc, 4);
-                            fallbackMeta.gameCode[4]      = '\0';
-                            fallbackMeta.romVersion       = ndsInfo->GetRomVersion();
-                            fallbackMeta.unitCode         = unitCode;
-                            fallbackMeta.headerCrc32      = _crc;
-
-                            LaunchStatsService::Instance().ScanRomFile(
-                                statsPath, LaunchStatsService::RomType::Nds,
-                                fileInfo.GetFastFileRef());
-                        }
-                    }
-
-                    char16_t wc[20];
-                    if (_gameCode[0] != '\0')
-                    {
-                        AsciiToU16(_gameCode, wc, 4);
-                        _gameCodeLabel.SetText(wc);
-                    }
-
-                    if (_hasValidCrc)
-                    {
-                        char buf[12];
-                        mini_snprintf(buf, sizeof(buf), "%08X", _crc);
-                        AsciiToU16(buf, wc, 8);
-                        _crcLabel.SetText(wc);
-                    }
-                }
             }
         }
     }
 
     if (isNds)
     {
-        AddChildTail(&_gameCodeLabel);
-        AddChildTail(&_crcLabel);
-
         _cheatsChip.SetText(Localization::Translate("cheats"));
         _cheatsChip.SetSecondaryText(u"");
         _cheatsChip.SetCenteredText(true);
@@ -285,16 +154,6 @@ void NdsGameDetailsBottomSheetView::Update()
 
     if (_hasCheatsChip)
     {
-        int codeX = 180;
-        int codeY = _position.y + 8;
-        _gameCodeLabel.SetPosition(codeX, codeY);
-        int codeW = _gameCodeLabel.GetStringWidth();
-        if (_hasValidCrc)
-            _crcLabel.SetPosition(codeX + codeW + 8, codeY);
-    }
-
-    if (_hasCheatsChip)
-    {
         int totalChipWidth = GAME_DETAILS_CHEATS_CHIP_WIDTH + chipGap + GAME_DETAILS_FAVORITES_CHIP_WIDTH;
         int chipsStartX = screenWidth - rightPadding - totalChipWidth;
         _cheatsChip.SetPosition(chipsStartX, _position.y + 35);
@@ -302,7 +161,6 @@ void NdsGameDetailsBottomSheetView::Update()
     }
     else
     {
-        _cheatsChip.SetSecondaryText(u"");
         _favoriteChip.SetPosition(screenWidth - rightPadding - GAME_DETAILS_FAVORITES_CHIP_WIDTH, _position.y + 35);
     }
 

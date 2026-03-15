@@ -3,7 +3,6 @@
 #include "BottomSheetView.h"
 #include "ChipView.h"
 #include "gui/FocusManager.h"
-#include "../FileType/Nds/NdsFileType.h"
 #include "gui/views/Label2DView.h"
 #include "themes/material/MaterialColorScheme.h"
 #include "themes/IFontRepository.h"
@@ -16,9 +15,7 @@ class NdsGameDetailsBottomSheetView : public BottomSheetView {
 public:
     static constexpr int DialogTypeId = 0x4E444744;
     int GetDialogTypeId() const override { return DialogTypeId; }
-public:
-    const char* GetGameCode() const { return _gameCode; }
-    u32 GetCrc() const { return _crc; }
+
 public:
     NdsGameDetailsBottomSheetView(
         IRomBrowserController* romBrowserController,
@@ -54,8 +51,6 @@ public:
 
 private:
     Label2DView _titleLabel;
-    Label2DView _gameCodeLabel;
-    Label2DView _crcLabel;
     bool _hasCheatsChip = false;
     IRomBrowserController* _romBrowserController;
     u32 _smallHeartIconVramOffset;
@@ -77,9 +72,4 @@ private:
     Label2DView _lastLaunchLabel;
     Label2DView _lastLaunchDateValueLabel;
     Label2DView _lastLaunchTimeValueLabel;
-
-    char _gameCode[5] = {0};
-    u32 _crc = 0;
-    bool _hasValidCrc = false;
-
 };

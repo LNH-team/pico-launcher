@@ -51,13 +51,6 @@ private:
     Label2DView _dateTime1Label;
     Label2DView _dateTime2Label;
     Label2DView _usernameLabel;
-    Label2DView _gameTitleLabel;
-    Label2DView _prefixLabel;
-    Label2DView _TitleIDTagLabel;
-    Label2DView _TitleIDLabel;
-    Label2DView _regionLabel;
-    Label2DView _crcLabel;
-    Label2DView _versionLabel;
 
     bool _coverGraphicsUploaded = false;
     bool _lastIconVisible = true;
@@ -69,33 +62,10 @@ private:
     u8 _lastDt1Format = 0xFF, _lastDt1Sep = 0xFF, _lastDt1Font = 0xFF;
     u8 _lastDt2Format = 0xFF, _lastDt2Sep = 0xFF, _lastDt2Font = 0xFF;
     u8 _lastUsernameFont = 0xFF;
-    u8 _lastGameTitleFont = 0xFF;
-    u8 _lastPrefixFont = 0xFF;
-    u8 _lastTitleIDTagFont = 0xFF;
-    u8 _lastTitleIDFont = 0xFF;
-    u8 _lastRegionFont = 0xFF;
-    u8 _lastCrcFont = 0xFF;
-    u8 _lastVersionFont = 0xFF;
 
     char16_t _cachedUserName[24] = { 0 };
-    
-    char _cachedGameTitle[13] = { 0 };
-    bool _hasCachedGameTitle = false;
-
-    char _cachedIdPrefix[24] = { 0 };
-    bool _hasCachedIdPrefix = false;
-    
-    char _cachedIdTitleID[5] = { 0 };
-    bool _hasCachedIdTitleID = false;
-    
-    char _cachedIdRegion[4] = { 0 };
-    bool _hasCachedIdRegion = false;
-
-    u8   _cachedRomVersion = 0;
-    bool _hasCachedRomVersion = false;
 
     void UpdateDateTimeLabels(bool forceUpdate);
     void UpdateLayoutFonts();
-    void UpdateIdAndVersionLabels();
     void UpdateStaticLabels();
 };
