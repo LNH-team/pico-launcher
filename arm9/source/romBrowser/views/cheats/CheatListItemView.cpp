@@ -151,9 +151,9 @@ void CheatListItemView::Update()
 {
     _nameLabel.SetPosition(_position.x + NAME_LABEL_X, _position.y + NAME_LABEL_Y);
     UpdateNameScroll();
-    if (_cheat != nullptr)
+    if (_cheatEntry != nullptr && !_cheatEntry->IsCheatCategory())
     {
-        _iconVramOffset = _cheat->GetIsCheatActive()
+        _iconVramOffset = _cheatEntry->GetIsCheatActive()
             ? _vramOffsets.checkboxCheckedIconVramOffset
             : _vramOffsets.checkboxUncheckedIconVramOffset;
     }

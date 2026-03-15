@@ -2,12 +2,10 @@
 #include <array>
 #include <memory>
 #include "core/task/TaskQueue.h"
-#include "core/String.h"
 #include "cheats/GameCheats.h"
 #include "romBrowser/FileInfo.h"
 #include "romBrowser/IRomBrowserController.h"
 
-/// @brief View model for the cheats screen.
 class CheatsViewModel
 {
 public:
@@ -27,13 +25,13 @@ public:
     void SetSelectedOnlyMode(bool selectedOnlyMode);
 
     State GetState() const { return _state; }
-    const ICheatCategory* GetCurrentCheatCategory() const { return _categoryStack[_categoryStackLevel]; }
+    const CheatEntry* GetCurrentCheatCategory() const { return _categoryStack[_categoryStackLevel]; }
     const char* GetCurrentFolderName() const;
     bool GetIsSelectedOnlyMode() const { return _selectedOnlyMode; }
     bool GetIsUsrCheatDatMissing() const { return _isUsrCheatDatMissing; }
     void GetRomCheatStats(u32& activeCount, u32& totalCount) const;
     void GetCurrentScopeCheatStats(u32& activeCount, u32& totalCount) const;
-    const Cheat* GetSelectedCheats(u32& numberOfCheats) const
+    const CheatEntry* const* GetSelectedCheats(u32& numberOfCheats) const
     {
         numberOfCheats = _numberOfSelectedCheats;
         return _selectedCheats.get();
@@ -52,19 +50,20 @@ private:
     bool _changed = false;
     bool _selectedOnlyMode = false;
     u32 _categoryStackLevel = 0;
-    std::array<const ICheatCategory*, 8> _categoryStack;
+    std::array<const CheatEntry*, 8> _categoryStack;
     std::array<const char*, 8> _categoryNameStack;
-    std::unique_ptr<Cheat[]> _selectedCheats;
+    std::unique_ptr<const CheatEntry*[]> _selectedCheats;
     u32 _numberOfSelectedCheats = 0;
     bool _isUsrCheatDatMissing = false;
 
-    u32 CountCheats(const ICheatCategory* category) const;
-    u32 CountActiveCheats(const ICheatCategory* category) const;
-    u32 CountActiveCheats(const Cheat* cheats, u32 numberOfCheats) const;
-    void SetCheatsActive(const ICheatCategory* category, bool isActive) const;
-    void CopyActiveCheats(const ICheatCategory* category, Cheat* cheats, u32& offset) const;
+    u32 CountCheats(const CheatEntry* category) const;
+    u32 CountActiveCheats(const CheatEntry* category) const;
+    u32 CountActiveCheats(const CheatEntry* const* cheats, u32 numberOfCheats) const;
+    void SetCheatsActive(const CheatEntry* category, bool isActive) const;
+    void CopyActiveCheats(const CheatEntry* category, const CheatEntry** cheats, u32& offset) const;
     void BuildSelectedCheatsList();
     void UpdateRomCheatStatsFromTree();
+    const CheatEntry* TryGetCurrentEntry(int selectedItem) const;
 
     u32 _romActiveCheatCount = 0;
     u32 _romTotalCheatCount = 0;

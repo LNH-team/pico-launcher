@@ -37,43 +37,47 @@ bool CheatsViewModel::ItemActivated()
     {
         if (_selectedItem >= 0 && (u32)_selectedItem < _numberOfSelectedCheats)
         {
-            auto& cheat = _selectedCheats[_selectedItem];
-            cheat.SetIsCheatActive(!cheat.GetIsCheatActive());
+            auto cheat = _selectedCheats[_selectedItem];
+            cheat->SetIsCheatActive(!cheat->GetIsCheatActive());
             _changed = true;
+            UpdateRomCheatStatsFromTree();
         }
         return false;
     }
 
-    auto cheatCategory = GetCurrentCheatCategory();
-    u32 numberOfCategories = 0;
-    auto categories = cheatCategory->GetCategories(numberOfCategories);
-    u32 numberOfCheats = 0;
-    auto cheats = cheatCategory->GetCheats(numberOfCheats);
-
-    if (_selectedItem < (int)numberOfCategories)
+    auto entry = TryGetCurrentEntry(_selectedItem);
+    if (entry == nullptr)
     {
-        // Category activated
+        return false;
+    }
+
+    auto cheatCategory = GetCurrentCheatCategory();
+    if (entry->IsCheatCategory())
+    {
         if (_categoryStackLevel + 1 != _categoryStack.size())
         {
-            _categoryStack[++_categoryStackLevel] = &categories[_selectedItem];
-            _categoryNameStack[_categoryStackLevel] = categories[_selectedItem].GetName();
+            _categoryStack[++_categoryStackLevel] = entry;
+            _categoryNameStack[_categoryStackLevel] = entry->GetName();
             return true;
         }
     }
     else
     {
-        // Toggle cheat on/off
-        auto& cheat = cheats[_selectedItem - numberOfCategories];
-        bool wasEnabled = cheat.GetIsCheatActive();
-        bool isEnabled = !cheat.GetIsCheatActive();
+        bool wasEnabled = entry->GetIsCheatActive();
+        bool isEnabled = !entry->GetIsCheatActive();
         if (isEnabled && cheatCategory->GetIsMaxOneCheatActive())
         {
-            for (u32 i = 0; i < numberOfCheats; i++)
+            u32 numberOfSubEntries = 0;
+            auto subEntries = cheatCategory->GetSubEntries(numberOfSubEntries);
+            for (u32 i = 0; i < numberOfSubEntries; i++)
             {
-                cheats[i].SetIsCheatActive(false);
+                if (!subEntries[i].IsCheatCategory())
+                {
+                    subEntries[i].SetIsCheatActive(false);
+                }
             }
         }
-        cheat.SetIsCheatActive(isEnabled);
+        entry->SetIsCheatActive(isEnabled);
         if (wasEnabled != isEnabled || cheatCategory->GetIsMaxOneCheatActive())
         {
             _changed = true;
@@ -82,6 +86,29 @@ bool CheatsViewModel::ItemActivated()
     }
 
     return false;
+}
+
+const CheatEntry* CheatsViewModel::TryGetCurrentEntry(int selectedItem) const
+{
+    if (selectedItem < 0)
+    {
+        return nullptr;
+    }
+
+    auto currentCategory = GetCurrentCheatCategory();
+    if (currentCategory == nullptr || !currentCategory->IsCheatCategory())
+    {
+        return nullptr;
+    }
+
+    u32 numberOfSubEntries = 0;
+    auto subEntries = currentCategory->GetSubEntries(numberOfSubEntries);
+    if ((u32)selectedItem >= numberOfSubEntries)
+    {
+        return nullptr;
+    }
+
+    return &subEntries[selectedItem];
 }
 
 void CheatsViewModel::DisableAllCheats()
@@ -124,7 +151,6 @@ void CheatsViewModel::Close()
 {
     if (_changed)
     {
-        // Save which cheats are enabled/disabled
         _romBrowserController->GetIoTaskQueue()->Enqueue(
             [romBrowserController = _romBrowserController, cheats = move(_cheats)] (const vu8& cancelRequested)
             {
@@ -183,95 +209,107 @@ void CheatsViewModel::GetCurrentScopeCheatStats(u32& activeCount, u32& totalCoun
     activeCount = CountActiveCheats(currentCategory);
 }
 
-u32 CheatsViewModel::CountCheats(const ICheatCategory* category) const
+u32 CheatsViewModel::CountCheats(const CheatEntry* category) const
 {
-    u32 total = 0;
-
-    u32 numberOfCategories = 0;
-    auto categories = category->GetCategories(numberOfCategories);
-    for (u32 i = 0; i < numberOfCategories; i++)
+    if (category == nullptr)
     {
-        total += CountCheats(&categories[i]);
+        return 0;
     }
 
-    u32 numberOfCheats = 0;
-    category->GetCheats(numberOfCheats);
-    total += numberOfCheats;
+    if (!category->IsCheatCategory())
+    {
+        return 1;
+    }
+
+    u32 total = 0;
+    u32 numberOfSubEntries = 0;
+    auto subEntries = category->GetSubEntries(numberOfSubEntries);
+    for (u32 i = 0; i < numberOfSubEntries; i++)
+    {
+        total += CountCheats(&subEntries[i]);
+    }
 
     return total;
 }
 
-u32 CheatsViewModel::CountActiveCheats(const ICheatCategory* category) const
+u32 CheatsViewModel::CountActiveCheats(const CheatEntry* category) const
 {
-    u32 total = 0;
-
-    u32 numberOfCategories = 0;
-    auto categories = category->GetCategories(numberOfCategories);
-    for (u32 i = 0; i < numberOfCategories; i++)
+    if (category == nullptr)
     {
-        total += CountActiveCheats(&categories[i]);
+        return 0;
     }
 
-    u32 numberOfCheats = 0;
-    auto cheats = category->GetCheats(numberOfCheats);
+    if (!category->IsCheatCategory())
+    {
+        return category->GetIsCheatActive() ? 1 : 0;
+    }
+
+    u32 total = 0;
+    u32 numberOfSubEntries = 0;
+    auto subEntries = category->GetSubEntries(numberOfSubEntries);
+    for (u32 i = 0; i < numberOfSubEntries; i++)
+    {
+        total += CountActiveCheats(&subEntries[i]);
+    }
+
+    return total;
+}
+
+u32 CheatsViewModel::CountActiveCheats(const CheatEntry* const* cheats, u32 numberOfCheats) const
+{
+    u32 total = 0;
     for (u32 i = 0; i < numberOfCheats; i++)
     {
-        if (cheats[i].GetIsCheatActive())
+        if (cheats[i] != nullptr && cheats[i]->GetIsCheatActive())
         {
             total++;
         }
     }
-
     return total;
 }
 
-u32 CheatsViewModel::CountActiveCheats(const Cheat* cheats, u32 numberOfCheats) const
+void CheatsViewModel::SetCheatsActive(const CheatEntry* category, bool isActive) const
 {
-    u32 total = 0;
-    for (u32 i = 0; i < numberOfCheats; i++)
+    if (category == nullptr)
     {
-        if (cheats[i].GetIsCheatActive())
-        {
-            total++;
-        }
-    }
-    return total;
-}
-
-void CheatsViewModel::SetCheatsActive(const ICheatCategory* category, bool isActive) const
-{
-    u32 numberOfCategories = 0;
-    auto categories = category->GetCategories(numberOfCategories);
-    for (u32 i = 0; i < numberOfCategories; i++)
-    {
-        SetCheatsActive(&categories[i], isActive);
+        return;
     }
 
-    u32 numberOfCheats = 0;
-    auto cheats = category->GetCheats(numberOfCheats);
-    for (u32 i = 0; i < numberOfCheats; i++)
+    if (!category->IsCheatCategory())
     {
-        cheats[i].SetIsCheatActive(isActive);
+        category->SetIsCheatActive(isActive);
+        return;
+    }
+
+    u32 numberOfSubEntries = 0;
+    auto subEntries = category->GetSubEntries(numberOfSubEntries);
+    for (u32 i = 0; i < numberOfSubEntries; i++)
+    {
+        SetCheatsActive(&subEntries[i], isActive);
     }
 }
 
-void CheatsViewModel::CopyActiveCheats(const ICheatCategory* category, Cheat* cheats, u32& offset) const
+void CheatsViewModel::CopyActiveCheats(const CheatEntry* category, const CheatEntry** cheats, u32& offset) const
 {
-    u32 numberOfCategories = 0;
-    auto categories = category->GetCategories(numberOfCategories);
-    for (u32 i = 0; i < numberOfCategories; i++)
+    if (category == nullptr)
     {
-        CopyActiveCheats(&categories[i], cheats, offset);
+        return;
     }
 
-    u32 numberOfCheats = 0;
-    auto categoryCheats = category->GetCheats(numberOfCheats);
-    for (u32 i = 0; i < numberOfCheats; i++)
+    if (!category->IsCheatCategory())
     {
-        if (categoryCheats[i].GetIsCheatActive())
+        if (category->GetIsCheatActive())
         {
-            cheats[offset++] = categoryCheats[i];
+            cheats[offset++] = category;
         }
+        return;
+    }
+
+    u32 numberOfSubEntries = 0;
+    auto subEntries = category->GetSubEntries(numberOfSubEntries);
+    for (u32 i = 0; i < numberOfSubEntries; i++)
+    {
+        CopyActiveCheats(&subEntries[i], cheats, offset);
     }
 }
 
@@ -291,7 +329,7 @@ void CheatsViewModel::BuildSelectedCheatsList()
         return;
     }
 
-    _selectedCheats = std::make_unique<Cheat[]>(_numberOfSelectedCheats);
+    _selectedCheats = std::unique_ptr<const CheatEntry*[]>(new const CheatEntry*[_numberOfSelectedCheats]);
     u32 offset = 0;
     CopyActiveCheats(_cheats.get(), _selectedCheats.get(), offset);
 }

@@ -94,8 +94,8 @@ void NdsFileIcon::Update()
 
 void NdsFileIcon::Draw(GraphicsContext& graphicsContext, const Rgb<8, 8, 8>& backgroundColor)
 {
-    if (!graphicsContext.IsVisible(Rectangle(_position, 32, 32)))
-    {
+    if (!graphicsContext.IsVisible(Rectangle(_position, 32, 32)) ||
+        _vramAddress == nullptr)    {
         return;
     }
 

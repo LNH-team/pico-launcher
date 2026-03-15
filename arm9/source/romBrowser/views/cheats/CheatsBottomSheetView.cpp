@@ -13,7 +13,7 @@
 #include "cheatSelector.h"
 #include "core/mini-printf.h"
 #include "core/StringUtil.h"
-#include "cheats/CheatCategory.h"
+#include "cheats/CheatEntry.h"
 #include "gui/DescendingStackVramManager.h"
 #include "services/Localization/Localization.h"
 #include "CheatsBottomSheetView.h"
@@ -518,8 +518,8 @@ bool CheatsBottomSheetView::TryGetSelectedItemNameAndDescription(const char*& se
             return false;
         }
 
-        selectedName = selectedCheats[selectedIndex].GetName();
-        selectedDescription = selectedCheats[selectedIndex].GetDescription();
+        selectedName = selectedCheats[selectedIndex]->GetName();
+        selectedDescription = selectedCheats[selectedIndex]->GetDescription();
         return selectedDescription != nullptr && selectedDescription[0] != '\0';
     }
 
@@ -529,25 +529,15 @@ bool CheatsBottomSheetView::TryGetSelectedItemNameAndDescription(const char*& se
         return false;
     }
 
-    u32 numberOfCategories = 0;
-    auto categories = cheatCategory->GetCategories(numberOfCategories);
-    if ((u32)selectedIndex < numberOfCategories)
-    {
-        selectedName = categories[selectedIndex].GetName();
-        selectedDescription = categories[selectedIndex].GetDescription();
-        return selectedDescription != nullptr && selectedDescription[0] != '\0';
-    }
-
-    u32 numberOfCheats = 0;
-    auto cheats = cheatCategory->GetCheats(numberOfCheats);
-    u32 cheatIndex = (u32)selectedIndex - numberOfCategories;
-    if (cheatIndex >= numberOfCheats)
+    u32 numberOfSubEntries = 0;
+    auto subEntries = cheatCategory->GetSubEntries(numberOfSubEntries);
+    if ((u32)selectedIndex >= numberOfSubEntries)
     {
         return false;
     }
 
-    selectedName = cheats[cheatIndex].GetName();
-    selectedDescription = cheats[cheatIndex].GetDescription();
+    selectedName = subEntries[selectedIndex].GetName();
+    selectedDescription = subEntries[selectedIndex].GetDescription();
     return selectedDescription != nullptr && selectedDescription[0] != '\0';
 }
 
@@ -771,6 +761,8 @@ void CheatsBottomSheetView::ExitDescriptionMode(FocusManager& focusManager)
 
 void CheatsBottomSheetView::UpdateCheatList(int initialSelectedIndex)
 {
+    // Need to unfocus first, otherwise the focus manager still contains a pointer to a view that is going to be destroyed
+    _focusManager->Unfocus();
     UpdateTitle();
     UpdateTotalC();
 

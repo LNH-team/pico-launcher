@@ -1,8 +1,25 @@
 #include "common.h"
 #include <algorithm>
 #include <string.h>
-#include "romBrowser/RomHeaderUtil.h"
 #include "UsrCheatRepository.h"
+
+#define CRCPOLY 0xEDB88320
+
+static u32 crc32(const void* buffer, u32 length)
+{
+    u32 crc = ~0u;
+    const u8* p = (u8*)buffer;
+    while (length--)
+    {
+        crc ^= *p++;
+        for (int i = 0; i < 8; i++)
+        {
+            crc = (crc >> 1) ^ ((crc & 1) ? CRCPOLY : 0);
+        }
+    }
+
+    return crc;
+}
 
 std::unique_ptr<GameCheats> UsrCheatRepository::GetCheatsForGame(const FastFileRef& romFile) const
 {
@@ -17,7 +34,7 @@ std::unique_ptr<GameCheats> UsrCheatRepository::GetCheatsForGame(const FastFileR
     file->Close();
 
     u32 gameCode = *(u32*)(headerBuffer.get() + 0xC);
-    u32 crc = RomHeaderUtil::ComputeCrc32(headerBuffer.get(), 512);
+    u32 crc = crc32(headerBuffer.get(), 512);
 
     headerBuffer.reset();
 
@@ -90,11 +107,8 @@ std::unique_ptr<GameCheats> UsrCheatRepository::GetCheatsForGame(u32 gameCode, u
     // master codes
     ptr += 8 * 4;
 
-    auto categories = (CheatCategory*)malloc(totalNumberOfItems * sizeof(CheatCategory));
-    u32 categoryCount = 0;
-
-    auto cheats = (Cheat*)malloc(totalNumberOfItems * sizeof(Cheat));
-    u32 cheatCount = 0;
+    auto entries = new CheatEntry[totalNumberOfItems];
+    u32 entryCount = 0;
 
     while (ptr < cheatData.get() + cheatDataLength)
     {
@@ -102,20 +116,20 @@ std::unique_ptr<GameCheats> UsrCheatRepository::GetCheatsForGame(u32 gameCode, u
         bool isCategory = ((itemFlags >> 28) & 1) == 1;
         if (isCategory)
         {
-            ParseCategory(categories[categoryCount], ptr);
-            categoryCount++;
+            entries[entryCount++] = ParseCategory(ptr);
         }
         else
         {
-            ParseCheat(cheats[cheatCount], ptr);
-            cheatCount++;
+            entries[entryCount++] = ParseCheat(ptr);
         }
     }
 
-    cheats = (Cheat*)realloc(cheats, cheatCount * sizeof(Cheat));
+    auto actualEntries = new CheatEntry[entryCount];
+    std::move(entries, entries + entryCount, actualEntries);
+    delete[] entries;
 
     return std::make_unique<GameCheats>(
-        std::move(cheatData), cheatDataLength, index->offset, gameName, categories, categoryCount, cheats, cheatCount);
+        std::move(cheatData), cheatDataLength, index->offset, gameName, actualEntries, entryCount);
 }
 
 const usr_cheat_index_entry_t* UsrCheatRepository::FindIndex(u32 gameCode, u32 headerCrc32) const
@@ -144,7 +158,7 @@ const usr_cheat_index_entry_t* UsrCheatRepository::FindIndex(u32 gameCode, u32 h
     return nullptr;
 }
 
-void UsrCheatRepository::ParseCategory(CheatCategory& category, u8*& ptr) const
+CheatEntry UsrCheatRepository::ParseCategory(u8*& ptr) const
 {
     // flags
     u32 itemFlags = *(u32*)ptr;
@@ -163,34 +177,25 @@ void UsrCheatRepository::ParseCategory(CheatCategory& category, u8*& ptr) const
     // padding
     ptr = (u8*)(((u32)ptr + 3) & ~3); // 32-bit align
 
-    auto categories = (CheatCategory*)malloc(numberOfItems * sizeof(CheatCategory));
-    u32 categoryCount = 0;
-
-    auto cheats = (Cheat*)malloc(numberOfItems * sizeof(Cheat));
-    u32 cheatCount = 0;
-
+    auto entries = new CheatEntry[numberOfItems];
     for (u32 i = 0; i < numberOfItems; i++)
     {
         u32 itemFlags = *(u32*)ptr;
         bool isCategory = ((itemFlags >> 28) & 1) == 1;
         if (isCategory)
         {
-            ParseCategory(categories[categoryCount], ptr);
-            categoryCount++;
+            entries[i] = ParseCategory(ptr);
         }
         else
         {
-            ParseCheat(cheats[cheatCount], ptr);
-            cheatCount++;
+            entries[i] = ParseCheat(ptr);
         }
     }
 
-    cheats = (Cheat*)realloc(cheats, cheatCount * sizeof(Cheat));
-
-    new (&category) CheatCategory (itemName, itemDescription, isMaxOneCheatActive, categories, categoryCount, cheats, cheatCount);
+    return CheatEntry(itemName, itemDescription, isMaxOneCheatActive, entries, numberOfItems);
 }
 
-void UsrCheatRepository::ParseCheat(Cheat& cheat, u8*& ptr) const
+CheatEntry UsrCheatRepository::ParseCheat(u8*& ptr) const
 {
     // flags
     u32* flagsPtr = (u32*)ptr;
@@ -211,8 +216,10 @@ void UsrCheatRepository::ParseCheat(Cheat& cheat, u8*& ptr) const
     u32 numberOfCodeWords = *(u32*)ptr;
     ptr += 4;
 
-    new (&cheat) Cheat(itemName, itemDescription, flagsPtr, ptr, numberOfCodeWords * 4);
+    const void* cheatData = ptr;
 
     // code
     ptr += numberOfCodeWords * 4;
+
+    return CheatEntry(itemName, itemDescription, flagsPtr, cheatData, numberOfCodeWords * 4);
 }

@@ -8,7 +8,7 @@ pload_cheats_t* PicoLoaderCheatDataFactory::CreateCheatData(const std::unique_pt
     if (gameCheats)
     {
         u32 totalNumberOfCheats = 0;
-        u32 requiredSize = GetCheatCategoryRequiredSize(gameCheats.get(), totalNumberOfCheats);
+        u32 requiredSize = GetCheatEntryRequiredSize(gameCheats.get(), totalNumberOfCheats);
         if (totalNumberOfCheats != 0)
         {
             requiredSize += sizeof(u32) * 2;
@@ -16,32 +16,32 @@ pload_cheats_t* PicoLoaderCheatDataFactory::CreateCheatData(const std::unique_pt
             cheatData->length = requiredSize;
             cheatData->numberOfCheats = totalNumberOfCheats;
             u8* buffer = (u8*)&cheatData->firstCheat;
-            GetCheatCategoryData(gameCheats.get(), buffer);
+            GetCheatEntryData(gameCheats.get(), buffer);
         }
     }
 
     return cheatData;
 }
 
-u32 PicoLoaderCheatDataFactory::GetCheatCategoryRequiredSize(const ICheatCategory* cheatCategory, u32& totalNumberOfCheats) const
+u32 PicoLoaderCheatDataFactory::GetCheatEntryRequiredSize(const CheatEntry* cheatEntry, u32& totalNumberOfCheats) const
 {
     u32 requiredSize = 0;
-
-    u32 numberOfCategories = 0;
-    auto subCategories = cheatCategory->GetCategories(numberOfCategories);
-    for (u32 i = 0; i < numberOfCategories; i++)
+    if (cheatEntry->IsCheatCategory())
     {
-        requiredSize += GetCheatCategoryRequiredSize(&subCategories[i], totalNumberOfCheats);
-    }
-
-    u32 numberOfCheats = 0;
-    auto cheats = cheatCategory->GetCheats(numberOfCheats);
-    for (u32 i = 0; i < numberOfCheats; i++)
-    {
-        u32 cheatRequiredSize = GetCheatRequiredSize(&cheats[i]);
-        if (cheatRequiredSize != 0)
+        u32 numberOfSubEntries = 0;
+        auto subEntries = cheatEntry->GetSubEntries(numberOfSubEntries);
+        for (u32 i = 0; i < numberOfSubEntries; i++)
         {
-            requiredSize += cheatRequiredSize;
+            requiredSize += GetCheatEntryRequiredSize(&subEntries[i], totalNumberOfCheats);
+        }
+    }
+    else
+    {
+        if (cheatEntry->GetIsCheatActive())
+        {
+            u32 cheatDataLength = 0;
+            cheatEntry->GetCheatData(cheatDataLength);
+            requiredSize += sizeof(u32) + ((cheatDataLength + 7) & ~7);
             totalNumberOfCheats++;
         }
     }
@@ -49,51 +49,32 @@ u32 PicoLoaderCheatDataFactory::GetCheatCategoryRequiredSize(const ICheatCategor
     return requiredSize;
 }
 
-u32 PicoLoaderCheatDataFactory::GetCheatRequiredSize(const Cheat* cheat) const
+void PicoLoaderCheatDataFactory::GetCheatEntryData(const CheatEntry* cheatEntry, u8*& buffer) const
 {
-    if (cheat->GetIsCheatActive())
+    if (cheatEntry->IsCheatCategory())
     {
-        u32 cheatDataLength = 0;
-        cheat->GetCheatData(cheatDataLength);
-        return sizeof(u32) + ((cheatDataLength + 7) & ~7);
+        u32 numberOfSubEntries = 0;
+        auto subEntries = cheatEntry->GetSubEntries(numberOfSubEntries);
+        for (u32 i = 0; i < numberOfSubEntries; i++)
+        {
+            GetCheatEntryData(&subEntries[i], buffer);
+        }
     }
     else
     {
-        return 0;
-    }
-}
-
-void PicoLoaderCheatDataFactory::GetCheatCategoryData(const ICheatCategory* cheatCategory, u8*& buffer) const
-{
-    u32 numberOfCategories = 0;
-    auto subCategories = cheatCategory->GetCategories(numberOfCategories);
-    for (u32 i = 0; i < numberOfCategories; i++)
-    {
-        GetCheatCategoryData(&subCategories[i], buffer);
-    }
-
-    u32 numberOfCheats = 0;
-    auto cheats = cheatCategory->GetCheats(numberOfCheats);
-    for (u32 i = 0; i < numberOfCheats; i++)
-    {
-        GetCheatData(&cheats[i], buffer);
-    }
-}
-
-void PicoLoaderCheatDataFactory::GetCheatData(const Cheat* cheat, u8*& buffer) const
-{
-    if (cheat->GetIsCheatActive())
-    {
-        u32 cheatDataLength = 0;
-        auto cheatData = cheat->GetCheatData(cheatDataLength);
-        u32 paddedCheatDataLength = (cheatDataLength + 7) & ~7;
-        *(u32*)buffer = paddedCheatDataLength;
-        buffer += sizeof(u32);
-        memcpy(buffer, cheatData, cheatDataLength);
-        if (cheatDataLength != paddedCheatDataLength)
+        if (cheatEntry->GetIsCheatActive())
         {
-            memset(buffer + cheatDataLength, 0, paddedCheatDataLength - cheatDataLength);
+            u32 cheatDataLength = 0;
+            auto cheatData = cheatEntry->GetCheatData(cheatDataLength);
+            u32 paddedCheatDataLength = (cheatDataLength + 7) & ~7;
+            *(u32*)buffer = paddedCheatDataLength;
+            buffer += sizeof(u32);
+            memcpy(buffer, cheatData, cheatDataLength);
+            if (cheatDataLength != paddedCheatDataLength)
+            {
+                memset(buffer + cheatDataLength, 0, paddedCheatDataLength - cheatDataLength);
+            }
+            buffer += paddedCheatDataLength;
         }
-        buffer += paddedCheatDataLength;
     }
 }

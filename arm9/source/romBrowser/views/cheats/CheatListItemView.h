@@ -1,8 +1,7 @@
 #pragma once
 #include "gui/views/ViewContainer.h"
 #include "gui/views/Label2DView.h"
-#include "cheats/CheatCategory.h"
-#include "cheats/Cheat.h"
+#include "cheats/CheatEntry.h"
 
 class MaterialColorScheme;
 class IFontRepository;
@@ -43,17 +42,13 @@ public:
         SetBaseName(name);
     }
 
-    void SetCategory(const CheatCategory* cheatCategory)
+    void SetEntry(const CheatEntry* cheatEntry)
     {
-        _cheat = nullptr;
-        SetBaseName(cheatCategory->GetName());
-        _iconVramOffset = _vramOffsets.folderIconVramOffset;
-    }
-
-    void SetCheat(const Cheat* cheat)
-    {
-        _cheat = cheat;
-        SetBaseName(_cheat->GetName());
+        _cheatEntry = cheatEntry;
+        SetBaseName(cheatEntry->GetName());
+        _iconVramOffset = cheatEntry->IsCheatCategory()
+            ? _vramOffsets.folderIconVramOffset
+            : _vramOffsets.checkboxUncheckedIconVramOffset;
     }
 
 private:
@@ -71,7 +66,7 @@ private:
     VramOffsets _vramOffsets;
     const MaterialColorScheme* _materialColorScheme;
     u32 _iconVramOffset = 0;
-    const Cheat* _cheat = nullptr;
+    const CheatEntry* _cheatEntry = nullptr;
     NameScrollPhase _nameScrollPhase = NameScrollPhase::PauseAtStart;
     int _nameScrollPauseFrames = 0;
     int _nameScrollOffsetQ8 = 0;
