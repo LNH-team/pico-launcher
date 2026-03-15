@@ -51,6 +51,8 @@ public:
 
 private:
     Label2DView _titleLabel;
+    Label2DView _romIdentityLabel;
+    bool _hasRomIdentity = false;
     bool _hasCheatsChip = false;
     IRomBrowserController* _romBrowserController;
     u32 _smallHeartIconVramOffset;

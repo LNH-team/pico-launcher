@@ -1,4 +1,5 @@
 #include "common.h"
+#include <string.h>
 #include <libtwl/mem/memVram.h>
 #include <libtwl/gfx/gfx.h>
 #include <libtwl/gfx/gfxBackground.h>
@@ -10,6 +11,9 @@
 #include "bgm/IBgmService.h"
 #include "themes/material/MaterialColorScheme.h"
 #include "themes/IFontRepository.h"
+#include "../FileType/Gba/GbaInternalFileInfo.h"
+#include "../FileType/Nds/NdsInternalFileInfo.h"
+#include "../RomHeaderUtil.h"
 #include "../viewModels/RomBrowserViewModel.h"
 #include "gui/GraphicsContext.h"
 #include "gui/IVramManager.h"
@@ -142,6 +146,81 @@ static void CopyUserNameFromFirmware(char16_t* outText, u32 outTextLength)
     outText[outIdx] = 0;
 }
 
+static bool TextEquals(const char16_t* lhs, const char16_t* rhs)
+{
+    if (lhs == rhs)
+    {
+        return true;
+    }
+
+    if (!lhs || !rhs)
+    {
+        return false;
+    }
+
+    while (*lhs == *rhs)
+    {
+        if (*lhs == 0)
+        {
+            return true;
+        }
+
+        lhs++;
+        rhs++;
+    }
+
+    return false;
+}
+
+static void SetLabelTextIfChanged(Label2DView& label, char16_t* cachedText, u32 cachedTextLength,
+    const char16_t* newText)
+{
+    if (!newText)
+    {
+        newText = u"";
+    }
+
+    if (TextEquals(cachedText, newText))
+    {
+        return;
+    }
+
+    StringUtil::Copy(cachedText, newText, cachedTextLength);
+    label.SetText(cachedText);
+}
+
+static constexpr Rectangle kMaterialSubCardBounds(10, 116, 236, 66);
+
+static const Rgb<8, 8, 8>& GetMaterialFieldBackground(
+    const MaterialColorScheme& materialColorScheme, const Rectangle& bounds)
+{
+    return kMaterialSubCardBounds.Contains(bounds.GetCenter())
+        ? materialColorScheme.secondaryContainer
+        : materialColorScheme.inverseOnSurface;
+}
+
+static bool IsDefaultLayoutTextColor(const Rgb<8, 8, 8>& color)
+{
+    const bool isBlack = color.r == 0 && color.g == 0 && color.b == 0;
+    const bool isWhite = color.r == 255 && color.g == 255 && color.b == 255;
+    return isBlack || isWhite;
+}
+
+static Rgb<8, 8, 8> GetMaterialFieldForeground(
+    const MaterialColorScheme& materialColorScheme,
+    const Rectangle& bounds,
+    const Rgb<8, 8, 8>& configuredColor)
+{
+    if (!IsDefaultLayoutTextColor(configuredColor))
+    {
+        return configuredColor;
+    }
+
+    return kMaterialSubCardBounds.Contains(bounds.GetCenter())
+        ? materialColorScheme.onSecondaryContainer
+        : materialColorScheme.onSurface;
+}
+
 RomBrowserTopScreenView::RomBrowserTopScreenView(
     const SharedPtr<RomBrowserViewModel>& viewModel,
     const RomBrowserDisplayMode* displayMode,
@@ -155,6 +234,7 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
     , _themeFileIconFactory(themeFileIconFactory)
     , _bgmService(bgmService)
     , _showCover(displayMode->ShowCoverOnTopScreen())
+    , _materialColorScheme(materialColorScheme)
     , _fontRepository(fontRepository)
     , _layoutService(layoutService)
     , _fileInfoView(romBrowserViewFactory->CreateFileInfoView())
@@ -173,9 +253,37 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().username.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().username.font : LAYOUT_FONT_REGULAR10)))
+    , _gameTitleLabel(256, 16, 31,
+        fontRepository->GetFont(static_cast<FontType>(
+            layoutService->GetCurrentLayout().gameTitle.font < LAYOUT_FONT_COUNT
+                ? layoutService->GetCurrentLayout().gameTitle.font : LAYOUT_FONT_REGULAR10)))
+    , _prefixLabel(128, 16, 31,
+        fontRepository->GetFont(static_cast<FontType>(
+            layoutService->GetCurrentLayout().prefix.font < LAYOUT_FONT_COUNT
+                ? layoutService->GetCurrentLayout().prefix.font : LAYOUT_FONT_REGULAR10)))
+    , _titleIdLabel(96, 16, 15,
+        fontRepository->GetFont(static_cast<FontType>(
+            layoutService->GetCurrentLayout().TitleID.font < LAYOUT_FONT_COUNT
+                ? layoutService->GetCurrentLayout().TitleID.font : LAYOUT_FONT_REGULAR10)))
+    , _titleIdTagLabel(48, 16, 7,
+        fontRepository->GetFont(static_cast<FontType>(
+            layoutService->GetCurrentLayout().TitleID.labelFont < LAYOUT_FONT_COUNT
+                ? layoutService->GetCurrentLayout().TitleID.labelFont : LAYOUT_FONT_REGULAR10)))
+    , _regionLabel(64, 16, 7,
+        fontRepository->GetFont(static_cast<FontType>(
+            layoutService->GetCurrentLayout().region.font < LAYOUT_FONT_COUNT
+                ? layoutService->GetCurrentLayout().region.font : LAYOUT_FONT_REGULAR10)))
+    , _crcLabel(96, 16, 15,
+        fontRepository->GetFont(static_cast<FontType>(
+            layoutService->GetCurrentLayout().crc.font < LAYOUT_FONT_COUNT
+                ? layoutService->GetCurrentLayout().crc.font : LAYOUT_FONT_REGULAR10)))
+    , _versionLabel(48, 16, 7,
+        fontRepository->GetFont(static_cast<FontType>(
+            layoutService->GetCurrentLayout().version.font < LAYOUT_FONT_COUNT
+                ? layoutService->GetCurrentLayout().version.font : LAYOUT_FONT_REGULAR10)))
 {
     const auto& layout = layoutService->GetCurrentLayout();
-
+    
     // Colors
     _dateTime1Label.SetForegroundColor({ 255, 255, 255 });
     _dateTime1Label.SetBackgroundColor({ 0, 0, 0 });
@@ -183,6 +291,20 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
     _dateTime2Label.SetBackgroundColor({ 0, 0, 0 });
     _usernameLabel.SetForegroundColor({ 255, 255, 255 });
     _usernameLabel.SetBackgroundColor({ 0, 0, 0 });
+    _gameTitleLabel.SetForegroundColor({ 255, 255, 255 });
+    _gameTitleLabel.SetBackgroundColor({ 0, 0, 0 });
+    _prefixLabel.SetForegroundColor({ 255, 255, 255 });
+    _prefixLabel.SetBackgroundColor({ 0, 0, 0 });
+    _titleIdLabel.SetForegroundColor({ 255, 255, 255 });
+    _titleIdLabel.SetBackgroundColor({ 0, 0, 0 });
+    _titleIdTagLabel.SetForegroundColor({ 255, 255, 255 });
+    _titleIdTagLabel.SetBackgroundColor({ 0, 0, 0 });
+    _regionLabel.SetForegroundColor({ 255, 255, 255 });
+    _regionLabel.SetBackgroundColor({ 0, 0, 0 });
+    _crcLabel.SetForegroundColor({ 255, 255, 255 });
+    _crcLabel.SetBackgroundColor({ 0, 0, 0 });
+    _versionLabel.SetForegroundColor({ 255, 255, 255 });
+    _versionLabel.SetBackgroundColor({ 0, 0, 0 });
 
     // Position
     _dateTime1Label.SetPosition(layout.dateTime1.x, layout.dateTime1.y);
@@ -223,6 +345,8 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
     // Static texts
     CopyUserNameFromFirmware(_cachedUserName, sizeof(_cachedUserName) / sizeof(_cachedUserName[0]));
     _usernameLabel.SetText(_cachedUserName);
+    _titleIdTagLabel.SetText(u"TID:");
+    StringUtil::Copy(_titleIdTagText, u"TID: ", sizeof(_titleIdTagText) / sizeof(_titleIdTagText[0]));
 
     AddChildTail(_fileInfoView.get());
 }
@@ -260,6 +384,298 @@ void RomBrowserTopScreenView::UpdateStaticLabels()
     _usernameLabel.SetText(_cachedUserName);
     _usernameLabel.SetPosition(layout.username.visible ? layout.username.x : -320,
         layout.username.visible ? layout.username.y : -320);
+    UpdateRomMetadataLabels();
+}
+
+void RomBrowserTopScreenView::UpdateLabelBackgrounds()
+{
+    const auto& layout = _layoutService->GetCurrentLayout();
+    const Rgb<8, 8, 8> dateTime1Color(layout.dateTime1.colorR, layout.dateTime1.colorG, layout.dateTime1.colorB);
+    const Rgb<8, 8, 8> dateTime2Color(layout.dateTime2.colorR, layout.dateTime2.colorG, layout.dateTime2.colorB);
+    const Rgb<8, 8, 8> usernameColor(layout.username.colorR, layout.username.colorG, layout.username.colorB);
+    const Rgb<8, 8, 8> gameTitleColor(layout.gameTitle.colorR, layout.gameTitle.colorG, layout.gameTitle.colorB);
+    const Rgb<8, 8, 8> prefixColor(layout.prefix.colorR, layout.prefix.colorG, layout.prefix.colorB);
+    const Rgb<8, 8, 8> titleIdColor(layout.TitleID.colorR, layout.TitleID.colorG, layout.TitleID.colorB);
+    const Rgb<8, 8, 8> titleIdTagColor(
+        layout.TitleID.labelColorR, layout.TitleID.labelColorG, layout.TitleID.labelColorB);
+    const Rgb<8, 8, 8> regionColor(layout.region.colorR, layout.region.colorG, layout.region.colorB);
+    const Rgb<8, 8, 8> crcColor(layout.crc.colorR, layout.crc.colorG, layout.crc.colorB);
+    const Rgb<8, 8, 8> versionColor(layout.version.colorR, layout.version.colorG, layout.version.colorB);
+
+    _dateTime1Label.SetForegroundColor(dateTime1Color);
+    _dateTime2Label.SetForegroundColor(dateTime2Color);
+    _usernameLabel.SetForegroundColor(usernameColor);
+
+    if (!_useMaterialCardBackgrounds || !_materialColorScheme)
+    {
+        return;
+    }
+
+    auto applyMaterialStyle = [this](Label2DView& label, const Rgb<8, 8, 8>& configuredColor)
+    {
+        const auto bounds = label.GetBounds();
+        label.SetBackgroundColor(GetMaterialFieldBackground(*_materialColorScheme, bounds));
+        label.SetForegroundColor(GetMaterialFieldForeground(*_materialColorScheme, bounds, configuredColor));
+    };
+
+    applyMaterialStyle(_dateTime1Label, dateTime1Color);
+    applyMaterialStyle(_dateTime2Label, dateTime2Color);
+    applyMaterialStyle(_usernameLabel, usernameColor);
+    applyMaterialStyle(_gameTitleLabel, gameTitleColor);
+    applyMaterialStyle(_prefixLabel, prefixColor);
+    applyMaterialStyle(_titleIdLabel, titleIdColor);
+    applyMaterialStyle(_titleIdTagLabel, titleIdTagColor);
+    applyMaterialStyle(_regionLabel, regionColor);
+    applyMaterialStyle(_crcLabel, crcColor);
+    applyMaterialStyle(_versionLabel, versionColor);
+}
+
+void RomBrowserTopScreenView::RefreshSelectedRomMetadata(const InternalFileInfo* internalFileInfo)
+{
+    _selectedRomMetadata = {};
+
+    const int selectedItem = _viewModel->GetSelectedItem();
+    auto& fileInfoManager = _viewModel->GetFileInfoManager();
+    if (selectedItem < 0 || selectedItem >= (int)fileInfoManager.GetItemCount())
+    {
+        return;
+    }
+
+    const auto& item = fileInfoManager.GetItem(selectedItem);
+    const char* shortName = item.GetFileType()->GetShortName();
+    if (!shortName)
+    {
+        return;
+    }
+
+    u8 headerBuffer[RomHeaderUtil::kHeaderReadSize];
+    if (!RomHeaderUtil::ReadHeader(item.GetFastFileRef(), headerBuffer, sizeof(headerBuffer)))
+    {
+        return;
+    }
+
+    if (!strcmp(shortName, "nds"))
+    {
+        std::unique_ptr<InternalFileInfo> ownedInternalFileInfo;
+        if (!internalFileInfo)
+        {
+            ownedInternalFileInfo.reset(item.CreateInternalFileInfo());
+            internalFileInfo = ownedInternalFileInfo.get();
+        }
+
+        const auto* ndsInfo = static_cast<const NdsInternalFileInfo*>(internalFileInfo);
+
+        _selectedRomMetadata.type = (ndsInfo && ndsInfo->GetUnitCode() != 0)
+            ? SelectedRomType::Twl
+            : SelectedRomType::Ntr;
+
+        RomHeaderUtil::CopyTrimmedAsciiField(
+            _selectedRomMetadata.gameTitle,
+            sizeof(_selectedRomMetadata.gameTitle) / sizeof(_selectedRomMetadata.gameTitle[0]),
+            headerBuffer, 12);
+        _selectedRomMetadata.hasGameTitle = _selectedRomMetadata.gameTitle[0] != 0;
+
+        if (ndsInfo && ndsInfo->GetGameCode() && ndsInfo->GetGameCode()[0] != 0)
+        {
+            StringUtil::Copy(_selectedRomMetadata.titleId, ndsInfo->GetGameCode(),
+                sizeof(_selectedRomMetadata.titleId));
+        }
+        else
+        {
+            RomHeaderUtil::CopyTrimmedAsciiField(
+                _selectedRomMetadata.titleId, sizeof(_selectedRomMetadata.titleId),
+                headerBuffer + 0x0C, 4);
+        }
+        _selectedRomMetadata.hasTitleId = _selectedRomMetadata.titleId[0] != 0;
+
+        if (_selectedRomMetadata.hasTitleId)
+        {
+            RomHeaderUtil::CopyRegionCodeText(
+                _selectedRomMetadata.region,
+                sizeof(_selectedRomMetadata.region) / sizeof(_selectedRomMetadata.region[0]),
+                _selectedRomMetadata.titleId[3]);
+            _selectedRomMetadata.hasRegion = _selectedRomMetadata.region[0] != 0;
+        }
+
+        _selectedRomMetadata.crc = RomHeaderUtil::ComputeCrc32(headerBuffer, sizeof(headerBuffer));
+        _selectedRomMetadata.hasCrc = true;
+        _selectedRomMetadata.version = ndsInfo ? ndsInfo->GetRomVersion() : headerBuffer[0x1E];
+        _selectedRomMetadata.hasVersion = true;
+        return;
+    }
+
+    if (!strcmp(shortName, "gba"))
+    {
+        std::unique_ptr<InternalFileInfo> ownedInternalFileInfo;
+        if (!internalFileInfo)
+        {
+            ownedInternalFileInfo.reset(item.CreateInternalFileInfo());
+            internalFileInfo = ownedInternalFileInfo.get();
+        }
+
+        const auto* gbaInfo = static_cast<const GbaInternalFileInfo*>(internalFileInfo);
+
+        _selectedRomMetadata.type = SelectedRomType::Gba;
+
+        RomHeaderUtil::CopyTrimmedAsciiField(
+            _selectedRomMetadata.gameTitle,
+            sizeof(_selectedRomMetadata.gameTitle) / sizeof(_selectedRomMetadata.gameTitle[0]),
+            headerBuffer + 0xA0, 12);
+        _selectedRomMetadata.hasGameTitle = _selectedRomMetadata.gameTitle[0] != 0;
+
+        if (gbaInfo && gbaInfo->GetGameCode() && gbaInfo->GetGameCode()[0] != 0)
+        {
+            StringUtil::Copy(_selectedRomMetadata.titleId, gbaInfo->GetGameCode(),
+                sizeof(_selectedRomMetadata.titleId));
+        }
+        else
+        {
+            RomHeaderUtil::CopyTrimmedAsciiField(
+                _selectedRomMetadata.titleId, sizeof(_selectedRomMetadata.titleId),
+                headerBuffer + 0xAC, 4);
+        }
+        _selectedRomMetadata.hasTitleId = _selectedRomMetadata.titleId[0] != 0;
+
+        if (_selectedRomMetadata.hasTitleId)
+        {
+            RomHeaderUtil::CopyRegionCodeText(
+                _selectedRomMetadata.region,
+                sizeof(_selectedRomMetadata.region) / sizeof(_selectedRomMetadata.region[0]),
+                _selectedRomMetadata.titleId[3]);
+            _selectedRomMetadata.hasRegion = _selectedRomMetadata.region[0] != 0;
+        }
+
+        _selectedRomMetadata.crc = RomHeaderUtil::ComputeCrc32(headerBuffer, sizeof(headerBuffer));
+        _selectedRomMetadata.hasCrc = true;
+    }
+}
+
+void RomBrowserTopScreenView::UpdateRomMetadataLabels()
+{
+    const auto& layout = _layoutService->GetCurrentLayout();
+
+    char16_t prefixText[sizeof(_prefixText) / sizeof(_prefixText[0])] = { 0 };
+    char16_t titleIdText[sizeof(_titleIdText) / sizeof(_titleIdText[0])] = { 0 };
+    char16_t regionText[sizeof(_regionText) / sizeof(_regionText[0])] = { 0 };
+    char16_t crcText[sizeof(_crcText) / sizeof(_crcText[0])] = { 0 };
+    char16_t versionText[sizeof(_versionText) / sizeof(_versionText[0])] = { 0 };
+
+    const char* prefixValue = nullptr;
+    switch (_selectedRomMetadata.type)
+    {
+        case SelectedRomType::Gba:
+            prefixValue = kLayoutPrefixGbaModeNames[layout.prefix.gbaPrefixMode % LAYOUT_PREFIX_GBA_COUNT];
+            break;
+        case SelectedRomType::Ntr:
+            prefixValue = kLayoutPrefixNtrModeNames[layout.prefix.ntrPrefixMode % LAYOUT_PREFIX_NTR_COUNT];
+            break;
+        case SelectedRomType::Twl:
+            prefixValue = kLayoutPrefixTwlModeNames[layout.prefix.twlPrefixMode % LAYOUT_PREFIX_TWL_COUNT];
+            break;
+        case SelectedRomType::None:
+        default:
+            break;
+    }
+
+    if (prefixValue)
+    {
+        StringUtil::Copy(prefixText, prefixValue, sizeof(prefixText) / sizeof(prefixText[0]));
+        if (layout.prefix.trailingDash)
+        {
+            RomHeaderUtil::AppendTrailingDash(prefixText, sizeof(prefixText) / sizeof(prefixText[0]));
+        }
+    }
+
+    if (_selectedRomMetadata.hasTitleId)
+    {
+        StringUtil::Copy(titleIdText, _selectedRomMetadata.titleId,
+            sizeof(titleIdText) / sizeof(titleIdText[0]));
+        if (layout.TitleID.trailingDash)
+        {
+            RomHeaderUtil::AppendTrailingDash(titleIdText, sizeof(titleIdText) / sizeof(titleIdText[0]));
+        }
+    }
+
+    if (_selectedRomMetadata.hasRegion)
+    {
+        StringUtil::Copy(regionText, _selectedRomMetadata.region,
+            sizeof(regionText) / sizeof(regionText[0]));
+        if (layout.region.trailingDash)
+        {
+            RomHeaderUtil::AppendTrailingDash(regionText, sizeof(regionText) / sizeof(regionText[0]));
+        }
+    }
+
+    if (_selectedRomMetadata.hasCrc)
+    {
+        RomHeaderUtil::FormatHexU32(crcText, sizeof(crcText) / sizeof(crcText[0]), _selectedRomMetadata.crc);
+    }
+
+    if (_selectedRomMetadata.hasVersion)
+    {
+        RomHeaderUtil::FormatUnsignedU32(
+            versionText, sizeof(versionText) / sizeof(versionText[0]), _selectedRomMetadata.version);
+    }
+
+    SetLabelTextIfChanged(_gameTitleLabel, _gameTitleText,
+        sizeof(_gameTitleText) / sizeof(_gameTitleText[0]), _selectedRomMetadata.gameTitle);
+    SetLabelTextIfChanged(_prefixLabel, _prefixText,
+        sizeof(_prefixText) / sizeof(_prefixText[0]), prefixText);
+    SetLabelTextIfChanged(_titleIdLabel, _titleIdText,
+        sizeof(_titleIdText) / sizeof(_titleIdText[0]), titleIdText);
+    SetLabelTextIfChanged(_regionLabel, _regionText,
+        sizeof(_regionText) / sizeof(_regionText[0]), regionText);
+    SetLabelTextIfChanged(_crcLabel, _crcText,
+        sizeof(_crcText) / sizeof(_crcText[0]), crcText);
+    SetLabelTextIfChanged(_versionLabel, _versionText,
+        sizeof(_versionText) / sizeof(_versionText[0]), versionText);
+
+    _gameTitleLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(
+        layout.gameTitle.font < LAYOUT_FONT_COUNT ? layout.gameTitle.font : LAYOUT_FONT_REGULAR10)));
+    _prefixLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(
+        layout.prefix.font < LAYOUT_FONT_COUNT ? layout.prefix.font : LAYOUT_FONT_REGULAR10)));
+    _titleIdLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(
+        layout.TitleID.font < LAYOUT_FONT_COUNT ? layout.TitleID.font : LAYOUT_FONT_REGULAR10)));
+    _titleIdTagLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(
+        layout.TitleID.labelFont < LAYOUT_FONT_COUNT ? layout.TitleID.labelFont : LAYOUT_FONT_REGULAR10)));
+    _regionLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(
+        layout.region.font < LAYOUT_FONT_COUNT ? layout.region.font : LAYOUT_FONT_REGULAR10)));
+    _crcLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(
+        layout.crc.font < LAYOUT_FONT_COUNT ? layout.crc.font : LAYOUT_FONT_REGULAR10)));
+    _versionLabel.SetFont(_fontRepository->GetFont(static_cast<FontType>(
+        layout.version.font < LAYOUT_FONT_COUNT ? layout.version.font : LAYOUT_FONT_REGULAR10)));
+
+    _gameTitleLabel.SetForegroundColor({ layout.gameTitle.colorR, layout.gameTitle.colorG, layout.gameTitle.colorB });
+    _prefixLabel.SetForegroundColor({ layout.prefix.colorR, layout.prefix.colorG, layout.prefix.colorB });
+    _titleIdLabel.SetForegroundColor({ layout.TitleID.colorR, layout.TitleID.colorG, layout.TitleID.colorB });
+    _titleIdTagLabel.SetForegroundColor({
+        layout.TitleID.labelColorR, layout.TitleID.labelColorG, layout.TitleID.labelColorB });
+    _regionLabel.SetForegroundColor({ layout.region.colorR, layout.region.colorG, layout.region.colorB });
+    _crcLabel.SetForegroundColor({ layout.crc.colorR, layout.crc.colorG, layout.crc.colorB });
+    _versionLabel.SetForegroundColor({ layout.version.colorR, layout.version.colorG, layout.version.colorB });
+
+    const bool showGameTitle = layout.gameTitle.visible && _selectedRomMetadata.hasGameTitle;
+    const bool showPrefix = layout.prefix.visible && prefixText[0] != 0;
+    const bool showTitleId = layout.TitleID.visible && _selectedRomMetadata.hasTitleId;
+    const bool showTitleIdTag = showTitleId && layout.TitleID.showLabelText;
+    const bool showRegion = layout.region.visible && _selectedRomMetadata.hasRegion;
+    const bool showCrc = layout.crc.visible && _selectedRomMetadata.hasCrc;
+    const bool showVersion = layout.version.visible && _selectedRomMetadata.hasVersion;
+
+    _gameTitleLabel.SetPosition(showGameTitle ? layout.gameTitle.x : -320,
+        showGameTitle ? layout.gameTitle.y : -320);
+    _prefixLabel.SetPosition(showPrefix ? layout.prefix.x : -320,
+        showPrefix ? layout.prefix.y : -320);
+    _titleIdLabel.SetPosition(showTitleId ? layout.TitleID.x : -320,
+        showTitleId ? layout.TitleID.y : -320);
+    _titleIdTagLabel.SetPosition(showTitleIdTag ? layout.TitleID.labelX : -320,
+        showTitleIdTag ? layout.TitleID.labelY : -320);
+    _regionLabel.SetPosition(showRegion ? layout.region.x : -320,
+        showRegion ? layout.region.y : -320);
+    _crcLabel.SetPosition(showCrc ? layout.crc.x : -320,
+        showCrc ? layout.crc.y : -320);
+    _versionLabel.SetPosition(showVersion ? layout.version.x : -320,
+        showVersion ? layout.version.y : -320);
 }
 
 void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
@@ -269,6 +685,13 @@ void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
     _dateTime1Label.InitVram(vramContext);
     _dateTime2Label.InitVram(vramContext);
     _usernameLabel.InitVram(vramContext);
+    _gameTitleLabel.InitVram(vramContext);
+    _prefixLabel.InitVram(vramContext);
+    _titleIdLabel.InitVram(vramContext);
+    _titleIdTagLabel.InitVram(vramContext);
+    _regionLabel.InitVram(vramContext);
+    _crcLabel.InitVram(vramContext);
+    _versionLabel.InitVram(vramContext);
 
     int tileIndex = 0;
     vu16* mapPtr = (vu16*)((u8*)GFX_BG_SUB + 0x3800);
@@ -369,9 +792,6 @@ void RomBrowserTopScreenView::Update()
 
     _lastIconVisible = fileInfoLayout.iconVisible;
 
-    UpdateDateTimeLabels(false);
-    UpdateStaticLabels();
-
     u64 tick = gTickCounter.GetValue();
     u32 elapsedMs = TickCounter::TicksToMilliSeconds((u32)(tick - _lastTimeUpdateTick));
     if (_lastTimeUpdateTick == 0 || elapsedMs >= 1000)
@@ -406,23 +826,57 @@ void RomBrowserTopScreenView::Update()
     if (selectedItem != _lastSelectedItem)
     {
         auto& fileInfoManager = _viewModel->GetFileInfoManager();
-        const auto& item = fileInfoManager.GetItem(selectedItem);
-
-        _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
-        if (_selectedFileIcon)
-            _selectedFileIcon->SetAnimFrame(_viewModel->GetIconFrameCounter());
-        _fileInfoView->SetIcon(std::move(_selectedFileIcon));
-        _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), true);
-
         _lastSelectedItem = selectedItem;
 
-        auto cover = fileInfoManager.GetFileCover(selectedItem);
-        if (cover.IsValid())
+        if (selectedItem < 0 || selectedItem >= (int)fileInfoManager.GetItemCount())
         {
-            _selectedFileCover = std::move(cover);
+            _selectedFileIcon.reset();
+            _selectedFileCover.Reset();
             _coverGraphicsUploaded = false;
+            _fileInfoView->SetIcon(nullptr);
+            _fileInfoView->SetGameTitleAsync(_viewModel->GetBgTaskQueue(), u"");
+            _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), "", false);
+            RefreshSelectedRomMetadata(nullptr);
+        }
+        else
+        {
+            const auto& item = fileInfoManager.GetItem(selectedItem);
+            std::unique_ptr<InternalFileInfo> internalFileInfo(item.CreateInternalFileInfo());
+
+            _selectedFileIcon = internalFileInfo ? internalFileInfo->CreateGameIcon() : nullptr;
+            if (!_selectedFileIcon)
+            {
+                _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
+            }
+            if (_selectedFileIcon)
+                _selectedFileIcon->SetAnimFrame(_viewModel->GetIconFrameCounter());
+            _fileInfoView->SetIcon(std::move(_selectedFileIcon));
+
+            bool fileNameAsTitle = true;
+            if (internalFileInfo)
+            {
+                const char16_t* gameTitle = internalFileInfo->GetGameTitle();
+                if (gameTitle)
+                {
+                    _fileInfoView->SetGameTitleAsync(_viewModel->GetBgTaskQueue(), gameTitle);
+                    fileNameAsTitle = false;
+                }
+            }
+            _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), fileNameAsTitle);
+            RefreshSelectedRomMetadata(internalFileInfo.get());
+
+            auto cover = fileInfoManager.GetFileCover(selectedItem);
+            if (cover.IsValid())
+            {
+                _selectedFileCover = std::move(cover);
+                _coverGraphicsUploaded = false;
+            }
         }
     }
+
+    UpdateDateTimeLabels(false);
+    UpdateStaticLabels();
+    UpdateLabelBackgrounds();
 
     ViewContainer::Update();
 }
@@ -434,6 +888,13 @@ void RomBrowserTopScreenView::Draw(GraphicsContext& graphicsContext)
     _dateTime1Label.Draw(graphicsContext);
     _dateTime2Label.Draw(graphicsContext);
     _usernameLabel.Draw(graphicsContext);
+    _gameTitleLabel.Draw(graphicsContext);
+    _prefixLabel.Draw(graphicsContext);
+    _titleIdLabel.Draw(graphicsContext);
+    _titleIdTagLabel.Draw(graphicsContext);
+    _regionLabel.Draw(graphicsContext);
+    _crcLabel.Draw(graphicsContext);
+    _versionLabel.Draw(graphicsContext);
 }
 
 void RomBrowserTopScreenView::VBlank()
@@ -443,6 +904,13 @@ void RomBrowserTopScreenView::VBlank()
     _dateTime1Label.VBlank();
     _dateTime2Label.VBlank();
     _usernameLabel.VBlank();
+    _gameTitleLabel.VBlank();
+    _prefixLabel.VBlank();
+    _titleIdLabel.VBlank();
+    _titleIdTagLabel.VBlank();
+    _regionLabel.VBlank();
+    _crcLabel.VBlank();
+    _versionLabel.VBlank();
 
     const auto& layout = _layoutService->GetCurrentLayout();
 

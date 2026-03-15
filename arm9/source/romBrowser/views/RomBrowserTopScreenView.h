@@ -11,6 +11,7 @@ class RomBrowserViewModel;
 class IRomBrowserViewFactory;
 class IBgmService;
 class IFontRepository;
+class InternalFileInfo;
 struct MaterialColorScheme;
 
 class RomBrowserTopScreenView : public ViewContainer
@@ -40,6 +41,7 @@ private:
     const IThemeFileIconFactory* _themeFileIconFactory;
     const IBgmService* _bgmService;
     bool _showCover;
+    const MaterialColorScheme* _materialColorScheme;
     const IFontRepository* _fontRepository;
     const LayoutService* _layoutService;
 
@@ -51,9 +53,40 @@ private:
     Label2DView _dateTime1Label;
     Label2DView _dateTime2Label;
     Label2DView _usernameLabel;
+    Label2DView _gameTitleLabel;
+    Label2DView _prefixLabel;
+    Label2DView _titleIdLabel;
+    Label2DView _titleIdTagLabel;
+    Label2DView _regionLabel;
+    Label2DView _crcLabel;
+    Label2DView _versionLabel;
+
+    enum class SelectedRomType : u8
+    {
+        None,
+        Gba,
+        Ntr,
+        Twl,
+    };
+
+    struct SelectedRomMetadata
+    {
+        SelectedRomType type = SelectedRomType::None;
+        bool hasGameTitle = false;
+        bool hasTitleId = false;
+        bool hasRegion = false;
+        bool hasCrc = false;
+        bool hasVersion = false;
+        char16_t gameTitle[32] = { 0 };
+        char titleId[5] = { 0 };
+        char16_t region[8] = { 0 };
+        u32 crc = 0;
+        u8 version = 0;
+    };
 
     bool _coverGraphicsUploaded = false;
     bool _lastIconVisible = true;
+    bool _useMaterialCardBackgrounds = false;
 
     u64 _lastTimeUpdateTick = 0;
     u8 _lastYear = 0xFF, _lastMonth = 0xFF, _lastMonthDay = 0xFF;
@@ -64,8 +97,19 @@ private:
     u8 _lastUsernameFont = 0xFF;
 
     char16_t _cachedUserName[24] = { 0 };
+    SelectedRomMetadata _selectedRomMetadata;
+    char16_t _gameTitleText[32] = { 0 };
+    char16_t _prefixText[32] = { 0 };
+    char16_t _titleIdText[16] = { 0 };
+    char16_t _titleIdTagText[8] = { 0 };
+    char16_t _regionText[8] = { 0 };
+    char16_t _crcText[16] = { 0 };
+    char16_t _versionText[8] = { 0 };
 
     void UpdateDateTimeLabels(bool forceUpdate);
     void UpdateLayoutFonts();
+    void UpdateLabelBackgrounds();
     void UpdateStaticLabels();
+    void UpdateRomMetadataLabels();
+    void RefreshSelectedRomMetadata(const InternalFileInfo* internalFileInfo = nullptr);
 };

@@ -1,25 +1,8 @@
 #include "common.h"
 #include <algorithm>
 #include <string.h>
+#include "romBrowser/RomHeaderUtil.h"
 #include "UsrCheatRepository.h"
-
-#define CRCPOLY 0xEDB88320
-
-static u32 crc32(const void* buffer, u32 length)
-{
-    u32 crc = ~0u;
-    const u8* p = (u8*)buffer;
-    while (length--)
-    {
-        crc ^= *p++;
-        for (int i = 0; i < 8; i++)
-        {
-            crc = (crc >> 1) ^ ((crc & 1) ? CRCPOLY : 0);
-        }
-    }
-
-    return crc;
-}
 
 std::unique_ptr<GameCheats> UsrCheatRepository::GetCheatsForGame(const FastFileRef& romFile) const
 {
@@ -34,7 +17,7 @@ std::unique_ptr<GameCheats> UsrCheatRepository::GetCheatsForGame(const FastFileR
     file->Close();
 
     u32 gameCode = *(u32*)(headerBuffer.get() + 0xC);
-    u32 crc = crc32(headerBuffer.get(), 512);
+    u32 crc = RomHeaderUtil::ComputeCrc32(headerBuffer.get(), 512);
 
     headerBuffer.reset();
 

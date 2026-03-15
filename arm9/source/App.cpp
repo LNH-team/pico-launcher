@@ -87,6 +87,43 @@ static bool IsViewInside(const View* view, const View* root)
     return false;
 }
 
+static bool HasFileExtensionIgnoreCase(const char* path, const char* ext)
+{
+    if (!path || !ext)
+        return false;
+
+    size_t len = strlen(path);
+    size_t extLen = strlen(ext);
+    if (len < extLen)
+        return false;
+
+    const char* tail = path + len - extLen;
+    for (size_t i = 0; i < extLen; i++)
+    {
+        char a = tail[i];
+        char b = ext[i];
+        if (a >= 'A' && a <= 'Z') a = a - 'A' + 'a';
+        if (b >= 'A' && b <= 'Z') b = b - 'A' + 'a';
+        if (a != b)
+            return false;
+    }
+
+    return true;
+}
+
+static bool IsNdsFamilyRomFile(const FileInfo& fileInfo)
+{
+    const FileType* fileType = fileInfo.GetFileType();
+    const char* name = fileInfo.GetFullPath();
+    if (!name)
+        name = fileInfo.GetFileName();
+
+    return (fileType && strcmp(fileType->GetShortName(), "nds") == 0)
+        || HasFileExtensionIgnoreCase(name, ".nds")
+        || HasFileExtensionIgnoreCase(name, ".dsi")
+        || HasFileExtensionIgnoreCase(name, ".srl");
+}
+
 App::App(IAppSettingsService& appSettingsService, IBgmService& bgmService)
     : _mainObjPltt(GFX_PLTT_OBJ_MAIN)
     , _mainObjVram(GFX_OBJ_MAIN)
@@ -671,9 +708,12 @@ void App::HandleShowQuickMenuTrigger()
         _directMenuAccessReturnToAppBar = false;
     }
 
+    const bool focusOnRomItem = _romBrowserBottomScreenView
+        && _romBrowserBottomScreenView->IsViewInsideRomBrowser(_focusManager.GetCurrentFocus());
+
     const FileInfo* selectedFileInfo = nullptr;
     auto viewModel = _romBrowserController.GetRomBrowserViewModel();
-    if (viewModel.IsValid())
+    if (focusOnRomItem && viewModel.IsValid())
     {
         int selectedIndex = viewModel->GetSelectedItem();
         if (selectedIndex >= 0 && selectedIndex < (int)viewModel->GetFileInfoManager().GetItemCount())
@@ -693,32 +733,8 @@ void App::HandleShowQuickMenuTrigger()
                 selectedFileInfo->GetFileType(), selectedFileInfo->GetFastFileRef(),
                 selectedFileInfo->GetFullPath());
             _romBrowserController.SetActiveFile(selectedFileInfoCopy);
+            isNdsRom = IsNdsFamilyRomFile(*selectedFileInfo);
         }
-        const char* name = selectedFileInfo->GetFullPath();
-        if (!name)
-            name = selectedFileInfo->GetFileName();
-        auto hasExt = [] (const char* path, const char* ext)
-        {
-            if (!path)
-                return false;
-            size_t len = strlen(path);
-            size_t extLen = strlen(ext);
-            if (len < extLen)
-                return false;
-            const char* tail = path + len - extLen;
-            for (size_t i = 0; i < extLen; i++)
-            {
-                char a = tail[i];
-                char b = ext[i];
-                if (a >= 'A' && a <= 'Z') a = a - 'A' + 'a';
-                if (b >= 'A' && b <= 'Z') b = b - 'A' + 'a';
-                if (a != b)
-                    return false;
-            }
-            return true;
-        };
-        isNdsRom = fileType == &NdsFileType::sInstance
-            || hasExt(name, ".nds") || hasExt(name, ".dsi") || hasExt(name, ".srl");
     }
 
     auto quickMenuDialog = std::make_unique<QuickMenuBottomSheetView>(
