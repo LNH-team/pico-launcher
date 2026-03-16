@@ -830,6 +830,7 @@ void RomBrowserTopScreenView::Update()
 
         if (selectedItem < 0 || selectedItem >= (int)fileInfoManager.GetItemCount())
         {
+            _selectedInternalFileInfo.reset();
             _selectedFileIcon.reset();
             _selectedFileCover.Reset();
             _coverGraphicsUploaded = false;
@@ -841,7 +842,8 @@ void RomBrowserTopScreenView::Update()
         else
         {
             const auto& item = fileInfoManager.GetItem(selectedItem);
-            std::unique_ptr<InternalFileInfo> internalFileInfo(item.CreateInternalFileInfo());
+            _selectedInternalFileInfo.reset(item.CreateInternalFileInfo());
+            const InternalFileInfo* internalFileInfo = _selectedInternalFileInfo.get();
 
             _selectedFileIcon = internalFileInfo ? internalFileInfo->CreateGameIcon() : nullptr;
             if (!_selectedFileIcon)
@@ -863,7 +865,7 @@ void RomBrowserTopScreenView::Update()
                 }
             }
             _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), fileNameAsTitle);
-            RefreshSelectedRomMetadata(internalFileInfo.get());
+            RefreshSelectedRomMetadata(internalFileInfo);
 
             auto cover = fileInfoManager.GetFileCover(selectedItem);
             if (cover.IsValid())

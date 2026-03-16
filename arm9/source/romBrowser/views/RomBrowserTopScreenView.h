@@ -47,6 +47,7 @@ private:
 
     std::unique_ptr<BannerView> _fileInfoView;
     std::unique_ptr<FileIcon> _selectedFileIcon;
+    std::unique_ptr<InternalFileInfo> _selectedInternalFileInfo;
     SharedPtr<FileCover> _selectedFileCover;
     int _lastSelectedItem = -1;
 
