@@ -319,23 +319,6 @@ void DialogPresenter::InitVram()
     REG_BLDALPHA = (16 << 8) | 0;
 }
 
-bool DialogPresenter::IsTransitioning() const
-{
-    if (_nextDialog)
-        return true;
-
-    if (_curState != _newState)
-        return true;
-
-    if (_curState == State::BottomSheetClosing)
-        return true;
-
-    if (_curState == State::BottomSheetVisible && !_yAnimator.IsFinished())
-        return true;
-
-    return false;
-}
-
 bool DialogPresenter::ShouldBlockNonBInput() const
 {
     if (_nextDialog || _curState != _newState)

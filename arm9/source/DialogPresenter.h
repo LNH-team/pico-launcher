@@ -82,7 +82,6 @@ public:
     bool IsIdle() const { return _curState == State::Idle && !_nextDialog; }
 
     /// @brief Returns true while dialogs are opening/closing or pending show.
-    bool IsTransitioning() const;
     bool ShouldBlockNonBInput() const;
     bool CanInterruptOpeningWithB() const;
 
