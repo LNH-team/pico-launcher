@@ -27,6 +27,8 @@ public:
     bool IsIdle() const { return _state == State::Idle; }
     bool IsActive() const { return _state != State::Idle; }
     bool IsTransitioning() const { return _state == State::Opening || _state == State::Closing; }
+    bool ShouldBlockNonBInput() const;
+    bool CanInterruptOpeningWithB() const { return _currentView && _state == State::Opening; }
 
     void ClearOldFocus()
     {
@@ -54,6 +56,7 @@ private:
     void BeginOpen();
     void BeginClose();
     void ClearBg1Map();
+    void RestoreOldFocus();
 
 private:
     FocusManager* _focusManager;

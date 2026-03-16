@@ -696,14 +696,16 @@ void App::HandleHideLayoutEditorTrigger()
 
 void App::HandleShowQuickMenuTrigger()
 {
-    if (_quickMenuPresenter.IsIdle()
+    const bool recaptureMenuReturnFocus = _quickMenuPresenter.IsIdle()
+        || !_quickMenuPresenter.GetOldFocus();
+    if (recaptureMenuReturnFocus
         && _romBrowserBottomScreenView->IsAppBarFocused(_focusManager))
     {
         _directMenuAccessReturnToAppBar = true;
         _directMenuAccessReturnAppBarButton =
             _romBrowserBottomScreenView->GetFocusedAppBarButton(_focusManager);
     }
-    else if (_quickMenuPresenter.IsIdle())
+    else if (recaptureMenuReturnFocus)
     {
         _directMenuAccessReturnToAppBar = false;
     }
@@ -1064,19 +1066,28 @@ void App::Update()
     if (isRomBrowserVisible && !_exit && curState != RomBrowserState::Launching)
     {
         const bool quickMenuActive = !_quickMenuPresenter.IsIdle();
-        const bool blockNonBInput = _dialogPresenter.IsTransitioning()
-            || _quickMenuPresenter.IsTransitioning();
+        const bool blockNonBInput = _dialogPresenter.ShouldBlockNonBInput()
+            || _quickMenuPresenter.ShouldBlockNonBInput();
         auto* currentDialog = _dialogPresenter.GetCurrentDialog();
         const MaskedInputProvider bOnlyInput(_inputRepeater, InputKey::B);
         const InputProvider& activeInput = blockNonBInput
             ? static_cast<const InputProvider&>(bOnlyInput)
             : static_cast<const InputProvider&>(_inputRepeater);
+        bool handledBlockedBInput = false;
 
-        if (quickMenuActive && !_focusManager.GetCurrentFocus())
+        if (blockNonBInput)
+        {
+            if (_quickMenuPresenter.CanInterruptOpeningWithB())
+                handledBlockedBInput = _quickMenuPresenter.HandleInput(bOnlyInput, _focusManager);
+            else if (_dialogPresenter.CanInterruptOpeningWithB() && currentDialog)
+                handledBlockedBInput = currentDialog->HandleInput(bOnlyInput, _focusManager);
+        }
+
+        if (!handledBlockedBInput && quickMenuActive && !_focusManager.GetCurrentFocus())
             _quickMenuPresenter.HandleInput(activeInput, _focusManager);
-        else if (currentDialog && !_focusManager.GetCurrentFocus())
+        else if (!handledBlockedBInput && currentDialog && !_focusManager.GetCurrentFocus())
             currentDialog->HandleInput(activeInput, _focusManager);
-        else if (!blockNonBInput)
+        else if (!handledBlockedBInput && !blockNonBInput)
             _focusManager.Update(_inputRepeater);
 
         if (!blockNonBInput)

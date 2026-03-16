@@ -83,6 +83,8 @@ public:
 
     /// @brief Returns true while dialogs are opening/closing or pending show.
     bool IsTransitioning() const;
+    bool ShouldBlockNonBInput() const;
+    bool CanInterruptOpeningWithB() const;
 
 private:
     void ApplyBottomSheetBg(bool visible);
@@ -112,4 +114,7 @@ private:
     bool _touchDraggingDialog = false;
     bool _touchCapturedByDialogContent = false;
     int _touchStartYAnimatorValue = 0;
+
+    static constexpr int kVisibleY = 32;
+    static constexpr int kHiddenY = 192;
 };

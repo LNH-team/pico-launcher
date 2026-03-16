@@ -10,6 +10,24 @@
 #include "gui/input/TouchEvent.h"
 #include "DialogPresenter.h"
 
+namespace
+{
+    constexpr u32 kOpeningInputUnlockProgressNumerator = 1;
+    constexpr u32 kOpeningInputUnlockProgressDenominator = 2;
+    constexpr u32 kClosingInputUnlockProgressNumerator = 2;
+    constexpr u32 kClosingInputUnlockProgressDenominator = 3;
+
+    bool HasReachedInputUnlockPoint(
+        const Animator<int>& animator, u32 numerator, u32 denominator)
+    {
+        const u32 duration = animator.GetDuration();
+        if (duration == 0)
+            return true;
+
+        return animator.GetFrame() * denominator >= duration * numerator;
+    }
+}
+
 #define DIALOG_DRAG_START_THRESHOLD      22
 #define DIALOG_DISMISS_DISTANCE          96
 #define DIALOG_DISMISS_MIN_DISTANCE      56
@@ -18,7 +36,7 @@
 
 DialogPresenter::DialogPresenter(FocusManager* focusManager, StackVramManager* vramManager)
     : _focusManager(focusManager), _vramManager(vramManager)
-    , _scrimAnimator(0), _yAnimator(192)
+    , _scrimAnimator(0), _yAnimator(kHiddenY)
 {
     _baseVramState = _vramManager->GetState();
 }
@@ -66,7 +84,7 @@ void DialogPresenter::Update()
 
                 _scrimAnimator.Goto(_scrimTargetBlend, md::sys::motion::duration::short2,
                     &md::sys::motion::easing::linear);
-                _yAnimator.Goto(32, md::sys::motion::duration::long2,
+                _yAnimator.Goto(kVisibleY, md::sys::motion::duration::long2,
                     &md::sys::motion::easing::emphasizedDecelerate);
                 if (!_oldFocus)
                 {
@@ -81,7 +99,7 @@ void DialogPresenter::Update()
             {
                 _scrimAnimator.Goto(0, md::sys::motion::duration::short4,
                     &md::sys::motion::easing::emphasizedAccelerate);
-                _yAnimator.Goto(192, md::sys::motion::duration::short4,
+                _yAnimator.Goto(kHiddenY, md::sys::motion::duration::short4,
                     &md::sys::motion::easing::emphasizedAccelerate);
                 if (_oldFocus && !_nextDialog)
                 {
@@ -316,4 +334,33 @@ bool DialogPresenter::IsTransitioning() const
         return true;
 
     return false;
+}
+
+bool DialogPresenter::ShouldBlockNonBInput() const
+{
+    if (_nextDialog || _curState != _newState)
+        return true;
+
+    if (_curState == State::BottomSheetClosing)
+    {
+        return !HasReachedInputUnlockPoint(_yAnimator,
+            kClosingInputUnlockProgressNumerator, kClosingInputUnlockProgressDenominator);
+    }
+
+    if (_curState == State::BottomSheetVisible && !_yAnimator.IsFinished())
+    {
+        return !HasReachedInputUnlockPoint(_yAnimator,
+            kOpeningInputUnlockProgressNumerator, kOpeningInputUnlockProgressDenominator);
+    }
+
+    return false;
+}
+
+bool DialogPresenter::CanInterruptOpeningWithB() const
+{
+    return _currentDialog
+        && _curState == State::BottomSheetVisible
+        && _newState == State::BottomSheetVisible
+        && !_yAnimator.IsFinished()
+        && _yAnimator.GetTargetValue() == kVisibleY;
 }
