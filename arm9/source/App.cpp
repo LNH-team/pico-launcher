@@ -753,7 +753,7 @@ void App::HandleHideQuickMenuTrigger()
     if (opensDialog)
     {
         View* transferredFocus = _quickMenuPresenter.DetachOldFocus();
-        _quickMenuPresenter.DismissImmediately();
+        _quickMenuPresenter.CloseUpward();
         if (transferredFocus)
             _dialogPresenter.SetOldFocus(transferredFocus);
     }

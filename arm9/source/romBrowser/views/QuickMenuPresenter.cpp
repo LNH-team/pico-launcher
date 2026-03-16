@@ -30,7 +30,7 @@ QuickMenuPresenter::QuickMenuPresenter(FocusManager* focusManager, StackVramMana
     : _focusManager(focusManager)
     , _vramManager(vramManager)
     , _scrimAnimator(0)
-    , _yAnimator(kHiddenY)
+    , _yAnimator(kHiddenBottomY)
 {
     _baseVramState = _vramManager->GetState();
 }
@@ -51,7 +51,7 @@ void QuickMenuPresenter::Show(std::unique_ptr<QuickMenuBottomSheetView> view)
     if (_currentView && !reopeningWhileClosing)
         return;
 
-    int startY = kHiddenY;
+    int startY = kHiddenBottomY;
     int startScrimBlend = 0;
     if (reopeningWhileClosing)
     {
@@ -78,7 +78,15 @@ void QuickMenuPresenter::Close()
     if (!_currentView || _state == State::Closing)
         return;
 
-    BeginClose();
+    BeginClose(kHiddenBottomY);
+}
+
+void QuickMenuPresenter::CloseUpward()
+{
+    if (!_currentView || _state == State::Closing)
+        return;
+
+    BeginClose(kHiddenTopY);
 }
 
 void QuickMenuPresenter::DismissImmediately()
@@ -97,7 +105,7 @@ void QuickMenuPresenter::DismissImmediately()
     _initVram = false;
     _state = State::Idle;
     _scrimAnimator = Animator<int>(0);
-    _yAnimator = Animator<int>(kHiddenY);
+    _yAnimator = Animator<int>(kHiddenBottomY);
     ClearBg1Map();
     REG_BLDALPHA = (16 << 8) | 0;
 }
@@ -129,12 +137,12 @@ void QuickMenuPresenter::BeginOpen()
     _currentView->Focus(*_focusManager);
 }
 
-void QuickMenuPresenter::BeginClose()
+void QuickMenuPresenter::BeginClose(int hiddenY)
 {
     _state = State::Closing;
     _scrimAnimator.Goto(0, md::sys::motion::duration::short3,
         &md::sys::motion::easing::emphasizedAccelerate);
-    _yAnimator.Goto(kHiddenY, md::sys::motion::duration::short3,
+    _yAnimator.Goto(hiddenY, md::sys::motion::duration::short3,
         &md::sys::motion::easing::emphasizedAccelerate);
 }
 

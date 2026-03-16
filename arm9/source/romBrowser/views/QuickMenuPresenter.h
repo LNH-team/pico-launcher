@@ -16,6 +16,7 @@ public:
 
     void Show(std::unique_ptr<QuickMenuBottomSheetView> view);
     void Close();
+    void CloseUpward();
     void Update();
     void Draw(GraphicsContext& graphicsContext);
     void VBlank();
@@ -53,7 +54,7 @@ private:
     };
 
     void BeginOpen();
-    void BeginClose();
+    void BeginClose(int hiddenY);
     void ClearBg1Map();
     void RestoreOldFocus();
 
@@ -69,6 +70,7 @@ private:
     int _scrimTargetBlend = 0;
     State _state = State::Idle;
 
-    static constexpr int kHiddenY = 192;
+    static constexpr int kHiddenBottomY = 192;
+    static constexpr int kHiddenTopY = -192;
     static constexpr int kVisibleY = 6;
 };
