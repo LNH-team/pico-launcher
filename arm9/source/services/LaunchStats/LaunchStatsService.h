@@ -28,9 +28,8 @@ private:
     void Load();
     void Save() const;
 
-    Info* FindInfo(const char* normalizedPath) const;
-    Info& FindOrCreateInfo(const char* normalizedPath);
-    static const char* NormalizePath(const char* path);
+    Info* FindInfo(const char* fileName) const;
+    Info& FindOrCreateInfo(const char* fileName);
 
     std::unique_ptr<Info[]> _infos;
     u32  _count  = 0;

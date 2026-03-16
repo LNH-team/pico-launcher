@@ -13,7 +13,7 @@
  *   entryCount:  u32 LE
  *
  * Data Record (repeated entryCount times, VARIABLE SIZE):
- *   path:        char[]      ROM path (ASCII, null-terminated)
+ *   path:        char[]      ROM file name (ASCII, null-terminated)
  *   launchCount: u32 LE      Total launches
  *   date:        u8[10]      Last launch date (ASCII "YYYY-MM-DD")
  *   time:        u8[8]       Last launch time (ASCII "HH:MM:SS")
@@ -86,29 +86,19 @@ void LaunchStatsService::EnsureLoaded()
     Load();
 }
 
-const char* LaunchStatsService::NormalizePath(const char* path)
-{
-    if (!path)
-        return path;
-    const char* colon = strchr(path, ':');
-    if (colon && colon < path + 6)
-        return colon;
-    return path;
-}
-
-LaunchStatsService::Info* LaunchStatsService::FindInfo(const char* normalizedPath) const
+LaunchStatsService::Info* LaunchStatsService::FindInfo(const char* fileName) const
 {
     for (u32 i = 0; i < _count; i++)
     {
-        if (!strcasecmp(_infos[i].path.GetString(), normalizedPath))
+        if (!strcasecmp(_infos[i].path.GetString(), fileName))
             return &_infos[i];
     }
     return nullptr;
 }
 
-LaunchStatsService::Info& LaunchStatsService::FindOrCreateInfo(const char* normalizedPath)
+LaunchStatsService::Info& LaunchStatsService::FindOrCreateInfo(const char* fileName)
 {
-    Info* existing = FindInfo(normalizedPath);
+    Info* existing = FindInfo(fileName);
     if (existing)
         return *existing;
 
@@ -119,7 +109,7 @@ LaunchStatsService::Info& LaunchStatsService::FindOrCreateInfo(const char* norma
 
     Info& fresh = newInfos[newCount - 1];
     fresh = Info{};
-    fresh.path = normalizedPath;
+    fresh.path = fileName;
 
     _infos = std::move(newInfos);
     _count = newCount;
@@ -253,8 +243,7 @@ void LaunchStatsService::Increment(const char* path)
         return;
     EnsureLoaded();
 
-    const char* norm = NormalizePath(path);
-    Info& info = FindOrCreateInfo(norm);
+    Info& info = FindOrCreateInfo(path);
 
     info.launchCount++;
     getCurrentDateString(info.lastLaunchDate, sizeof(info.lastLaunchDate));
@@ -277,8 +266,7 @@ bool LaunchStatsService::TryGetInfo(const char* path,
     if (outDate && outDateSize > 0) outDate[0] = '\0';
     if (outTime && outTimeSize > 0) outTime[0] = '\0';
 
-    const char* norm = NormalizePath(path);
-    const Info* info = FindInfo(norm);
+    const Info* info = FindInfo(path);
     if (!info)
         return false;
 

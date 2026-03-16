@@ -27,37 +27,6 @@ static constexpr int GAME_DETAILS_CHEATS_CHIP_WIDTH    = 64;
 static constexpr int GAME_DETAILS_FAVORITES_CHIP_WIDTH = 80;
 static constexpr int GAME_DETAILS_IDENTITY_WIDTH       = 108;
 
-static bool BuildNormalizedPath(const FileInfo& fileInfo, char* outBuf, u32 bufSize)
-{
-    const TCHAR* fullPath = fileInfo.GetFullPath();
-    if (fullPath && fullPath[0] != 0)
-    {
-        strncpy(outBuf, fullPath, bufSize - 1);
-        outBuf[bufSize - 1] = '\0';
-    }
-    else
-    {
-        if (f_getcwd(outBuf, bufSize) != FR_OK)
-        {
-            outBuf[0] = '\0';
-            return false;
-        }
-        int idx = strlcat(outBuf, "/", bufSize);
-        if (idx > 1 && outBuf[idx - 2] == '/')
-            outBuf[idx - 1] = '\0';
-        strlcat(outBuf, fileInfo.GetFileName(), bufSize);
-    }
-
-    const char* colon = strchr(outBuf, ':');
-    if (colon && colon < outBuf + 6)
-    {
-        size_t len = strlen(colon);
-        memmove(outBuf, colon, len + 1);
-        return outBuf[0] != '\0';
-    }
-    return outBuf[0] != '\0';
-}
-
 static bool HasFileExtensionIgnoreCase(const char* path, const char* ext)
 {
     if (!path || !ext)
@@ -222,7 +191,29 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     _favoriteChip.SetSelected(_isFavorite);
     AddChildTail(&_favoriteChip);
 
-    InitLaunchCountLabel(materialColorScheme);
+    _countLaunchLabel.SetText(Localization::Translate("total_launches"));
+    _countLaunchLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+    _countLaunchLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+    AddChildTail(&_countLaunchLabel);
+
+    _countLaunchValueLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+    _countLaunchValueLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+    AddChildTail(&_countLaunchValueLabel);
+
+    _lastLaunchLabel.SetText(Localization::Translate("last_launch"));
+    _lastLaunchLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+    _lastLaunchLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+    AddChildTail(&_lastLaunchLabel);
+
+    _lastLaunchDateValueLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+    _lastLaunchDateValueLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+    AddChildTail(&_lastLaunchDateValueLabel);
+
+    _lastLaunchTimeValueLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+    _lastLaunchTimeValueLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
+    AddChildTail(&_lastLaunchTimeValueLabel);
+
+    InitLaunchCountLabel();
 }
 
 void NdsGameDetailsBottomSheetView::InitVram(const VramContext& vramContext)
@@ -376,50 +367,29 @@ bool NdsGameDetailsBottomSheetView::HandleTouch(const TouchEvent& event,
     return false;
 }
 
-void NdsGameDetailsBottomSheetView::InitLaunchCountLabel(
-    const MaterialColorScheme* materialColorScheme)
+void NdsGameDetailsBottomSheetView::InitLaunchCountLabel()
 {
-    u32  launchCount     = 0;
+    u32 launchCount = 0;
     char lastLaunchDate[16] = {};
     char lastLaunchTime[16] = {};
 
     if (_romBrowserController)
     {
         const FileInfo& fileInfo = _romBrowserController->GetTriggerFileInfo();
-        char pathBuf[256];
-        if (BuildNormalizedPath(fileInfo, pathBuf, sizeof(pathBuf)))
+        const char* fileName = fileInfo.GetFileName();
+        if (fileName && fileName[0] != '\0')
         {
-            LaunchStatsService::Instance().TryGetInfo(pathBuf,
+            LaunchStatsService::Instance().TryGetInfo(fileName,
                 &launchCount,
                 lastLaunchDate, sizeof(lastLaunchDate),
                 lastLaunchTime, sizeof(lastLaunchTime));
         }
     }
 
-    _countLaunchLabel.SetText(Localization::Translate("total_launches"));
-    _countLaunchLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-    _countLaunchLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
-    AddChildTail(&_countLaunchLabel);
-
     char countText[12];
     snprintf(countText, sizeof(countText), "%lu", launchCount);
     _countLaunchValueLabel.SetText(countText);
-    _countLaunchValueLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-    _countLaunchValueLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
-    AddChildTail(&_countLaunchValueLabel);
-
-    _lastLaunchLabel.SetText(Localization::Translate("last_launch"));
-    _lastLaunchLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-    _lastLaunchLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
-    AddChildTail(&_lastLaunchLabel);
 
     _lastLaunchDateValueLabel.SetText(lastLaunchDate[0] != '\0' ? lastLaunchDate : "-");
-    _lastLaunchDateValueLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-    _lastLaunchDateValueLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
-    AddChildTail(&_lastLaunchDateValueLabel);
-
     _lastLaunchTimeValueLabel.SetText(lastLaunchTime[0] != '\0' ? lastLaunchTime : "-");
-    _lastLaunchTimeValueLabel.SetBackgroundColor(materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-    _lastLaunchTimeValueLabel.SetForegroundColor(materialColorScheme->onSurfaceVariant);
-    AddChildTail(&_lastLaunchTimeValueLabel);
 }

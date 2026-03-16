@@ -68,7 +68,7 @@ private:
         _favoriteChip.SetIcon(true, iconOffset);
     }
 
-    void InitLaunchCountLabel(const MaterialColorScheme* materialColorScheme);
+    void InitLaunchCountLabel();
     Label2DView _countLaunchLabel;
     Label2DView _countLaunchValueLabel;
     Label2DView _lastLaunchLabel;

@@ -382,7 +382,7 @@ void RomBrowserController::HandleLaunchTrigger()
         appSettings.lastUsedFilePath = _navigatePath;
         _appSettingsService->Save();
 
-        LaunchStatsService::Instance().Increment(_navigatePath);
+        LaunchStatsService::Instance().Increment(_launchFileInfo.GetFileName());
 
         LoadCheats();
 
