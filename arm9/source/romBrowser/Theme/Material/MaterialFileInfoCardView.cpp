@@ -22,8 +22,8 @@
 MaterialFileInfoCardView::MaterialFileInfoCardView(const MaterialColorScheme* materialColorScheme,
     const IFontRepository* fontRepository)
     : _firstLine(176, 16, 50, fontRepository->GetFont(FontType::Medium11))
-    , _secondLine(176, 16, 50, fontRepository->GetFont(FontType::Regular10))
-    , _thirdLine(176, 16, 50, fontRepository->GetFont(FontType::Regular10))
+    , _secondLine(156, 16, 50, fontRepository->GetFont(FontType::Regular10))
+    , _thirdLine(156, 16, 50, fontRepository->GetFont(FontType::Regular10))
     , _filenameLabelView(220, 16, 200, fontRepository->GetFont(FontType::Medium7_5))
     , _materialColorScheme(materialColorScheme)
     , _fontRepository(fontRepository)

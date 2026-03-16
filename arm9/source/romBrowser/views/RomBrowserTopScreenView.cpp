@@ -241,27 +241,27 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
     , _selectedFileIcon(nullptr)
     , _selectedFileCover(nullptr)
     
-    , _dateTime1Label(128, 16, 26,
+    , _dateTime1Label(120, 16, 26,
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().dateTime1.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().dateTime1.font : LAYOUT_FONT_REGULAR10)))
-    , _dateTime2Label(128, 16, 26,
+    , _dateTime2Label(120, 16, 26,
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().dateTime2.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().dateTime2.font : LAYOUT_FONT_REGULAR10)))
-    , _usernameLabel(96, 16, 20,
+    , _usernameLabel(80, 16, 20,
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().username.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().username.font : LAYOUT_FONT_REGULAR10)))
-    , _gameTitleLabel(256, 16, 31,
+    , _gameTitleLabel(100, 16, 31,
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().gameTitle.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().gameTitle.font : LAYOUT_FONT_REGULAR10)))
-    , _prefixLabel(128, 16, 31,
+    , _prefixLabel(90, 16, 31,
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().prefix.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().prefix.font : LAYOUT_FONT_REGULAR10)))
-    , _titleIdLabel(96, 16, 15,
+    , _titleIdLabel(48, 16, 15,
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().TitleID.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().TitleID.font : LAYOUT_FONT_REGULAR10)))
@@ -269,7 +269,7 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().TitleID.labelFont < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().TitleID.labelFont : LAYOUT_FONT_REGULAR10)))
-    , _regionLabel(64, 16, 7,
+    , _regionLabel(48, 16, 7,
         fontRepository->GetFont(static_cast<FontType>(
             layoutService->GetCurrentLayout().region.font < LAYOUT_FONT_COUNT
                 ? layoutService->GetCurrentLayout().region.font : LAYOUT_FONT_REGULAR10)))
