@@ -5,7 +5,7 @@
 #include "BannerView.h"
 #include "../FileType/FileIcon.h"
 #include "../DisplayMode/RomBrowserDisplayMode.h"
-#include "../layout/LayoutService.h"
+#include "services/Layout/LayoutService.h"
 
 class RomBrowserViewModel;
 class IRomBrowserViewFactory;

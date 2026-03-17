@@ -31,7 +31,7 @@
 #include "romBrowser/views/QuickMenuPresenter.h"
 #include "romBrowser/Theme/Material/MaterialThemeFileIconFactory.h"
 #include "romBrowser/RomBrowserController.h"
-#include "romBrowser/layout/LayoutService.h"
+#include "services/Layout/LayoutService.h"
 #include "DialogPresenter.h"
 #include "themes/ITheme.h"
 #include "core/SharedPtr.h"

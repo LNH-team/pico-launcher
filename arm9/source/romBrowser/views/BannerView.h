@@ -1,7 +1,7 @@
 #pragma once
 #include "gui/views/ViewContainer.h"
 #include "../FileType/FileIcon.h"
-#include "../layout/LayoutData.h"
+#include "services/Layout/LayoutData.h"
 
 class TaskQueueBase;
 
