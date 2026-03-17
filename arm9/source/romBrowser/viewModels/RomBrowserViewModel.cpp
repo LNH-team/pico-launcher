@@ -6,28 +6,30 @@ RomBrowserViewModel::RomBrowserViewModel(IRomBrowserController* romBrowserContro
     : _romBrowserController(romBrowserController)
 {
     SdFolderFilterSortParams filterSortParams;
+    auto showHiddenFiles = romBrowserController->GetRomBrowserDisplaySettings().showHiddenFiles;
     switch (romBrowserController->GetRomBrowserDisplaySettings().sortMode)
     {
         case RomBrowserSortMode::NameAscending:
         default:
         {
             filterSortParams = SdFolderFilterSortParams(
-                SdFolderSortType::Name, SdFolderSortDirection::Ascending);
+                SdFolderSortType::Name, SdFolderSortDirection::Ascending, showHiddenFiles);
             break;
         }
         case RomBrowserSortMode::NameDescending:
         {
             filterSortParams = SdFolderFilterSortParams(
-                SdFolderSortType::Name, SdFolderSortDirection::Descending);
+                SdFolderSortType::Name, SdFolderSortDirection::Descending, showHiddenFiles);
             break;
         }
         case RomBrowserSortMode::LastModified:
         {
             filterSortParams = SdFolderFilterSortParams(
-                SdFolderSortType::LastModified, SdFolderSortDirection::Descending);
+                SdFolderSortType::LastModified, SdFolderSortDirection::Descending, showHiddenFiles);
             break;
         }
     }
+
     u64 startTick = gTickCounter.GetValue();
     const auto& sdFolder = romBrowserController->GetSdFolder();
     int filteredCount;

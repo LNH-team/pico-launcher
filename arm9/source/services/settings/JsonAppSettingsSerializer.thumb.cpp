@@ -10,6 +10,7 @@
 #define JSON_RESERVED_SIZE  2048
 
 #define KEY_LANGUAGE                 "language"
+#define KEY_SHOW_HIDDEN_FILES        "showHiddenFiles"
 #define KEY_ROM_BROWSER_LAYOUT       "romBrowserLayout"
 #define KEY_ROM_BROWSER_SORT_MODE    "romBrowserSortMode"
 #define KEY_THEME                    "theme"
@@ -125,6 +126,7 @@ static std::unique_ptr<u8[]> writeJson(const AppSettings* appSettings, u32& leng
 {
     DynamicJsonDocument json(JSON_RESERVED_SIZE);
     json[KEY_LANGUAGE] = appSettings->language.GetString();
+    json[KEY_SHOW_HIDDEN_FILES] = appSettings->romBrowserDisplaySettings.showHiddenFiles;
     json[KEY_ROM_BROWSER_LAYOUT] = serializeRomBrowserLayout(appSettings->romBrowserDisplaySettings.layout);
     json[KEY_ROM_BROWSER_SORT_MODE] = serializeRomBrowserSortMode(appSettings->romBrowserDisplaySettings.sortMode);
     json[KEY_THEME] = appSettings->theme.GetString();
@@ -167,6 +169,7 @@ static void readJson(AppSettings* appSettings, const JsonDocument& json)
     appSettings->language = json[KEY_LANGUAGE] | appSettings->language.GetString();
     appSettings->theme = json[KEY_THEME] | appSettings->theme.GetString();
     appSettings->lastUsedFilePath = json[KEY_LAST_USED_FILE_PATH] | appSettings->lastUsedFilePath.GetString();
+    appSettings->romBrowserDisplaySettings.showHiddenFiles = json[KEY_SHOW_HIDDEN_FILES].isNull() ? appSettings->romBrowserDisplaySettings.showHiddenFiles : json[KEY_SHOW_HIDDEN_FILES];
 
     RomBrowserLayout romBrowserLayout;
     if (tryParseRomBrowserLayout(json[KEY_ROM_BROWSER_LAYOUT].as<const char*>(),
