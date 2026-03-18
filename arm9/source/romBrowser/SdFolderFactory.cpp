@@ -23,6 +23,11 @@ std::unique_ptr<SdFolder> SdFolderFactory::CreateFromPath(const char* path) cons
         if (sdFileInfo->fname[0] == 0)
             break;
 
+        // Skip hidden files, dotfiles, and underscore-prefixed system files
+        if ((sdFileInfo->fattrib & AM_HID) || sdFileInfo->fname[0] == '.'
+            || sdFileInfo->fname[0] == '_')
+            continue;
+
         if (count >= bufferSize)
         {
             bufferSize *= 2;
