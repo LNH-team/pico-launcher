@@ -42,8 +42,14 @@ void BgmListItemView::Draw(GraphicsContext& graphicsContext)
 
     if (IsFocused())
     {
+        // Focused: highlight background
         backColor = _materialColorScheme->GetColor(md::sys::color::secondaryContainer);
         textColor = _materialColorScheme->GetColor(md::sys::color::onSecondaryContainer);
+    }
+    else if (_currentlyPlaying)
+    {
+        // Currently playing but not focused: use primary color for text
+        textColor = _materialColorScheme->primary;
     }
 
     _nameLabel.SetBackgroundColor(backColor);

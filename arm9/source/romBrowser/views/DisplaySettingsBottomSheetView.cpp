@@ -743,7 +743,7 @@ void DisplaySettingsBottomSheetView::EnterBgmSelectMode(FocusManager& focusManag
         delete _bgmAdapter;
         _bgmAdapter = nullptr;
     }
-    _bgmAdapter = new BgmAdapter(_bgmFileNames, _bgmFileCount, _materialColorScheme, _fontRepository);
+    _bgmAdapter = new BgmAdapter(_bgmFileNames, _bgmFileCount, _materialColorScheme, _fontRepository, _bgmIndex);
 
     int initialIndex = (_bgmIndex < 0 || _bgmIndex >= _bgmFileCount) ? 0 : (_bgmIndex + 1);
 
