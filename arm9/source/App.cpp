@@ -332,7 +332,11 @@ void App::Run()
     _ioTaskQueue.Enqueue([this] (const vu8& cancelRequested)
     {
         const char* bgmSetting = _appSettingsService.GetAppSettings().bgm.GetString();
-        if (bgmSetting && bgmSetting[0] != '\0')
+        if (bgmSetting && !strcasecmp(bgmSetting, "off"))
+        {
+            // BGM disabled
+        }
+        else if (bgmSetting && bgmSetting[0] != '\0')
         {
             // Play specific BGM from /_pico/bgm/
             char path[256];

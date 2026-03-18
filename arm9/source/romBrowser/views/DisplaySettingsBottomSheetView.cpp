@@ -224,7 +224,11 @@ void DisplaySettingsBottomSheetView::ScanBgmFiles()
 
     // Match current setting
     const char* current = _appSettingsService->GetAppSettings().bgm.GetString();
-    if (current && current[0] != '\0')
+    if (current && !strcasecmp(current, "off"))
+    {
+        _bgmIndex = BgmAdapter::kItemOff;
+    }
+    else if (current && current[0] != '\0')
     {
         for (int i = 0; i < _bgmFileCount; i++)
         {
@@ -239,6 +243,11 @@ void DisplaySettingsBottomSheetView::ScanBgmFiles()
 
 void DisplaySettingsBottomSheetView::UpdateBgmChipText()
 {
+    if (_bgmIndex == BgmAdapter::kItemOff)
+    {
+        _bgmChip.SetText(u"Off");
+        return;
+    }
     if (_bgmIndex < 0 || _bgmIndex >= _bgmFileCount)
     {
         _bgmChip.SetText(u"Random");
@@ -910,16 +919,15 @@ void DisplaySettingsBottomSheetView::ExitBgmSelectMode(FocusManager& focusManage
 
 void DisplaySettingsBottomSheetView::ApplyBgmSelection(int index)
 {
-    // index: -1 = Random, 0+ = file index in _bgmFileNames
-    if (index < 0)
-        _bgmIndex = -1;
-    else
-        _bgmIndex = index;
+    // index: kItemOff = off, kItemRandom = random, 0+ = file index
+    _bgmIndex = index;
 
     UpdateBgmChipText();
 
     auto& settings = _appSettingsService->GetAppSettings();
-    if (_bgmIndex >= 0 && _bgmIndex < _bgmFileCount)
+    if (_bgmIndex == BgmAdapter::kItemOff)
+        settings.bgm = "off";
+    else if (_bgmIndex >= 0 && _bgmIndex < _bgmFileCount)
         settings.bgm = _bgmFileNames[_bgmIndex].GetString();
     else
         settings.bgm = "";
