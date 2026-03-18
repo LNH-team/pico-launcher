@@ -7,21 +7,19 @@
 
 struct ThemeTranslation { const char* key; const char16_t* zhName; };
 static const ThemeTranslation kThemeTranslations[] = {
-    { "material", u"Material 材质" },
-    { "raspberry", u"Raspberry 树莓" },
     { "Minecraft v0.1", u"我的世界" },
     { "Rainbow Theme", u"彩虹主题" },
     { "Wintendows DiSta", u"Wintendows" },
     { "Ecruteak City", u"圆朱市" },
     { "Battrey", u"电池" },
     { "Samurai Champloo", u"混沌武士" },
-    { "Samurai Champloo 2", u"混沌武士 2" },
-    { "nge first children", u"EVA 初号机" },
+    { "Samurai Champloo 2", u"混沌武士2" },
+    { "nge first children", u"EVA初号机" },
     { "rurouni kenshin", u"浪客剑心" },
-    { "Gojo Beach Fun", u"五条悟 海滩" },
-    { "Gon And Killua Ocean Chill Vibes", u"小杰与奇犽 海洋" },
-    { "Shinji Calming Beach Scene", u"碇真嗣 海边" },
-    { "AE86 W EuroBeat", u"AE86 头文字D" },
+    { "Gojo Beach Fun", u"五条悟海滩" },
+    { "Gon And Killua Ocean Chill Vibes", u"小杰与奇犽海洋" },
+    { "Shinji Calming Beach Scene", u"碇真嗣海边" },
+    { "AE86 W EuroBeat", u"AE86头文字D" },
     { "Skyline W Eurobeat", u"Skyline Eurobeat" },
 };
 static constexpr int kThemeTranslationCount = sizeof(kThemeTranslations) / sizeof(kThemeTranslations[0]);
