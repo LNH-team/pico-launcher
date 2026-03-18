@@ -5,6 +5,36 @@
 #include "BgmListItemView.h"
 #include "services/Localization/Localization.h"
 
+struct ThemeTranslation { const char* key; const char16_t* zhName; };
+static const ThemeTranslation kThemeTranslations[] = {
+    { "material", u"Material 材质" },
+    { "raspberry", u"Raspberry 树莓" },
+    { "Minecraft v0.1", u"我的世界" },
+    { "Rainbow Theme", u"彩虹主题" },
+    { "Wintendows DiSta", u"Wintendows" },
+    { "Ecruteak City", u"圆朱市" },
+    { "Battrey", u"电池" },
+    { "Samurai Champloo", u"混沌武士" },
+    { "Samurai Champloo 2", u"混沌武士 2" },
+    { "nge first children", u"EVA 初号机" },
+    { "rurouni kenshin", u"浪客剑心" },
+    { "Gojo Beach Fun", u"五条悟 海滩" },
+    { "Gon And Killua Ocean Chill Vibes", u"小杰与奇犽 海洋" },
+    { "Shinji Calming Beach Scene", u"碇真嗣 海边" },
+    { "AE86 W EuroBeat", u"AE86 头文字D" },
+    { "Skyline W Eurobeat", u"Skyline Eurobeat" },
+};
+static constexpr int kThemeTranslationCount = sizeof(kThemeTranslations) / sizeof(kThemeTranslations[0]);
+
+inline const char16_t* FindThemeChineseTranslation(const char* name)
+{
+    if (!name) return nullptr;
+    for (int i = 0; i < kThemeTranslationCount; i++)
+        if (!strcasecmp(kThemeTranslations[i].key, name))
+            return kThemeTranslations[i].zhName;
+    return nullptr;
+}
+
 class ThemeAdapter : public RecyclerAdapter
 {
 public:
@@ -97,7 +127,11 @@ public:
                     item->SetCurrentlyPlaying(isCurrent);
                     if (isCurrent) { buf[pos++] = u'\u00B7'; buf[pos++] = u' '; }
                     const char* name = _allNames[realIdx].GetString();
-                    while (*name && pos < 62) { buf[pos++] = (char16_t)(unsigned char)*name; name++; }
+                    const char16_t* zhName = FindThemeChineseTranslation(name);
+                    if (zhName)
+                    { for (int i = 0; zhName[i] && pos < 62; i++) buf[pos++] = zhName[i]; }
+                    else
+                    { while (*name && pos < 62) { buf[pos++] = (char16_t)(unsigned char)*name; name++; } }
                     buf[pos] = 0;
                     item->SetText(buf);
                     return;
@@ -133,7 +167,11 @@ public:
                     item->SetCurrentlyPlaying(isCurrent);
                     if (isCurrent) { buf[pos++] = u'\u00B7'; buf[pos++] = u' '; }
                     const char* name = _allNames[realIdx].GetString();
-                    while (*name && pos < 62) { buf[pos++] = (char16_t)(unsigned char)*name; name++; }
+                    const char16_t* zhName = FindThemeChineseTranslation(name);
+                    if (zhName)
+                    { for (int i = 0; zhName[i] && pos < 62; i++) buf[pos++] = zhName[i]; }
+                    else
+                    { while (*name && pos < 62) { buf[pos++] = (char16_t)(unsigned char)*name; name++; } }
                     buf[pos] = 0;
                     item->SetText(buf);
                     return;
