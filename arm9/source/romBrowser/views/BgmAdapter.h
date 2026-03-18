@@ -55,7 +55,7 @@ public:
         // Add marker for currently playing
         if (isCurrent)
         {
-            buf[pos++] = u'\u266B'; // ♫
+            buf[pos++] = u'\u00B7'; // ·
             buf[pos++] = u' ';
         }
 
