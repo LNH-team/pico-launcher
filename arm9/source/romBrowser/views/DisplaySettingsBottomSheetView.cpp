@@ -2,6 +2,7 @@
 #include "gui/GraphicsContext.h"
 #include "gui/VramContext.h"
 #include "gui/IVramManager.h"
+#include "gui/DescendingStackVramManager.h"
 #include "hGridIcon.h"
 #include "vGridIcon.h"
 #include "bannerListIcon.h"
@@ -39,6 +40,9 @@
 #define FILTERS_LABEL_X     20
 #define FILTERS_LABEL_Y     112
 
+#define BGM_LIST_X          16
+#define BGM_LIST_Y          30
+
 static RomBrowserLayout sRomBrowserDisplayModes[4] =
 {
     [0] = RomBrowserLayout::HorizontalIconGrid,
@@ -75,16 +79,6 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     , _materialColorScheme(materialColorScheme)
     , _fontRepository(fontRepository)
     , _bgmService(bgmService)
-    , _bgmListLabels {
-        Label2DView(200, 14, 32, fontRepository->GetFont(FontType::Regular10)),
-        Label2DView(200, 14, 32, fontRepository->GetFont(FontType::Regular10)),
-        Label2DView(200, 14, 32, fontRepository->GetFont(FontType::Regular10)),
-        Label2DView(200, 14, 32, fontRepository->GetFont(FontType::Regular10)),
-        Label2DView(200, 14, 32, fontRepository->GetFont(FontType::Regular10)),
-        Label2DView(200, 14, 32, fontRepository->GetFont(FontType::Regular10)),
-        Label2DView(200, 14, 32, fontRepository->GetFont(FontType::Regular10)),
-        Label2DView(200, 14, 32, fontRepository->GetFont(FontType::Regular10))
-    }
     , _bgmSelectTitle(200, 16, 25, fontRepository->GetFont(FontType::Medium11))
 {
     _viewModel->SetAppSettingsService(appSettingsService);
@@ -134,14 +128,9 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
         AddChildTail(&sortOption);
     }
 
-    // BGM select mode labels (always children, positioned offscreen when not active)
+    // BGM select title (always child, positioned offscreen when not active)
     _bgmSelectTitle.SetText(u"Select BGM");
     AddChildTail(&_bgmSelectTitle);
-    for (int i = 0; i < kBgmVisibleItems; i++)
-    {
-        _bgmListLabels[i].SetText(u"");
-        AddChildTail(&_bgmListLabels[i]);
-    }
 }
 
 IconButton2DView DisplaySettingsBottomSheetView::CreateLayoutOptionIconButton()
@@ -183,6 +172,8 @@ IconButton2DView DisplaySettingsBottomSheetView::CreateSortOptionIconButton()
 void DisplaySettingsBottomSheetView::InitVram(const VramContext& vramContext)
 {
     BottomSheetView::InitVram(vramContext);
+
+    _objVramManager = vramContext.GetObjVramManager();
 
     if (_usePreloadedIcons)
         return;
@@ -253,34 +244,6 @@ void DisplaySettingsBottomSheetView::UpdateBgmChipText()
     _bgmChip.SetText(buf);
 }
 
-void DisplaySettingsBottomSheetView::CycleBgm(bool forward)
-{
-    if (_bgmFileCount == 0) return;
-
-    if (forward)
-    {
-        _bgmIndex++;
-        if (_bgmIndex >= _bgmFileCount) _bgmIndex = -1;
-    }
-    else
-    {
-        _bgmIndex--;
-        if (_bgmIndex < -1) _bgmIndex = _bgmFileCount - 1;
-    }
-
-    UpdateBgmChipText();
-
-    // Save and restart (same as theme switch)
-    auto& settings = _appSettingsService->GetAppSettings();
-    if (_bgmIndex >= 0 && _bgmIndex < _bgmFileCount)
-        settings.bgm = _bgmFileNames[_bgmIndex].GetString();
-    else
-        settings.bgm = "";
-    _viewModel->SaveSettingsNow();
-    _viewModel->RequestThemeReload();
-    _viewModel->Close();
-}
-
 void DisplaySettingsBottomSheetView::UpdateLabels()
 {
     int s = _scrollOffset;
@@ -316,34 +279,14 @@ void DisplaySettingsBottomSheetView::Update()
         for (auto& sortOption : _sortOptions)
             sortOption.SetPosition(-300, -300);
 
-        // Position BGM select title and list
+        // Position BGM select title
         _bgmSelectTitle.SetPosition(20, _position.y + 12);
 
-        int totalItems = _bgmFileCount + 1; // +1 for "Random"
-        // Calculate how many items fit on screen
-        int availableHeight = 192 - (_position.y + 30);
-        _bgmVisibleCount = availableHeight / 14;
-        if (_bgmVisibleCount > kBgmVisibleItems) _bgmVisibleCount = kBgmVisibleItems;
-        if (_bgmVisibleCount < 1) _bgmVisibleCount = 1;
-        int visibleCount = _bgmVisibleCount;
-
-        // Adjust scroll so cursor is visible
-        if (_bgmListCursor < _bgmListScroll)
-            _bgmListScroll = _bgmListCursor;
-        if (_bgmListCursor >= _bgmListScroll + visibleCount)
-            _bgmListScroll = _bgmListCursor - visibleCount + 1;
-        if (_bgmListScroll < 0) _bgmListScroll = 0;
-        if (_bgmListScroll > totalItems - visibleCount)
-            _bgmListScroll = totalItems - visibleCount;
-        if (_bgmListScroll < 0) _bgmListScroll = 0;
-
-        for (int i = 0; i < kBgmVisibleItems; i++)
+        // Position and update RecyclerView
+        if (_bgmRecycler)
         {
-            int itemIdx = _bgmListScroll + i;
-            if (itemIdx < totalItems && i < visibleCount)
-                _bgmListLabels[i].SetPosition(28, _position.y + 30 + i * 14);
-            else
-                _bgmListLabels[i].SetPosition(-300, -300);
+            _bgmRecycler->SetPosition(BGM_LIST_X, _position.y + BGM_LIST_Y);
+            _bgmRecycler->Update();
         }
     }
     else
@@ -381,10 +324,8 @@ void DisplaySettingsBottomSheetView::Update()
         _darkModeChip.SetPosition(70, _position.y + 170 - s);
         _bgmChip.SetPosition(70, _position.y + 202 - s);
 
-        // Hide BGM select labels offscreen
+        // Hide BGM select title offscreen
         _bgmSelectTitle.SetPosition(-300, -300);
-        for (int i = 0; i < kBgmVisibleItems; i++)
-            _bgmListLabels[i].SetPosition(-300, -300);
     }
 }
 
@@ -397,23 +338,15 @@ void DisplaySettingsBottomSheetView::Draw(GraphicsContext& graphicsContext)
 
         if (_bgmSelectMode)
         {
-            int totalItems = _bgmFileCount + 1;
             _bgmSelectTitle.SetBackgroundColor(bgColor);
             _bgmSelectTitle.SetForegroundColor(_materialColorScheme->onSurface);
 
-            for (int i = 0; i < kBgmVisibleItems; i++)
+            // Draw the RecyclerView
+            if (_bgmRecycler)
             {
-                int itemIdx = _bgmListScroll + i;
-                if (itemIdx < totalItems)
-                {
-                    bool selected = (itemIdx == _bgmListCursor);
-                    _bgmListLabels[i].SetBackgroundColor(
-                        selected ? _materialColorScheme->GetColor(md::sys::color::secondaryContainer)
-                                 : bgColor);
-                    _bgmListLabels[i].SetForegroundColor(
-                        selected ? _materialColorScheme->GetColor(md::sys::color::onSecondaryContainer)
-                                 : _materialColorScheme->onSurfaceVariant);
-                }
+                graphicsContext.SetClipArea(_bgmRecycler->GetBounds());
+                _bgmRecycler->Draw(graphicsContext);
+                graphicsContext.SetClipArea(GetBounds());
             }
         }
         else
@@ -485,38 +418,29 @@ void DisplaySettingsBottomSheetView::ToggleDarkMode()
 bool DisplaySettingsBottomSheetView::HandleInput(
     const InputProvider& inputProvider, FocusManager& focusManager)
 {
+    _focusManager = &focusManager;
+
     if (_bgmSelectMode)
     {
-        int totalItems = _bgmFileCount + 1;
         if (inputProvider.Triggered(InputKey::B))
         {
-            ExitBgmSelectMode();
+            ExitBgmSelectMode(focusManager);
             return true;
         }
         if (inputProvider.Triggered(InputKey::A))
         {
-            ApplyBgmAndRestart();
-            return true;
-        }
-        if (inputProvider.Triggered(InputKey::DpadUp))
-        {
-            if (_bgmListCursor > 0)
+            if (_bgmRecycler)
             {
-                _bgmListCursor--;
-                UpdateBgmListLabels();
+                int selectedIdx = _bgmRecycler->GetSelectedItem();
+                if (selectedIdx >= 0)
+                {
+                    ApplyBgmSelection(selectedIdx);
+                }
             }
             return true;
         }
-        if (inputProvider.Triggered(InputKey::DpadDown))
-        {
-            if (_bgmListCursor < totalItems - 1)
-            {
-                _bgmListCursor++;
-                UpdateBgmListLabels();
-            }
-            return true;
-        }
-        return true; // consume all input in BGM select mode
+        // Let FocusManager handle up/down navigation automatically
+        return false;
     }
 
     if (inputProvider.Triggered(InputKey::B))
@@ -544,7 +468,7 @@ bool DisplaySettingsBottomSheetView::HandleInput(
         }
         else if (focus == &_bgmChip)
         {
-            EnterBgmSelectMode();
+            EnterBgmSelectMode(focusManager);
             return true;
         }
     }
@@ -554,57 +478,13 @@ bool DisplaySettingsBottomSheetView::HandleInput(
 bool DisplaySettingsBottomSheetView::HandleTouch(
     const TouchEvent& event, FocusManager& focusManager)
 {
+    _focusManager = &focusManager;
+
     if (_bgmSelectMode)
     {
-        int bgmTotalItems = _bgmFileCount + 1;
-        int maxScroll = bgmTotalItems - _bgmVisibleCount;
-        if (maxScroll < 0) maxScroll = 0;
-
-        // Touch drag scrolling — accumulate pixels, scroll when threshold reached
-        if (event.type == TouchEventType::Move)
+        if (_bgmRecycler)
         {
-            _touchDragAccum += event.deltaY;
-            while (_touchDragAccum >= 8 && _bgmListScroll > 0)
-            {
-                _bgmListScroll--;
-                _touchDragAccum -= 16;
-            }
-            while (_touchDragAccum <= -8 && _bgmListScroll < maxScroll)
-            {
-                _bgmListScroll++;
-                _touchDragAccum += 16;
-            }
-            if (_bgmListScroll <= 0) { _bgmListScroll = 0; if (_touchDragAccum < 0) _touchDragAccum = 0; }
-            if (_bgmListScroll >= maxScroll) { _bgmListScroll = maxScroll; if (_touchDragAccum > 0) _touchDragAccum = 0; }
-            UpdateBgmListLabels();
-            return true;
-        }
-
-        if (event.type == TouchEventType::Down)
-        {
-            _touchDragAccum = 0;
-            return true;
-        }
-
-        // Tap to select item
-        if (event.type != TouchEventType::Up || event.holdFrames > 24)
-            return true;
-
-        int totalDelta = event.totalDeltaX * event.totalDeltaX + event.totalDeltaY * event.totalDeltaY;
-        if (totalDelta > 100)
-            return true;
-
-        for (int i = 0; i < kBgmVisibleItems; i++)
-        {
-            int itemIdx = _bgmListScroll + i;
-            if (itemIdx >= bgmTotalItems) break;
-            if (_bgmListLabels[i].GetBounds().Contains(event.position))
-            {
-                _bgmListCursor = itemIdx;
-                UpdateBgmListLabels();
-                ApplyBgmAndRestart();
-                return true;
-            }
+            return _bgmRecycler->HandleTouch(event, focusManager);
         }
         return true;
     }
@@ -673,7 +553,7 @@ bool DisplaySettingsBottomSheetView::HandleTouch(
     if (_bgmChip.GetBounds().Contains(event.position))
     {
         focusManager.Focus(&_bgmChip);
-        EnterBgmSelectMode();
+        EnterBgmSelectMode(focusManager);
         return true;
     }
 
@@ -689,6 +569,12 @@ void DisplaySettingsBottomSheetView::OnDismissed()
 View* DisplaySettingsBottomSheetView::MoveFocus(View* currentFocus,
     FocusMoveDirection direction, View* source)
 {
+    if (_bgmSelectMode && source == _bgmRecycler.get())
+    {
+        // Don't let focus escape the recycler in bgm select mode
+        return nullptr;
+    }
+
     int idx = 0;
     for (auto& layoutOption : _layoutOptions)
     {
@@ -836,89 +722,81 @@ u32 DisplaySettingsBottomSheetView::LoadIcon(IVramManager& vramManager,
     return vramOffset;
 }
 
-void DisplaySettingsBottomSheetView::EnterBgmSelectMode()
+void DisplaySettingsBottomSheetView::EnterBgmSelectMode(FocusManager& focusManager)
 {
     _bgmSelectMode = true;
-    _bgmListScroll = 0;
+    _focusManager = &focusManager;
 
-    // Set cursor to current selection: 0 = Random, 1..N = file indices
-    if (_bgmIndex < 0 || _bgmIndex >= _bgmFileCount)
-        _bgmListCursor = 0; // Random
-    else
-        _bgmListCursor = _bgmIndex + 1;
+    // Compute list height: fill from BGM_LIST_Y to bottom of screen
+    int listHeight = 192 - _position.y - BGM_LIST_Y - 4;
+    if (listHeight < 16) listHeight = 16;
 
-    // Ensure cursor is visible
-    if (_bgmListCursor >= _bgmVisibleCount)
-        _bgmListScroll = _bgmListCursor - _bgmVisibleCount + 1;
+    // Create RecyclerView
+    _bgmRecycler = std::make_unique<RecyclerView>(
+        BGM_LIST_X, _position.y + BGM_LIST_Y, 224, listHeight, RecyclerView::Mode::VerticalList);
+    _bgmRecycler->SetShoulderPagingEnabled(false);
+    _bgmRecycler->SetParent(this);
 
-    UpdateBgmListLabels();
-}
-
-void DisplaySettingsBottomSheetView::ExitBgmSelectMode()
-{
-    _bgmSelectMode = false;
-}
-
-void DisplaySettingsBottomSheetView::UpdateBgmListLabels()
-{
-    int totalItems = _bgmFileCount + 1; // +1 for "Random"
-
-    for (int i = 0; i < kBgmVisibleItems; i++)
+    // Set touch tap callback
+    _bgmRecycler->SetTouchTapCallback([](int itemIdx, void* arg)
     {
-        int itemIdx = _bgmListScroll + i;
-        if (itemIdx >= totalItems)
-        {
-            _bgmListLabels[i].SetText(u"");
-            continue;
-        }
+        auto* self = static_cast<DisplaySettingsBottomSheetView*>(arg);
+        self->ApplyBgmSelection(itemIdx);
+    }, this);
 
-        if (itemIdx == 0)
-        {
-            // "Random" entry
-            if (itemIdx == _bgmListCursor)
-                _bgmListLabels[i].SetText(u"> Random");
-            else
-                _bgmListLabels[i].SetText(u"  Random");
-        }
-        else
-        {
-            // File entry: strip .bcstm extension
-            int fileIdx = itemIdx - 1;
-            char16_t buf[36];
-            const char* name = _bgmFileNames[fileIdx].GetString();
+    // Create adapter
+    _bgmAdapter = new BgmAdapter(_bgmFileNames, _bgmFileCount, _materialColorScheme, _fontRepository);
+    _bgmRecycler->SetAdapter(_bgmAdapter);
 
-            // Add cursor indicator
-            int pos = 0;
-            if (itemIdx == _bgmListCursor)
-            {
-                buf[pos++] = u'>';
-                buf[pos++] = u' ';
-            }
-            else
-            {
-                buf[pos++] = u' ';
-                buf[pos++] = u' ';
-            }
-
-            int j = 0;
-            while (name[j] && name[j] != '.' && pos < 34)
-            {
-                buf[pos++] = (char16_t)(unsigned char)name[j];
-                j++;
-            }
-            buf[pos] = 0;
-            _bgmListLabels[i].SetText(buf);
-        }
+    // InitVram for the RecyclerView
+    if (_objVramManager)
+    {
+        _savedVramState = ((DescendingStackVramManager*)_objVramManager)->GetState();
+        _bgmRecycler->InitVram(VramContext(nullptr, _objVramManager, nullptr, nullptr));
     }
+
+    // Focus on current selection: 0 = Random, 1..N = file indices
+    int initialIndex = (_bgmIndex < 0 || _bgmIndex >= _bgmFileCount) ? 0 : (_bgmIndex + 1);
+
+    // Need to set adapter with initial selected index and re-focus
+    focusManager.Unfocus();
+    _bgmRecycler->SetAdapter(_bgmAdapter, initialIndex);
+    if (_objVramManager)
+    {
+        ((DescendingStackVramManager*)_objVramManager)->SetState(_savedVramState);
+        _bgmRecycler->InitVram(VramContext(nullptr, _objVramManager, nullptr, nullptr));
+    }
+    _bgmRecycler->Focus(focusManager);
 }
 
-void DisplaySettingsBottomSheetView::ApplyBgmAndRestart()
+void DisplaySettingsBottomSheetView::ExitBgmSelectMode(FocusManager& focusManager)
 {
-    // Convert cursor to bgm index: 0 = Random (-1), 1+ = file index
-    if (_bgmListCursor == 0)
+    focusManager.Unfocus();
+
+    if (_objVramManager)
+    {
+        ((DescendingStackVramManager*)_objVramManager)->SetState(_savedVramState);
+    }
+
+    _bgmRecycler.reset();
+    if (_bgmAdapter != nullptr)
+    {
+        delete _bgmAdapter;
+        _bgmAdapter = nullptr;
+    }
+
+    _bgmSelectMode = false;
+    focusManager.Focus(&_bgmChip);
+    ScrollToFocus(&_bgmChip);
+}
+
+void DisplaySettingsBottomSheetView::ApplyBgmSelection(int index)
+{
+    // Convert index: 0 = Random (-1), 1+ = file index
+    if (index == 0)
         _bgmIndex = -1;
     else
-        _bgmIndex = _bgmListCursor - 1;
+        _bgmIndex = index - 1;
 
     UpdateBgmChipText();
 

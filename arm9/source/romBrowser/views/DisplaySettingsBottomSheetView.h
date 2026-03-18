@@ -1,12 +1,16 @@
 #pragma once
 #include <array>
+#include <memory>
 #include "BottomSheetView.h"
 #include "gui/views/Label2DView.h"
+#include "gui/views/RecyclerView.h"
 #include "IconButton2DView.h"
 #include "ChipView.h"
 #include "../viewModels/DisplaySettingsViewModel.h"
 #include "services/settings/IAppSettingsService.h"
 #include "bgm/IBgmService.h"
+#include "BgmListItemView.h"
+#include "BgmAdapter.h"
 
 class IRomBrowserController;
 class MaterialColorScheme;
@@ -39,6 +43,15 @@ public:
         const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository,
         IAppSettingsService* appSettingsService, IBgmService* bgmService,
         const char* appliedThemeName);
+
+    ~DisplaySettingsBottomSheetView() override
+    {
+        _bgmRecycler.reset();
+        if (_bgmAdapter != nullptr)
+        {
+            delete _bgmAdapter;
+        }
+    }
 
     void InitVram(const VramContext& vramContext) override;
     void Update() override;
@@ -92,15 +105,14 @@ private:
     int _bgmFileCount = 0;
     int _bgmIndex = -1; // -1 = Random
 
-    // BGM selection mode
+    // BGM selection mode (RecyclerView-based)
     bool _bgmSelectMode = false;
-    int _bgmListCursor = 0;   // 0 = Random, 1..N = file index
-    int _bgmListScroll = 0;   // scroll offset for the list
-    int _touchDragAccum = 0;  // touch drag pixel accumulator
-    int _bgmVisibleCount = kBgmVisibleItems; // actual visible items (computed in Update)
-    static constexpr int kBgmVisibleItems = 8;
-    Label2DView _bgmListLabels[kBgmVisibleItems];
+    std::unique_ptr<RecyclerView> _bgmRecycler;
+    BgmAdapter* _bgmAdapter = nullptr;
     Label2DView _bgmSelectTitle;
+    FocusManager* _focusManager = nullptr;
+    IVramManager* _objVramManager = nullptr;
+    u32 _savedVramState = 0;
 
     IconButton2DView CreateLayoutOptionIconButton();
     IconButton2DView CreateSortOptionIconButton();
@@ -108,15 +120,13 @@ private:
     void UpdateLabels();
     void UpdateLanguageAndLabels();
     void ToggleDarkMode();
-    void CycleBgm(bool forward);
     void UpdateBgmChipText();
     void ScanBgmFiles();
     void ScrollToFocus(View* target);
 
-    void EnterBgmSelectMode();
-    void ExitBgmSelectMode();
-    void UpdateBgmListLabels();
-    void ApplyBgmAndRestart();
+    void EnterBgmSelectMode(FocusManager& focusManager);
+    void ExitBgmSelectMode(FocusManager& focusManager);
+    void ApplyBgmSelection(int index);
 
     bool _usePreloadedIcons = false;
 
