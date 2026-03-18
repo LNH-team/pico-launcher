@@ -22,6 +22,7 @@ public:
     void SetCurrentlyPlaying(bool playing) { _currentlyPlaying = playing; }
 
 private:
+    Label2DView _arrowLabel;
     Label2DView _nameLabel;
     const MaterialColorScheme* _materialColorScheme;
     bool _currentlyPlaying = false;
