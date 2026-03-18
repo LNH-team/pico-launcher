@@ -108,6 +108,8 @@ public:
         else
             settings.language = "chinese";
         _romBrowserController->MarkSettingsDirty();
+        _romBrowserController->SaveSettingsNow();
+        _romBrowserController->RequestChangeDisplayMode();
     }
 
     void ToggleTheme()
@@ -118,9 +120,9 @@ public:
             settings.theme = "raspberry";
         else
             settings.theme = "material";
+        _romBrowserController->MarkSettingsDirty();
         _romBrowserController->SaveSettingsNow();
-        _romBrowserController->RequestThemeReload();
-        _romBrowserController->HideDisplaySettings();
+        _romBrowserController->RequestChangeDisplayMode();
     }
 
 private:
