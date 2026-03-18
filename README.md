@@ -1,81 +1,57 @@
-# Pico Launcher
-This repository contains Pico Launcher, which is a front-end for [Pico Loader](https://github.com/LNH-team/pico-loader).
+# Pico Launcher 中文增强版 v3.0
 
-![Horizontal display mode with custom theme](docs/images/HorizontalCustom.png)
-![Banner list display mode](docs/images/List.png)
-![Coverflow display mode](docs/images/Coverflow.png)
+基于 [MattiaTheBest115/pico-launcher](https://github.com/MattiaTheBest115/pico-launcher) develop 分支
+
+[中文说明](README_CN.md) | [English](README_EN.md)
+
+## 功能特性
+
+- 中文字体 + 中英双语切换
+- 触屏支持
+- 155 首 BGM 背景音乐（7 个平台分类）
+- 15 个主题（内置 + 第三方）
+- 深色模式
+- 3D CoverFlow
+- 4658 张 NDS 封面 + 2044 张 GBA 封面
+- 7091 条金手指
+- TWiLight Menu++ v27.23.0 / AKMenu-Next v2.0.5
+
+## 安装
+
+解压整合包到 SD 卡根目录覆盖即可。
+
+## 编译
+
+```bash
+docker run --rm -v "$(pwd):/work" -w /work skylyrac/blocksds:slim-latest make
+```
+
+---
+
+# Pico Launcher Chinese Enhanced v3.0
+
+Based on [MattiaTheBest115/pico-launcher](https://github.com/MattiaTheBest115/pico-launcher) develop branch
+
+[中文说明](README_CN.md) | [English](README_EN.md)
 
 ## Features
-- Can load homebrew and retail games using [Pico Loader](https://github.com/LNH-team/pico-loader).
-- Various display modes
-    - Horizontal and vertical icon grid
-    - Banner list
-    - Coverflow
-- [File associations](docs/FileAssociations.md)
-- [Covers](docs/Covers.md)
-- [Material Design 3 and custom themes](docs/Themes.md)
-- Support for background music (see [Themes](docs/Themes.md))
 
-General usage documentation can be found here: [Usage](docs/Usage.md).
+- Chinese font + bilingual UI
+- Touch screen support
+- 155 BGM tracks (7 platform categories)
+- 15 themes (built-in + custom)
+- Dark mode
+- 3D CoverFlow
+- 4,658 NDS covers + 2,044 GBA covers
+- 7,091 cheat entries
+- TWiLight Menu++ v27.23.0 / AKMenu-Next v2.0.5
 
-## Setup & Configuration
-We recommend using WSL (Windows Subsystem for Linux), or MSYS2 to compile this repository.
-The steps provided will assume you already have one of those environments set up.
+## Installation
 
-1. Install [BlocksDS](https://blocksds.skylyrac.net/docs/setup/options/)
+Extract archive to SD card root and overwrite.
 
-## Compiling
+## Building
 
-1. Run `make`
-
-The launcher can be found in the root directory under the name `LAUNCHER.nds`.
-
-2. Copy `LAUNCHER.nds` to your SD card.
-    - If you are using DSpico, rename to `_picoboot.nds` and place it in the root of your SD card.
-3. Copy the `_pico` pico folder to the root of your SD card.
-
-> [!NOTE]
-> To use Pico Launcher, the Pico Loader files (`aplist.bin`, `savelist.bin`, `picoLoader7.bin` and `picoLoader9.bin`) must also be present in the `/_pico` folder on your SD card.
-
-For DSpico the final directory structure will look like this:
+```bash
+docker run --rm -v "$(pwd):/work" -w /work skylyrac/blocksds:slim-latest make
 ```
-.
-├── _pico
-│   ├── themes
-│   │   ├── material
-│   │   │   └── theme.json
-│   │   └── raspberry
-│   │       ├── bannerListCell.bin
-│   │       ├── bannerListCellPltt.bin
-│   │       ├── bannerListCellSelected.bin
-│   │       ├── bannerListCellSelectedPltt.bin
-│   │       ├── bottombg.bin
-│   │       ├── gridcell.bin
-│   │       ├── gridcellPltt.bin
-│   │       ├── gridcellSelected.bin
-│   │       ├── gridcellSelectedPltt.bin
-│   │       ├── scrim.bin
-│   │       ├── scrimPltt.bin
-│   │       ├── theme.json
-│   │       └── topbg.bin
-│   ├── aplist.bin
-│   ├── savelist.bin
-│   ├── picoLoader7.bin
-│   └── picoLoader9.bin
-└── _picoboot.nds
-```
-Note: If you want to play DSiWare on the DSpico, additional files are required. See the [Pico Loader](https://github.com/LNH-team/pico-loader) readme for more information.
-
-## License
-
-Icons by [icons8](https://icons8.com/)
-
-This project is licensed under the Zlib license. For details, see `LICENSE.txt`.
-
-Additional licenses may apply to the project. For details, see the `license` directory.
-
-## Contributors
-- [@Gericom](https://github.com/Gericom)
-- [@XLuma](https://github.com/XLuma)
-- [@Dartz150](https://github.com/Dartz150)
-- [@lifehackerhansol](https://github.com/lifehackerhansol)
