@@ -89,7 +89,7 @@ public:
             {
                 // 3DS category header
                 isCategory = true;
-                const char16_t* arrow = _3dsExpanded ? u"\x19 3DS" : u"\x1A 3DS";
+                const char16_t* arrow = _3dsExpanded ? u"- 3DS" : u"+ 3DS";
                 for (int i = 0; arrow[i] && pos < 62; i++)
                     buf[pos++] = arrow[i];
                 buf[pos] = 0;
@@ -106,7 +106,9 @@ public:
                 {
                     fileIdx = _3dsStart + flatIdx;
                     isCurrent = (fileIdx == _currentBgmIndex);
-                    if (isCurrent) { buf[pos++] = u'\u00B7'; buf[pos++] = u' '; }
+                    // Indent child items
+                    buf[pos++] = u' '; buf[pos++] = u'|';
+                    if (isCurrent) { buf[pos++] = u'\u00B7'; } else { buf[pos++] = u' '; }
                     // Strip "3DS_" prefix, then replace '_' with ' '
                     const char* name = _bgmFileNames[fileIdx].GetString();
                     int j = 4; // skip "3DS_"
@@ -132,7 +134,7 @@ public:
             {
                 // DSi category header
                 isCategory = true;
-                const char16_t* arrow = _dsiExpanded ? u"\x19 DSi" : u"\x1A DSi";
+                const char16_t* arrow = _dsiExpanded ? u"- DSi" : u"+ DSi";
                 for (int i = 0; arrow[i] && pos < 62; i++)
                     buf[pos++] = arrow[i];
                 buf[pos] = 0;
@@ -149,7 +151,9 @@ public:
                 {
                     fileIdx = _dsiStart + flatIdx;
                     isCurrent = (fileIdx == _currentBgmIndex);
-                    if (isCurrent) { buf[pos++] = u'\u00B7'; buf[pos++] = u' '; }
+                    // Indent child items
+                    buf[pos++] = u' '; buf[pos++] = u'|';
+                    if (isCurrent) { buf[pos++] = u'\u00B7'; } else { buf[pos++] = u' '; }
                     // Strip "DSi_" prefix, then replace '_' with ' '
                     const char* name = _bgmFileNames[fileIdx].GetString();
                     int j = 4; // skip "DSi_"
