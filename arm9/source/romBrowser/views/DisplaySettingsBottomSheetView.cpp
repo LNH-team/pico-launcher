@@ -730,7 +730,9 @@ void DisplaySettingsBottomSheetView::EnterBgmSelectMode(FocusManager& focusManag
     _focusManager = &focusManager;
 
     // Compute list height: fill from BGM_LIST_Y to bottom of screen
+    // Round down to multiple of 16 (item height) to avoid partial items
     int listHeight = 192 - _position.y - BGM_LIST_Y - 4;
+    listHeight = (listHeight / 16) * 16;
     if (listHeight < 16) listHeight = 16;
 
     if (!_bgmRecycler)
