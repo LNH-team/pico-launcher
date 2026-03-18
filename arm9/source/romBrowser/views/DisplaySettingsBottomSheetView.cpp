@@ -294,8 +294,7 @@ bool DisplaySettingsBottomSheetView::HandleInput(
         auto focus = focusManager.GetCurrentFocus();
         if (focus == &_themeChip)
         {
-            _viewModel->ToggleTheme();
-            _themeChip.SetText(_viewModel->IsMaterialTheme() ? u"Material" : u"Raspberry");
+            _viewModel->ToggleTheme(); // saves + closes dialog + triggers restart
             return true;
         }
         else if (focus == &_languageChip)
@@ -362,7 +361,6 @@ bool DisplaySettingsBottomSheetView::HandleTouch(
     {
         focusManager.Focus(&_themeChip);
         _viewModel->ToggleTheme();
-        _themeChip.SetText(_viewModel->IsMaterialTheme() ? u"Material" : u"Raspberry");
         return true;
     }
     if (_languageChip.GetBounds().Contains(event.position))
