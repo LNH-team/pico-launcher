@@ -606,6 +606,7 @@ void App::HandleShowDisplaySettingsTrigger()
         _theme->GetFontRepository(), &_appSettingsService,
         _effectiveThemeName.GetString());
     displaySettingsDialog->SetGraphics(_iconButtonViewVram);
+    displaySettingsDialog->SetChipGraphics(_chipViewVram);
     displaySettingsDialog->SetIconGraphics(_displaySettingsIconVram);
     _dialogPresenter.ShowDialog(std::move(displaySettingsDialog));
 }
