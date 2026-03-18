@@ -41,7 +41,7 @@
 #define FILTERS_LABEL_Y     112
 
 #define BGM_LIST_X          16
-#define BGM_LIST_Y          30
+#define BGM_LIST_Y          36
 
 static RomBrowserLayout sRomBrowserDisplayModes[4] =
 {
