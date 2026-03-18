@@ -53,7 +53,8 @@ static RomBrowserSortMode sRomBrowserSortModes[4] =
 DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     DisplaySettingsViewModel* viewModel, const MaterialColorScheme* materialColorScheme,
     const IFontRepository* fontRepository,
-    IAppSettingsService* appSettingsService, const char* appliedThemeName)
+    IAppSettingsService* appSettingsService, IBgmService* bgmService,
+    const char* appliedThemeName)
     : _viewModel(viewModel)
     , _appSettingsService(appSettingsService)
     , _titleLabel(128, 16, 25, fontRepository->GetFont(FontType::Medium11))
@@ -62,14 +63,17 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     , _themeLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
     , _languageLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
     , _darkModeLabel(96, 16, 25, fontRepository->GetFont(FontType::Regular10))
+    , _bgmLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
     , _themeChip(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository)
     , _languageChip(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository)
     , _darkModeChip(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository)
+    , _bgmChip(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository)
     , _materialColorScheme(materialColorScheme)
     , _fontRepository(fontRepository)
 {
-    // Wire up the app settings service for toggle methods
+    // Wire up the app settings service and bgm service for toggle methods
     _viewModel->SetAppSettingsService(appSettingsService);
+    _viewModel->SetBgmService(bgmService);
 
     _titleLabel.SetText(Localization::Translate("display_settings"));
     AddChildTail(&_titleLabel);
@@ -98,6 +102,15 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     _darkModeChip.SetText(_viewModel->GetDarkMode() ? u"On" : u"Off");
     _darkModeChip.SetSelected(_viewModel->GetDarkMode());
     AddChildTail(&_darkModeChip);
+
+    // BGM label and chip
+    _bgmLabel.SetText(Localization::Translate("bgm"));
+    AddChildTail(&_bgmLabel);
+    _viewModel->ScanBgmFiles();
+    _bgmChip.SetMinWidth(100);
+    UpdateBgmChipText();
+    _bgmChip.SetSelected(true);
+    AddChildTail(&_bgmChip);
 
     for (auto& layoutOption : _layoutOptions)
     {
@@ -179,6 +192,7 @@ void DisplaySettingsBottomSheetView::UpdateLabels()
     _themeLabel.SetPosition(20, _position.y + 110 - s);
     _languageLabel.SetPosition(20, _position.y + 142 - s);
     _darkModeLabel.SetPosition(20, _position.y + 174 - s);
+    _bgmLabel.SetPosition(20, _position.y + 206 - s);
 }
 
 void DisplaySettingsBottomSheetView::Update()
@@ -214,6 +228,7 @@ void DisplaySettingsBottomSheetView::Update()
     _themeChip.SetPosition(70, _position.y + 106 - s);
     _languageChip.SetPosition(70, _position.y + 138 - s);
     _darkModeChip.SetPosition(70, _position.y + 170 - s);
+    _bgmChip.SetPosition(70, _position.y + 202 - s);
 }
 
 void DisplaySettingsBottomSheetView::Draw(GraphicsContext& graphicsContext)
@@ -233,6 +248,8 @@ void DisplaySettingsBottomSheetView::Draw(GraphicsContext& graphicsContext)
         _languageLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         _darkModeLabel.SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
         _darkModeLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+        _bgmLabel.SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+        _bgmLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         BottomSheetView::Draw(graphicsContext);
     }
     graphicsContext.SetPriority(oldPrio);
@@ -245,6 +262,7 @@ void DisplaySettingsBottomSheetView::ScrollToFocus(View* target)
     if (target == &_themeChip) focusY = 106;
     else if (target == &_languageChip) focusY = 138;
     else if (target == &_darkModeChip) focusY = 170;
+    else if (target == &_bgmChip) focusY = 202;
     else { _scrollOffset = 0; return; }
 
     int visibleHeight = 192 - _position.y;
@@ -271,6 +289,7 @@ void DisplaySettingsBottomSheetView::UpdateLanguageAndLabels()
     _languageLabel.SetText(Localization::Translate("language"));
     _darkModeLabel.SetText(Localization::Translate("dark_mode"));
     _darkModeChip.SetText(_viewModel->GetDarkMode() ? u"On" : u"Off");
+    _bgmLabel.SetText(Localization::Translate("bgm"));
 }
 
 void DisplaySettingsBottomSheetView::ToggleDarkMode()
@@ -279,6 +298,22 @@ void DisplaySettingsBottomSheetView::ToggleDarkMode()
     bool dark = _viewModel->GetDarkMode();
     _darkModeChip.SetSelected(dark);
     _darkModeChip.SetText(dark ? u"On" : u"Off");
+}
+
+void DisplaySettingsBottomSheetView::UpdateBgmChipText()
+{
+    char16_t buf[32];
+    _viewModel->GetBgmDisplayName(buf, 32);
+    _bgmChip.SetText(buf);
+}
+
+void DisplaySettingsBottomSheetView::CycleBgm(bool forward)
+{
+    if (forward)
+        _viewModel->NextBgm();
+    else
+        _viewModel->PrevBgm();
+    UpdateBgmChipText();
 }
 
 bool DisplaySettingsBottomSheetView::HandleInput(
@@ -307,6 +342,20 @@ bool DisplaySettingsBottomSheetView::HandleInput(
             ToggleDarkMode();
             return true;
         }
+        else if (focus == &_bgmChip)
+        {
+            CycleBgm(true);
+            return true;
+        }
+    }
+    if (inputProvider.Triggered(InputKey::DpadLeft) || inputProvider.Triggered(InputKey::DpadRight))
+    {
+        auto focus = focusManager.GetCurrentFocus();
+        if (focus == &_bgmChip)
+        {
+            CycleBgm(inputProvider.Triggered(InputKey::DpadRight));
+            return true;
+        }
     }
     return false;
 }
@@ -319,7 +368,7 @@ bool DisplaySettingsBottomSheetView::HandleTouch(
     {
         _scrollOffset -= event.deltaY;
         if (_scrollOffset < 0) _scrollOffset = 0;
-        int maxScroll = 200 - (192 - _position.y);
+        int maxScroll = 232 - (192 - _position.y);
         if (maxScroll < 0) maxScroll = 0;
         if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
         return true;
@@ -373,6 +422,12 @@ bool DisplaySettingsBottomSheetView::HandleTouch(
     {
         focusManager.Focus(&_darkModeChip);
         ToggleDarkMode();
+        return true;
+    }
+    if (_bgmChip.GetBounds().Contains(event.position))
+    {
+        focusManager.Focus(&_bgmChip);
+        CycleBgm(true);
         return true;
     }
 
@@ -466,6 +521,14 @@ View* DisplaySettingsBottomSheetView::MoveFocus(View* currentFocus,
     {
         if (direction == FocusMoveDirection::Up)
         { View* r = &_languageChip; ScrollToFocus(r); return r; }
+        View* r = &_bgmChip;
+        ScrollToFocus(r);
+        return r;
+    }
+    if (currentFocus == &_bgmChip)
+    {
+        if (direction == FocusMoveDirection::Up)
+        { View* r = &_darkModeChip; ScrollToFocus(r); return r; }
         _scrollOffset = 0;
         return &_layoutOptions[0];
     }
@@ -487,6 +550,7 @@ void DisplaySettingsBottomSheetView::SetChipGraphics(
     _themeChip.SetGraphics(chipViewVramToken);
     _languageChip.SetGraphics(chipViewVramToken);
     _darkModeChip.SetGraphics(chipViewVramToken);
+    _bgmChip.SetGraphics(chipViewVramToken);
 }
 
 void DisplaySettingsBottomSheetView::SetIconGraphics(const IconVramToken& iconVramToken)
