@@ -70,6 +70,8 @@ private:
     Label2DView _themeValueLabel;
     Label2DView _languageLabel;
     Label2DView _languageValueLabel;
+    Label2DView _darkModeLabel;
+    Label2DView _darkModeValueLabel;
     // LabelView _filtersLabel;
 
     std::array<IconButton2DView, 4> _layoutOptions;
@@ -117,6 +119,8 @@ private:
     void EnsureLanguagesLoaded();
     void UpdateLanguageUI();
     void ChangeLanguage(int newIdx);
+    void UpdateDarkModeUI();
+    void ToggleDarkMode();
     void ReleaseLazyLists();
     void SaveIfDirty();
     u32 LoadIcon(IVramManager& vramManager, const unsigned int* tiles, u32 tilesLength) const;

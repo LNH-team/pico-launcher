@@ -47,6 +47,10 @@
 #define LANGUAGE_LABEL_Y    130
 #define LANGUAGE_VALUE_X    100
 
+#define DARK_MODE_LABEL_X   20
+#define DARK_MODE_LABEL_Y   154
+#define DARK_MODE_VALUE_X   100
+
 namespace
 {
     u32 LoadDisplaySettingsIcon(IVramManager& vramManager, const unsigned int* tiles, u32 tilesLength)
@@ -85,6 +89,8 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     , _themeValueLabel(120, 16, 20, fontRepository->GetFont(FontType::Regular10))
     , _languageLabel(80, 16, 20, fontRepository->GetFont(FontType::Regular10))
     , _languageValueLabel(120, 16, 20, fontRepository->GetFont(FontType::Regular10))
+    , _darkModeLabel(80, 16, 20, fontRepository->GetFont(FontType::Regular10))
+    , _darkModeValueLabel(120, 16, 20, fontRepository->GetFont(FontType::Regular10))
     , _materialColorScheme(materialColorScheme)
     , _appliedThemeName(appliedThemeName ? appliedThemeName : "")
     // , _filtersLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
@@ -109,6 +115,10 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     _languageLabel.SetText(Localization::Translate("language"));
     AddChildTail(&_languageLabel);
     AddChildTail(&_languageValueLabel);
+    _darkModeLabel.SetText(Localization::Translate("dark_mode"));
+    AddChildTail(&_darkModeLabel);
+    _darkModeValueLabel.SetText(_appSettingsService->GetAppSettings().darkMode ? u"On" : u"Off");
+    AddChildTail(&_darkModeValueLabel);
     // _sortingLabel.SetText(Localization::Translate("filters"));
     // AddChildTail(&_filtersLabel);
 
@@ -153,6 +163,7 @@ void DisplaySettingsBottomSheetView::ChangeLanguage(int newIdx)
     _sortingLabel.SetText(Localization::Translate("sorting"));
     _themeLabel.SetText(Localization::Translate("theme"));
     _languageLabel.SetText(Localization::Translate("language"));
+    _darkModeLabel.SetText(Localization::Translate("dark_mode"));
 }
 
 void DisplaySettingsBottomSheetView::EnsureThemesLoaded()
@@ -334,6 +345,23 @@ void DisplaySettingsBottomSheetView::UpdateLanguageUI()
         _languageValueLabel.SetText(_pendingLanguageName.GetString());
 }
 
+void DisplaySettingsBottomSheetView::UpdateDarkModeUI()
+{
+    _darkModeLabel.SetPosition(DARK_MODE_LABEL_X, _position.y + DARK_MODE_LABEL_Y);
+    _darkModeValueLabel.SetPosition(DARK_MODE_VALUE_X, _position.y + DARK_MODE_LABEL_Y);
+    _darkModeValueLabel.SetText(_appSettingsService->GetAppSettings().darkMode ? u"On" : u"Off");
+}
+
+void DisplaySettingsBottomSheetView::ToggleDarkMode()
+{
+    auto& settings = _appSettingsService->GetAppSettings();
+    settings.darkMode = !settings.darkMode;
+    _settingsDirty = true;
+    SaveIfDirty();
+    UpdateDarkModeUI();
+    _viewModel->RequestChangeDisplayMode();
+}
+
 void DisplaySettingsBottomSheetView::ReleaseLazyLists()
 {
     _themesLoaded = false;
@@ -433,6 +461,7 @@ void DisplaySettingsBottomSheetView::UpdateLabels()
     // _filtersLabel.SetPosition(FILTERS_LABEL_X, _position.y + FILTERS_LABEL_Y);
     UpdateThemeUI();
     UpdateLanguageUI();
+    UpdateDarkModeUI();
 }
 
 void DisplaySettingsBottomSheetView::Update()
@@ -518,6 +547,15 @@ void DisplaySettingsBottomSheetView::Draw(GraphicsContext& graphicsContext)
         _languageValueLabel.SetForegroundColor(langFocused
             ? _materialColorScheme->GetColor(md::sys::color::onSecondaryContainer)
             : _materialColorScheme->onSurfaceVariant);
+        _darkModeLabel.SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+        _darkModeLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+        bool darkModeFocused = _darkModeValueLabel.IsFocused();
+        _darkModeValueLabel.SetBackgroundColor(darkModeFocused
+            ? _materialColorScheme->GetColor(md::sys::color::secondaryContainer)
+            : _materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+        _darkModeValueLabel.SetForegroundColor(darkModeFocused
+            ? _materialColorScheme->GetColor(md::sys::color::onSecondaryContainer)
+            : _materialColorScheme->onSurfaceVariant);
         BottomSheetView::Draw(graphicsContext);
     }
     graphicsContext.SetPriority(oldPrio);
@@ -544,6 +582,11 @@ bool DisplaySettingsBottomSheetView::HandleInput(
     if (_themeValueLabel.IsFocused() && inputProvider.Triggered(InputKey::A))
     {
         ApplyTheme();
+        return true;
+    }
+    if (_darkModeValueLabel.IsFocused() && inputProvider.Triggered(InputKey::A))
+    {
+        ToggleDarkMode();
         return true;
     }
     if (inputProvider.Triggered(InputKey::B))
@@ -622,6 +665,11 @@ bool DisplaySettingsBottomSheetView::HandleTouch(const TouchEvent& event, FocusM
         {
             EnsureLanguagesLoaded();
             focusManager.Focus(&_languageValueLabel);
+            return true;
+        }
+        if (_darkModeValueLabel.GetBounds().Contains(event.position))
+        {
+            focusManager.Focus(&_darkModeValueLabel);
             return true;
         }
         return false;
@@ -707,6 +755,13 @@ bool DisplaySettingsBottomSheetView::HandleTouch(const TouchEvent& event, FocusM
         return true;
     }
 
+    if (_darkModeValueLabel.GetBounds().Contains(event.position))
+    {
+        focusManager.Focus(&_darkModeValueLabel);
+        ToggleDarkMode();
+        return true;
+    }
+
     return false;
 }
 
@@ -732,8 +787,7 @@ View* DisplaySettingsBottomSheetView::MoveFocus(View* currentFocus,
             }
             else if (direction == FocusMoveDirection::Up)
             {
-                EnsureLanguagesLoaded();
-                return &_languageValueLabel;
+                return &_darkModeValueLabel;
             }
             else //if (direction == FocusMoveDirection::Down)
             {
@@ -828,9 +882,25 @@ View* DisplaySettingsBottomSheetView::MoveFocus(View* currentFocus,
         }
         if (direction == FocusMoveDirection::Down)
         {
-            if (idx >= (int)_layoutOptions.size())
-                idx = _layoutOptions.size() - 1;
-            return &_layoutOptions[idx];
+            return &_darkModeValueLabel;
+        }
+    }
+    idx = 0;
+    if (currentFocus == &_darkModeValueLabel)
+    {
+        if (direction == FocusMoveDirection::Left || direction == FocusMoveDirection::Right)
+        {
+            ToggleDarkMode();
+            return &_darkModeValueLabel;
+        }
+        if (direction == FocusMoveDirection::Up)
+        {
+            EnsureLanguagesLoaded();
+            return &_languageValueLabel;
+        }
+        if (direction == FocusMoveDirection::Down)
+        {
+            return &_layoutOptions[0];
         }
     }
     return nullptr;

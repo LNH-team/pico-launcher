@@ -230,7 +230,8 @@ void App::LoadTheme()
     _loadedPrimaryColorB = themeInfo->GetPrimaryColor().b;
     _loadedDarkTheme     = themeInfo->GetIsDarkTheme();
 
-    _theme = ThemeFactory().CreateFromThemeInfo(themeInfo.get());
+    auto& settings = _appSettingsService.GetAppSettings();
+    _theme = ThemeFactory().CreateFromThemeInfo(themeInfo.get(), settings.darkMode);
     themeInfo.reset();
     _theme->LoadRomBrowserResources(_mainVramContext, _subVramContext);
     _topBackground = _theme->CreateRomBrowserTopBackground();
@@ -925,8 +926,32 @@ void App::HandleRomBrowserViewModelInvalidated()
     }
 }
 
+void App::RefreshThemeColors()
+{
+    bool darkMode = _appSettingsService.GetAppSettings().darkMode;
+    _theme->SetDarkMode(darkMode);
+
+    const auto& cs = _theme->GetMaterialColorScheme();
+
+    auto scrimBlendColor = Rgb<8, 8, 8>(
+        cs.inverseOnSurface.r + (cs.scrim.r - cs.inverseOnSurface.r) * 5 / 16,
+        cs.inverseOnSurface.g + (cs.scrim.g - cs.inverseOnSurface.g) * 5 / 16,
+        cs.inverseOnSurface.b + (cs.scrim.b - cs.inverseOnSurface.b) * 5 / 16);
+    RgbMixer::MakeGradientPalette((u16*)GFX_PLTT_BG_MAIN, scrimBlendColor,
+        cs.GetColor(md::sys::color::surfaceContainerLow));
+    GFX_PLTT_BG_MAIN[0] = ColorConverter::ToGBGR565(cs.inverseOnSurface);
+    GFX_PLTT_BG_MAIN[31] = ColorConverter::ToGBGR565(cs.scrim);
+
+    _topBackground = _theme->CreateRomBrowserTopBackground();
+    _topBackground->LoadResources(*_theme, _subVramContext);
+    _bottomBackground = _theme->CreateRomBrowserBottomBackground();
+    _bottomBackground->LoadResources(*_theme, _mainVramContext);
+}
+
 void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)
 {
+    RefreshThemeColors();
+
     DrainTaskQueues();
 
     ClearRetainedRomBrowserFocus(true);

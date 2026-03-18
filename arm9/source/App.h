@@ -160,6 +160,7 @@ private:
     void HandleNavigateTrigger();
     void HandleFolderLoadDoneTrigger();
     void HandleRomBrowserViewModelInvalidated();
+    void RefreshThemeColors();
     void HandleChangeDisplayModeTrigger(RomBrowserState newState);
     void ClearRetainedRomBrowserFocus(bool includeAppBar);
     void RestoreDirectMenuAccessFocus();

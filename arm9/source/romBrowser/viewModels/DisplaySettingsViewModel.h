@@ -59,6 +59,11 @@ public:
         _romBrowserController->RequestThemeReload();
     }
 
+    void RequestChangeDisplayMode()
+    {
+        _romBrowserController->RequestChangeDisplayMode();
+    }
+
 private:
     IRomBrowserController* _romBrowserController;
 };

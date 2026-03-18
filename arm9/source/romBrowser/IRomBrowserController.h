@@ -56,6 +56,7 @@ public:
     virtual void MarkStateDirty() = 0;
 
     virtual void RequestThemeReload() = 0;
+    virtual void RequestChangeDisplayMode() = 0;
 
     virtual void ShowCheats() = 0;
     virtual void HideCheats() = 0;

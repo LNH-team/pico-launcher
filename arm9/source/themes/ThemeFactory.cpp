@@ -5,6 +5,11 @@
 
 std::unique_ptr<ITheme> ThemeFactory::CreateFromThemeInfo(const ThemeInfo* themeInfo) const
 {
+    return CreateFromThemeInfo(themeInfo, themeInfo->GetIsDarkTheme());
+}
+
+std::unique_ptr<ITheme> ThemeFactory::CreateFromThemeInfo(const ThemeInfo* themeInfo, bool darkModeOverride) const
+{
     switch (themeInfo->GetType())
     {
         case ThemeType::Material:
@@ -12,14 +17,14 @@ std::unique_ptr<ITheme> ThemeFactory::CreateFromThemeInfo(const ThemeInfo* theme
             return std::make_unique<MaterialTheme>(
                 themeInfo->GetFolderName(),
                 themeInfo->GetPrimaryColor(),
-                themeInfo->GetIsDarkTheme());
+                darkModeOverride);
         }
         case ThemeType::Custom:
         {
             return std::make_unique<CustomTheme>(
                 themeInfo->GetFolderName(),
                 themeInfo->GetPrimaryColor(),
-                themeInfo->GetIsDarkTheme());
+                darkModeOverride);
         }
         default:
         {

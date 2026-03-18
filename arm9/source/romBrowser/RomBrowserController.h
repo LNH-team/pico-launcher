@@ -91,6 +91,11 @@ public:
 
     void RequestThemeReload() override { _themeReloadRequested = true; }
 
+    void RequestChangeDisplayMode() override
+    {
+        _stateMachine.Fire(RomBrowserStateTrigger::ChangeDisplayMode);
+    }
+
     bool ConsumeThemeReloadRequest()
     {
         const bool requested = _themeReloadRequested;

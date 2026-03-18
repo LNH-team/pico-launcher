@@ -27,6 +27,8 @@ public:
     virtual bool OpenThemeFile(File& file, const TCHAR* subPath) const = 0;
 
     virtual const MaterialColorScheme& GetMaterialColorScheme() const = 0;
+
+    virtual void SetDarkMode(bool darkMode) = 0;
 };
 
 inline ITheme::~ITheme() { }
