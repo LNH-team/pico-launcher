@@ -1,4 +1,5 @@
 #pragma once
+#include <string.h>
 #include "../IRomBrowserController.h"
 #include "services/settings/RomBrowserDisplaySettings.h"
 #include "services/settings/IAppSettingsService.h"
@@ -73,15 +74,13 @@ public:
     bool IsMaterialTheme() const
     {
         if (!_appSettingsService) return true;
-        const auto& theme = _appSettingsService->GetAppSettings().theme;
-        return theme == "material";
+        return !strcasecmp(_appSettingsService->GetAppSettings().theme.GetString(), "material");
     }
 
     bool IsChinese() const
     {
         if (!_appSettingsService) return false;
-        const auto& lang = _appSettingsService->GetAppSettings().language;
-        return lang == "chinese";
+        return !strcasecmp(_appSettingsService->GetAppSettings().language.GetString(), "chinese");
     }
 
     bool GetDarkMode() const
@@ -103,21 +102,23 @@ public:
     {
         if (!_appSettingsService) return;
         auto& settings = _appSettingsService->GetAppSettings();
-        if (settings.language == "chinese")
-            settings.language = "english";
+        if (IsChinese())
+            settings.language = "English";
         else
-            settings.language = "chinese";
+            settings.language = "Chinese";
         _romBrowserController->MarkSettingsDirty();
+        _romBrowserController->SaveSettingsNow();
     }
 
     void ToggleTheme()
     {
         if (!_appSettingsService) return;
         auto& settings = _appSettingsService->GetAppSettings();
-        if (settings.theme == "material")
+        if (IsMaterialTheme())
             settings.theme = "raspberry";
         else
             settings.theme = "material";
+        _romBrowserController->MarkSettingsDirty();
         _romBrowserController->SaveSettingsNow();
         _romBrowserController->RequestThemeReload();
         _romBrowserController->HideDisplaySettings();
