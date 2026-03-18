@@ -92,6 +92,14 @@ private:
     int _bgmFileCount = 0;
     int _bgmIndex = -1; // -1 = Random
 
+    // BGM selection mode
+    bool _bgmSelectMode = false;
+    int _bgmListCursor = 0;   // 0 = Random, 1..N = file index
+    int _bgmListScroll = 0;   // scroll offset for the list
+    static constexpr int kBgmVisibleItems = 8;
+    Label2DView _bgmListLabels[kBgmVisibleItems];
+    Label2DView _bgmSelectTitle;
+
     IconButton2DView CreateLayoutOptionIconButton();
     IconButton2DView CreateSortOptionIconButton();
 
@@ -102,6 +110,11 @@ private:
     void UpdateBgmChipText();
     void ScanBgmFiles();
     void ScrollToFocus(View* target);
+
+    void EnterBgmSelectMode();
+    void ExitBgmSelectMode();
+    void UpdateBgmListLabels();
+    void ApplyBgmAndRestart();
 
     bool _usePreloadedIcons = false;
 

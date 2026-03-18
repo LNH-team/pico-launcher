@@ -75,6 +75,17 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     , _materialColorScheme(materialColorScheme)
     , _fontRepository(fontRepository)
     , _bgmService(bgmService)
+    , _bgmListLabels {
+        Label2DView(200, 14, 32, fontRepository->GetFont(FontType::Regular10)),
+        Label2DView(200, 14, 32, fontRepository->GetFont(FontType::Regular10)),
+        Label2DView(200, 14, 32, fontRepository->GetFont(FontType::Regular10)),
+        Label2DView(200, 14, 32, fontRepository->GetFont(FontType::Regular10)),
+        Label2DView(200, 14, 32, fontRepository->GetFont(FontType::Regular10)),
+        Label2DView(200, 14, 32, fontRepository->GetFont(FontType::Regular10)),
+        Label2DView(200, 14, 32, fontRepository->GetFont(FontType::Regular10)),
+        Label2DView(200, 14, 32, fontRepository->GetFont(FontType::Regular10))
+    }
+    , _bgmSelectTitle(200, 16, 25, fontRepository->GetFont(FontType::Medium11))
 {
     _viewModel->SetAppSettingsService(appSettingsService);
 
@@ -121,6 +132,15 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     {
         sortOption = CreateSortOptionIconButton();
         AddChildTail(&sortOption);
+    }
+
+    // BGM select mode labels (always children, positioned offscreen when not active)
+    _bgmSelectTitle.SetText(u"Select BGM");
+    AddChildTail(&_bgmSelectTitle);
+    for (int i = 0; i < kBgmVisibleItems; i++)
+    {
+        _bgmListLabels[i].SetText(u"");
+        AddChildTail(&_bgmListLabels[i]);
     }
 }
 
@@ -276,37 +296,89 @@ void DisplaySettingsBottomSheetView::UpdateLabels()
 void DisplaySettingsBottomSheetView::Update()
 {
     BottomSheetView::Update();
-    UpdateLabels();
-    int s = _scrollOffset;
-    auto selectedDisplayMode = _viewModel->GetRomBrowserDisplayMode();
-    int x = 70;
-    u32 idx = 0;
-    for (auto& layoutOption : _layoutOptions)
-    {
-        layoutOption.SetPosition(x, _position.y + 38 - s);
-        layoutOption.SetState(sRomBrowserDisplayModes[idx] == selectedDisplayMode
-            ? IconButtonView::State::ToggleSelected
-            : IconButtonView::State::ToggleUnselected);
-        x += 32;
-        idx++;
-    }
-    auto selectedSortMode = _viewModel->GetRomBrowserSortMode();
-    x = 70;
-    idx = 0;
-    for (auto& sortOption : _sortOptions)
-    {
-        sortOption.SetPosition(x, _position.y + 70 - s);
-        sortOption.SetState(sRomBrowserSortModes[idx] == selectedSortMode
-            ? IconButtonView::State::ToggleSelected
-            : IconButtonView::State::ToggleUnselected);
-        x += 32;
-        idx++;
-    }
 
-    _themeChip.SetPosition(70, _position.y + 106 - s);
-    _languageChip.SetPosition(70, _position.y + 138 - s);
-    _darkModeChip.SetPosition(70, _position.y + 170 - s);
-    _bgmChip.SetPosition(70, _position.y + 202 - s);
+    if (_bgmSelectMode)
+    {
+        // Hide all normal controls offscreen
+        _titleLabel.SetPosition(-300, -300);
+        _layoutLabel.SetPosition(-300, -300);
+        _sortingLabel.SetPosition(-300, -300);
+        _themeLabel.SetPosition(-300, -300);
+        _languageLabel.SetPosition(-300, -300);
+        _darkModeLabel.SetPosition(-300, -300);
+        _bgmLabel.SetPosition(-300, -300);
+        _themeChip.SetPosition(-300, -300);
+        _languageChip.SetPosition(-300, -300);
+        _darkModeChip.SetPosition(-300, -300);
+        _bgmChip.SetPosition(-300, -300);
+        for (auto& layoutOption : _layoutOptions)
+            layoutOption.SetPosition(-300, -300);
+        for (auto& sortOption : _sortOptions)
+            sortOption.SetPosition(-300, -300);
+
+        // Position BGM select title and list
+        _bgmSelectTitle.SetPosition(20, _position.y + 16);
+
+        int totalItems = _bgmFileCount + 1; // +1 for "Random"
+        // Adjust scroll so cursor is visible
+        if (_bgmListCursor < _bgmListScroll)
+            _bgmListScroll = _bgmListCursor;
+        if (_bgmListCursor >= _bgmListScroll + kBgmVisibleItems)
+            _bgmListScroll = _bgmListCursor - kBgmVisibleItems + 1;
+        if (_bgmListScroll < 0) _bgmListScroll = 0;
+        if (_bgmListScroll > totalItems - kBgmVisibleItems)
+            _bgmListScroll = totalItems - kBgmVisibleItems;
+        if (_bgmListScroll < 0) _bgmListScroll = 0;
+
+        for (int i = 0; i < kBgmVisibleItems; i++)
+        {
+            int itemIdx = _bgmListScroll + i;
+            if (itemIdx < totalItems)
+                _bgmListLabels[i].SetPosition(28, _position.y + 38 + i * 16);
+            else
+                _bgmListLabels[i].SetPosition(-300, -300);
+        }
+    }
+    else
+    {
+        // Normal settings mode
+        UpdateLabels();
+        int s = _scrollOffset;
+        auto selectedDisplayMode = _viewModel->GetRomBrowserDisplayMode();
+        int x = 70;
+        u32 idx = 0;
+        for (auto& layoutOption : _layoutOptions)
+        {
+            layoutOption.SetPosition(x, _position.y + 38 - s);
+            layoutOption.SetState(sRomBrowserDisplayModes[idx] == selectedDisplayMode
+                ? IconButtonView::State::ToggleSelected
+                : IconButtonView::State::ToggleUnselected);
+            x += 32;
+            idx++;
+        }
+        auto selectedSortMode = _viewModel->GetRomBrowserSortMode();
+        x = 70;
+        idx = 0;
+        for (auto& sortOption : _sortOptions)
+        {
+            sortOption.SetPosition(x, _position.y + 70 - s);
+            sortOption.SetState(sRomBrowserSortModes[idx] == selectedSortMode
+                ? IconButtonView::State::ToggleSelected
+                : IconButtonView::State::ToggleUnselected);
+            x += 32;
+            idx++;
+        }
+
+        _themeChip.SetPosition(70, _position.y + 106 - s);
+        _languageChip.SetPosition(70, _position.y + 138 - s);
+        _darkModeChip.SetPosition(70, _position.y + 170 - s);
+        _bgmChip.SetPosition(70, _position.y + 202 - s);
+
+        // Hide BGM select labels offscreen
+        _bgmSelectTitle.SetPosition(-300, -300);
+        for (int i = 0; i < kBgmVisibleItems; i++)
+            _bgmListLabels[i].SetPosition(-300, -300);
+    }
 }
 
 void DisplaySettingsBottomSheetView::Draw(GraphicsContext& graphicsContext)
@@ -314,20 +386,46 @@ void DisplaySettingsBottomSheetView::Draw(GraphicsContext& graphicsContext)
     graphicsContext.SetClipArea(GetBounds());
     u32 oldPrio = graphicsContext.SetPriority(1);
     {
-        _titleLabel.SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-        _titleLabel.SetForegroundColor(_materialColorScheme->onSurface);
-        _layoutLabel.SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-        _layoutLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
-        _sortingLabel.SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-        _sortingLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
-        _themeLabel.SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-        _themeLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
-        _languageLabel.SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-        _languageLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
-        _darkModeLabel.SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-        _darkModeLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
-        _bgmLabel.SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
-        _bgmLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+        auto bgColor = _materialColorScheme->GetColor(md::sys::color::surfaceContainerLow);
+
+        if (_bgmSelectMode)
+        {
+            int totalItems = _bgmFileCount + 1;
+            _bgmSelectTitle.SetBackgroundColor(bgColor);
+            _bgmSelectTitle.SetForegroundColor(_materialColorScheme->onSurface);
+
+            for (int i = 0; i < kBgmVisibleItems; i++)
+            {
+                int itemIdx = _bgmListScroll + i;
+                if (itemIdx < totalItems)
+                {
+                    bool selected = (itemIdx == _bgmListCursor);
+                    _bgmListLabels[i].SetBackgroundColor(
+                        selected ? _materialColorScheme->GetColor(md::sys::color::secondaryContainer)
+                                 : bgColor);
+                    _bgmListLabels[i].SetForegroundColor(
+                        selected ? _materialColorScheme->GetColor(md::sys::color::onSecondaryContainer)
+                                 : _materialColorScheme->onSurfaceVariant);
+                }
+            }
+        }
+        else
+        {
+            _titleLabel.SetBackgroundColor(bgColor);
+            _titleLabel.SetForegroundColor(_materialColorScheme->onSurface);
+            _layoutLabel.SetBackgroundColor(bgColor);
+            _layoutLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+            _sortingLabel.SetBackgroundColor(bgColor);
+            _sortingLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+            _themeLabel.SetBackgroundColor(bgColor);
+            _themeLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+            _languageLabel.SetBackgroundColor(bgColor);
+            _languageLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+            _darkModeLabel.SetBackgroundColor(bgColor);
+            _darkModeLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+            _bgmLabel.SetBackgroundColor(bgColor);
+            _bgmLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+        }
         BottomSheetView::Draw(graphicsContext);
     }
     graphicsContext.SetPriority(oldPrio);
@@ -380,6 +478,40 @@ void DisplaySettingsBottomSheetView::ToggleDarkMode()
 bool DisplaySettingsBottomSheetView::HandleInput(
     const InputProvider& inputProvider, FocusManager& focusManager)
 {
+    if (_bgmSelectMode)
+    {
+        int totalItems = _bgmFileCount + 1;
+        if (inputProvider.Triggered(InputKey::B))
+        {
+            ExitBgmSelectMode();
+            return true;
+        }
+        if (inputProvider.Triggered(InputKey::A))
+        {
+            ApplyBgmAndRestart();
+            return true;
+        }
+        if (inputProvider.Triggered(InputKey::DpadUp))
+        {
+            if (_bgmListCursor > 0)
+            {
+                _bgmListCursor--;
+                UpdateBgmListLabels();
+            }
+            return true;
+        }
+        if (inputProvider.Triggered(InputKey::DpadDown))
+        {
+            if (_bgmListCursor < totalItems - 1)
+            {
+                _bgmListCursor++;
+                UpdateBgmListLabels();
+            }
+            return true;
+        }
+        return true; // consume all input in BGM select mode
+    }
+
     if (inputProvider.Triggered(InputKey::B))
     {
         _viewModel->Close();
@@ -405,19 +537,9 @@ bool DisplaySettingsBottomSheetView::HandleInput(
         }
         else if (focus == &_bgmChip)
         {
-            CycleBgm(true);
+            EnterBgmSelectMode();
             return true;
         }
-    }
-    if (inputProvider.Triggered(InputKey::DpadLeft))
-    {
-        auto focus = focusManager.GetCurrentFocus();
-        if (focus == &_bgmChip) { CycleBgm(false); return true; }
-    }
-    if (inputProvider.Triggered(InputKey::DpadRight))
-    {
-        auto focus = focusManager.GetCurrentFocus();
-        if (focus == &_bgmChip) { CycleBgm(true); return true; }
     }
     return false;
 }
@@ -425,6 +547,45 @@ bool DisplaySettingsBottomSheetView::HandleInput(
 bool DisplaySettingsBottomSheetView::HandleTouch(
     const TouchEvent& event, FocusManager& focusManager)
 {
+    if (_bgmSelectMode)
+    {
+        int bgmTotalItems = _bgmFileCount + 1;
+
+        // Touch drag scrolling in BGM list
+        if (event.type == TouchEventType::Move)
+        {
+            _bgmListScroll -= event.deltaY / 16;
+            if (_bgmListScroll < 0) _bgmListScroll = 0;
+            int maxScroll = bgmTotalItems - kBgmVisibleItems;
+            if (maxScroll < 0) maxScroll = 0;
+            if (_bgmListScroll > maxScroll) _bgmListScroll = maxScroll;
+            UpdateBgmListLabels();
+            return true;
+        }
+
+        // Tap to select item
+        if (event.type != TouchEventType::Up || event.holdFrames > 24)
+            return true;
+
+        int totalDelta = event.totalDeltaX * event.totalDeltaX + event.totalDeltaY * event.totalDeltaY;
+        if (totalDelta > 64)
+            return true;
+
+        for (int i = 0; i < kBgmVisibleItems; i++)
+        {
+            int itemIdx = _bgmListScroll + i;
+            if (itemIdx >= bgmTotalItems) break;
+            if (_bgmListLabels[i].GetBounds().Contains(event.position))
+            {
+                _bgmListCursor = itemIdx;
+                UpdateBgmListLabels();
+                ApplyBgmAndRestart();
+                return true;
+            }
+        }
+        return true;
+    }
+
     // Touch drag scrolling
     if (event.type == TouchEventType::Move)
     {
@@ -489,7 +650,7 @@ bool DisplaySettingsBottomSheetView::HandleTouch(
     if (_bgmChip.GetBounds().Contains(event.position))
     {
         focusManager.Focus(&_bgmChip);
-        CycleBgm(true);
+        EnterBgmSelectMode();
         return true;
     }
 
@@ -650,4 +811,100 @@ u32 DisplaySettingsBottomSheetView::LoadIcon(IVramManager& vramManager,
     u32 vramOffset = vramManager.Alloc(tilesLength);
     dma_ntrCopy32(3, tiles, vramManager.GetVramAddress(vramOffset), tilesLength);
     return vramOffset;
+}
+
+void DisplaySettingsBottomSheetView::EnterBgmSelectMode()
+{
+    _bgmSelectMode = true;
+    _bgmListScroll = 0;
+
+    // Set cursor to current selection: 0 = Random, 1..N = file indices
+    if (_bgmIndex < 0 || _bgmIndex >= _bgmFileCount)
+        _bgmListCursor = 0; // Random
+    else
+        _bgmListCursor = _bgmIndex + 1;
+
+    // Ensure cursor is visible
+    if (_bgmListCursor >= kBgmVisibleItems)
+        _bgmListScroll = _bgmListCursor - kBgmVisibleItems + 1;
+
+    UpdateBgmListLabels();
+}
+
+void DisplaySettingsBottomSheetView::ExitBgmSelectMode()
+{
+    _bgmSelectMode = false;
+}
+
+void DisplaySettingsBottomSheetView::UpdateBgmListLabels()
+{
+    int totalItems = _bgmFileCount + 1; // +1 for "Random"
+
+    for (int i = 0; i < kBgmVisibleItems; i++)
+    {
+        int itemIdx = _bgmListScroll + i;
+        if (itemIdx >= totalItems)
+        {
+            _bgmListLabels[i].SetText(u"");
+            continue;
+        }
+
+        if (itemIdx == 0)
+        {
+            // "Random" entry
+            if (itemIdx == _bgmListCursor)
+                _bgmListLabels[i].SetText(u"> Random");
+            else
+                _bgmListLabels[i].SetText(u"  Random");
+        }
+        else
+        {
+            // File entry: strip .bcstm extension
+            int fileIdx = itemIdx - 1;
+            char16_t buf[36];
+            const char* name = _bgmFileNames[fileIdx].GetString();
+
+            // Add cursor indicator
+            int pos = 0;
+            if (itemIdx == _bgmListCursor)
+            {
+                buf[pos++] = u'>';
+                buf[pos++] = u' ';
+            }
+            else
+            {
+                buf[pos++] = u' ';
+                buf[pos++] = u' ';
+            }
+
+            int j = 0;
+            while (name[j] && name[j] != '.' && pos < 34)
+            {
+                buf[pos++] = (char16_t)(unsigned char)name[j];
+                j++;
+            }
+            buf[pos] = 0;
+            _bgmListLabels[i].SetText(buf);
+        }
+    }
+}
+
+void DisplaySettingsBottomSheetView::ApplyBgmAndRestart()
+{
+    // Convert cursor to bgm index: 0 = Random (-1), 1+ = file index
+    if (_bgmListCursor == 0)
+        _bgmIndex = -1;
+    else
+        _bgmIndex = _bgmListCursor - 1;
+
+    UpdateBgmChipText();
+
+    auto& settings = _appSettingsService->GetAppSettings();
+    if (_bgmIndex >= 0 && _bgmIndex < _bgmFileCount)
+        settings.bgm = _bgmFileNames[_bgmIndex].GetString();
+    else
+        settings.bgm = "";
+    _viewModel->SaveSettingsNow();
+    _viewModel->RequestThemeReload();
+    _viewModel->Close();
 }
