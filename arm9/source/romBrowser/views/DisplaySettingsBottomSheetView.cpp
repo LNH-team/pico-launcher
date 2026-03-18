@@ -492,7 +492,24 @@ bool DisplaySettingsBottomSheetView::HandleInput(
             {
                 int selectedIdx = _themeRecycler->GetSelectedItem();
                 if (selectedIdx >= 0)
-                    ApplyThemeSelection(selectedIdx);
+                {
+                    if (_themeAdapter->IsCategoryItem(selectedIdx))
+                    {
+                        _themeAdapter->ToggleCategory(selectedIdx);
+                        focusManager.Unfocus();
+                        _themeRecycler->SetAdapter(_themeAdapter, selectedIdx);
+                        if (_objVramManager)
+                        {
+                            ((DescendingStackVramManager*)_objVramManager)->SetState(_savedVramState);
+                            _themeRecycler->InitVram(VramContext(nullptr, _objVramManager, nullptr, nullptr));
+                        }
+                        _themeRecycler->Focus(focusManager);
+                    }
+                    else
+                    {
+                        ApplyThemeSelection(selectedIdx);
+                    }
+                }
             }
             return true;
         }
@@ -953,7 +970,24 @@ void DisplaySettingsBottomSheetView::EnterThemeSelectMode(FocusManager& focusMan
         _themeRecycler->SetTouchTapCallback([](int itemIdx, void* arg)
         {
             auto* self = static_cast<DisplaySettingsBottomSheetView*>(arg);
-            self->ApplyThemeSelection(itemIdx);
+            if (self->_themeAdapter && self->_themeAdapter->IsCategoryItem(itemIdx))
+            {
+                self->_themeAdapter->ToggleCategory(itemIdx);
+                if (self->_focusManager)
+                    self->_focusManager->Unfocus();
+                self->_themeRecycler->SetAdapter(self->_themeAdapter, itemIdx);
+                if (self->_objVramManager)
+                {
+                    ((DescendingStackVramManager*)self->_objVramManager)->SetState(self->_savedVramState);
+                    self->_themeRecycler->InitVram(VramContext(nullptr, self->_objVramManager, nullptr, nullptr));
+                }
+                if (self->_focusManager)
+                    self->_themeRecycler->Focus(*self->_focusManager);
+            }
+            else
+            {
+                self->ApplyThemeSelection(itemIdx);
+            }
         }, this);
         AddChildTail(_themeRecycler.get());
     }
@@ -966,7 +1000,7 @@ void DisplaySettingsBottomSheetView::EnterThemeSelectMode(FocusManager& focusMan
     const char* currentTheme = _appSettingsService->GetAppSettings().theme.GetString();
     _themeAdapter = new ThemeAdapter(_materialColorScheme, _fontRepository, currentTheme);
 
-    int initialIndex = _themeAdapter->GetCurrentIndex();
+    int initialIndex = _themeAdapter->GetFlatIndex(_themeAdapter->GetCurrentIndex());
     if (initialIndex < 0) initialIndex = 0;
 
     focusManager.Unfocus();
@@ -995,11 +1029,13 @@ void DisplaySettingsBottomSheetView::ExitThemeSelectMode(FocusManager& focusMana
     ScrollToFocus(&_themeChip);
 }
 
-void DisplaySettingsBottomSheetView::ApplyThemeSelection(int index)
+void DisplaySettingsBottomSheetView::ApplyThemeSelection(int flatIndex)
 {
     if (!_themeAdapter) return;
+    const char* name = _themeAdapter->GetThemeName(flatIndex);
+    if (!name) return;
     auto& settings = _appSettingsService->GetAppSettings();
-    settings.theme = _themeAdapter->GetThemeName(index);
+    settings.theme = name;
     _viewModel->SaveSettingsNow();
     _viewModel->RequestThemeReload();
     _viewModel->Close();
