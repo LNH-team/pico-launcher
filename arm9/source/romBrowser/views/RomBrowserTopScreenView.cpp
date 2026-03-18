@@ -925,6 +925,7 @@ void RomBrowserTopScreenView::VBlank()
             _selectedFileCover->Upload2DCoverBitmap((u8*)GFX_BG_SUB + 0x4000);
             mem_setVramHMapping(MEM_VRAM_H_LCDC);
             _selectedFileCover->Upload2DCoverPalette((void*)0x0689E000);
+            GFX_PLTT_BG_SUB[0] = *(vu16*)0x0689E000;
             mem_setVramHMapping(MEM_VRAM_H_SUB_BG_EXT_PLTT_SLOT_0123);
         }
         _coverGraphicsUploaded = true;
