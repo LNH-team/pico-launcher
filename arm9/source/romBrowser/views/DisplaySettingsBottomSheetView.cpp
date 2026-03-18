@@ -359,14 +359,6 @@ void DisplaySettingsBottomSheetView::Draw(GraphicsContext& graphicsContext)
             _bgmLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         }
         BottomSheetView::Draw(graphicsContext);
-
-        // Draw RecyclerView after BottomSheetView (so it's on top)
-        if (_bgmSelectMode && _bgmRecycler)
-        {
-            graphicsContext.SetClipArea(_bgmRecycler->GetBounds());
-            _bgmRecycler->Draw(graphicsContext);
-            graphicsContext.SetClipArea(GetBounds());
-        }
     }
     graphicsContext.SetPriority(oldPrio);
     graphicsContext.ResetClipArea();
@@ -731,39 +723,36 @@ void DisplaySettingsBottomSheetView::EnterBgmSelectMode(FocusManager& focusManag
     int listHeight = 192 - _position.y - BGM_LIST_Y - 4;
     if (listHeight < 16) listHeight = 16;
 
-    // Create RecyclerView
-    _bgmRecycler = std::make_unique<RecyclerView>(
-        BGM_LIST_X, _position.y + BGM_LIST_Y, 224, listHeight, RecyclerView::Mode::VerticalList);
-    _bgmRecycler->SetShoulderPagingEnabled(false);
-    _bgmRecycler->SetParent(this);
-
-    // Set touch tap callback
-    _bgmRecycler->SetTouchTapCallback([](int itemIdx, void* arg)
+    if (!_bgmRecycler)
     {
-        auto* self = static_cast<DisplaySettingsBottomSheetView*>(arg);
-        self->ApplyBgmSelection(itemIdx);
-    }, this);
+        // First time: create RecyclerView and add as child
+        _bgmRecycler = std::make_unique<RecyclerView>(
+            BGM_LIST_X, _position.y + BGM_LIST_Y, 224, listHeight, RecyclerView::Mode::VerticalList);
+        _bgmRecycler->SetShoulderPagingEnabled(false);
+        _bgmRecycler->SetTouchTapCallback([](int itemIdx, void* arg)
+        {
+            auto* self = static_cast<DisplaySettingsBottomSheetView*>(arg);
+            self->ApplyBgmSelection(itemIdx);
+        }, this);
+        AddChildTail(_bgmRecycler.get());
+    }
 
     // Create adapter
+    if (_bgmAdapter)
+    {
+        delete _bgmAdapter;
+        _bgmAdapter = nullptr;
+    }
     _bgmAdapter = new BgmAdapter(_bgmFileNames, _bgmFileCount, _materialColorScheme, _fontRepository);
-    _bgmRecycler->SetAdapter(_bgmAdapter);
 
-    // InitVram for the RecyclerView
+    int initialIndex = (_bgmIndex < 0 || _bgmIndex >= _bgmFileCount) ? 0 : (_bgmIndex + 1);
+
+    focusManager.Unfocus();
+    _bgmRecycler->SetAdapter(_bgmAdapter, initialIndex);
+
     if (_objVramManager)
     {
         _savedVramState = ((DescendingStackVramManager*)_objVramManager)->GetState();
-        _bgmRecycler->InitVram(VramContext(nullptr, _objVramManager, nullptr, nullptr));
-    }
-
-    // Focus on current selection: 0 = Random, 1..N = file indices
-    int initialIndex = (_bgmIndex < 0 || _bgmIndex >= _bgmFileCount) ? 0 : (_bgmIndex + 1);
-
-    // Need to set adapter with initial selected index and re-focus
-    focusManager.Unfocus();
-    _bgmRecycler->SetAdapter(_bgmAdapter, initialIndex);
-    if (_objVramManager)
-    {
-        ((DescendingStackVramManager*)_objVramManager)->SetState(_savedVramState);
         _bgmRecycler->InitVram(VramContext(nullptr, _objVramManager, nullptr, nullptr));
     }
     _bgmRecycler->Focus(focusManager);
@@ -778,12 +767,9 @@ void DisplaySettingsBottomSheetView::ExitBgmSelectMode(FocusManager& focusManage
         ((DescendingStackVramManager*)_objVramManager)->SetState(_savedVramState);
     }
 
-    _bgmRecycler.reset();
-    if (_bgmAdapter != nullptr)
-    {
-        delete _bgmAdapter;
-        _bgmAdapter = nullptr;
-    }
+    // Hide recycler offscreen (can't remove from child list, so reuse it)
+    if (_bgmRecycler)
+        _bgmRecycler->SetPosition(-300, -300);
 
     _bgmSelectMode = false;
     focusManager.Focus(&_bgmChip);
