@@ -340,6 +340,16 @@ void DisplaySettingsBottomSheetView::Draw(GraphicsContext& graphicsContext)
         {
             _bgmSelectTitle.SetBackgroundColor(bgColor);
             _bgmSelectTitle.SetForegroundColor(_materialColorScheme->onSurface);
+            _bgmSelectTitle.Draw(graphicsContext);
+
+            // Draw RecyclerView with clip to prevent overlap with title
+            if (_bgmRecycler)
+            {
+                graphicsContext.SetClipArea(_bgmRecycler->GetBounds());
+                _bgmRecycler->Draw(graphicsContext);
+                graphicsContext.SetClipArea(GetBounds());
+            }
+            // Skip BottomSheetView::Draw in BGM mode (we drew everything manually)
         }
         else
         {
@@ -357,8 +367,8 @@ void DisplaySettingsBottomSheetView::Draw(GraphicsContext& graphicsContext)
             _darkModeLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
             _bgmLabel.SetBackgroundColor(bgColor);
             _bgmLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+            BottomSheetView::Draw(graphicsContext);
         }
-        BottomSheetView::Draw(graphicsContext);
     }
     graphicsContext.SetPriority(oldPrio);
     graphicsContext.ResetClipArea();
