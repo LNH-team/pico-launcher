@@ -213,6 +213,11 @@ void MaterialFileInfoCardView::Update()
     }
 }
 
+static bool IsDefaultColor(const Rgb<8, 8, 8>& c)
+{
+    return (c.r == 0 && c.g == 0 && c.b == 0) || (c.r == 255 && c.g == 255 && c.b == 255);
+}
+
 void MaterialFileInfoCardView::Draw(GraphicsContext& graphicsContext)
 {
     const auto& cfg = GetLayoutConfig();
@@ -220,6 +225,12 @@ void MaterialFileInfoCardView::Draw(GraphicsContext& graphicsContext)
     Rgb<8, 8, 8> textColor2(cfg.romNameRow2ColorR, cfg.romNameRow2ColorG, cfg.romNameRow2ColorB);
     Rgb<8, 8, 8> textColor3(cfg.romNameRow3ColorR, cfg.romNameRow3ColorG, cfg.romNameRow3ColorB);
     Rgb<8, 8, 8> fileNameColor(cfg.fileNameColorR, cfg.fileNameColorG, cfg.fileNameColorB);
+    // Use theme-aware text color when layout uses default black/white
+    const auto& themeTextColor = _materialColorScheme->onSecondaryContainer;
+    if (IsDefaultColor(textColor1)) textColor1 = themeTextColor;
+    if (IsDefaultColor(textColor2)) textColor2 = themeTextColor;
+    if (IsDefaultColor(textColor3)) textColor3 = themeTextColor;
+    if (IsDefaultColor(fileNameColor)) fileNameColor = themeTextColor;
     _firstLine.SetBackgroundColor(_materialColorScheme->secondaryContainer);
     _firstLine.SetForegroundColor(textColor1);
     _secondLine.SetBackgroundColor(_materialColorScheme->secondaryContainer);
