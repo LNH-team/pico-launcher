@@ -250,28 +250,13 @@ void DisplaySettingsBottomSheetView::CycleBgm(bool forward)
 
     UpdateBgmChipText();
 
-    // Save and play
+    // Save setting (BGM takes effect on next launch)
     auto& settings = _appSettingsService->GetAppSettings();
     if (_bgmIndex >= 0 && _bgmIndex < _bgmFileCount)
         settings.bgm = _bgmFileNames[_bgmIndex].GetString();
     else
         settings.bgm = "";
     _appSettingsService->Save();
-
-    // Play immediately
-    if (_bgmService)
-    {
-        if (_bgmIndex >= 0)
-        {
-            char path[256];
-            mini_snprintf(path, sizeof(path), "/_pico/bgm/%s", _bgmFileNames[_bgmIndex].GetString());
-            _bgmService->StartBgm(path);
-        }
-        else
-        {
-            _bgmService->StopBgm(); // Random will play on next launch
-        }
-    }
 }
 
 void DisplaySettingsBottomSheetView::UpdateLabels()
