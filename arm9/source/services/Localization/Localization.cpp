@@ -52,7 +52,12 @@ static const FallbackTranslation kEnglishFallbackTranslations[] =
     { "bgm", u"BGM" },
     { "select_bgm", u"Select BGM" },
     { "bgm_random", u"Random" },
+    { "bgm_off", u"Off" },
     { "select_theme", u"Select Theme" },
+    { "theme_builtin", u"Built-in" },
+    { "theme_custom", u"Custom" },
+    { "on", u"On" },
+    { "off", u"Off" },
 
     { "game_details", u"Game Details" },
     { "total_launches", u"Total Launches" },

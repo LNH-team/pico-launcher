@@ -64,7 +64,12 @@ TRANSLATIONS = {
     "bgm": "背景音乐",
     "select_bgm": "选择BGM",
     "bgm_random": "随机",
+    "bgm_off": "关闭",
     "select_theme": "选择主题",
+    "theme_builtin": "内置",
+    "theme_custom": "第三方",
+    "on": "开",
+    "off": "关",
 }
 
 

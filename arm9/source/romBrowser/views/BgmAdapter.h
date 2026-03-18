@@ -2,6 +2,7 @@
 #include "gui/views/RecyclerAdapter.h"
 #include "core/String.h"
 #include "BgmListItemView.h"
+#include "services/Localization/Localization.h"
 
 class BgmAdapter : public RecyclerAdapter
 {
@@ -62,7 +63,7 @@ public:
             bool isCurrent = (_currentBgmIndex == kItemOff);
             item->SetCurrentlyPlaying(isCurrent);
             if (isCurrent) { buf[pos++] = u'\u00B7'; buf[pos++] = u' '; }
-            const char16_t* t = u"Off";
+            const char16_t* t = Localization::Translate("bgm_off");
             for (int i = 0; t[i] && pos < 62; i++) buf[pos++] = t[i];
             buf[pos] = 0;
             item->SetText(buf);
@@ -75,7 +76,7 @@ public:
             bool isCurrent = (_currentBgmIndex == kItemRandom);
             item->SetCurrentlyPlaying(isCurrent);
             if (isCurrent) { buf[pos++] = u'\u00B7'; buf[pos++] = u' '; }
-            const char16_t* t = u"Random";
+            const char16_t* t = Localization::Translate("bgm_random");
             for (int i = 0; t[i] && pos < 62; i++) buf[pos++] = t[i];
             buf[pos] = 0;
             item->SetText(buf);

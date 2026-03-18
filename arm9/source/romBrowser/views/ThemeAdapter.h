@@ -3,6 +3,7 @@
 #include "core/String.h"
 #include "fat/Directory.h"
 #include "BgmListItemView.h"
+#include "services/Localization/Localization.h"
 
 class ThemeAdapter : public RecyclerAdapter
 {
@@ -78,7 +79,7 @@ public:
                 item->SetCurrentlyPlaying(false);
                 buf[pos++] = _builtinExpanded ? u'-' : u'+';
                 buf[pos++] = u' ';
-                const char16_t* t = u"Built-in";
+                const char16_t* t = Localization::Translate("theme_builtin");
                 for (int i = 0; t[i] && pos < 62; i++) buf[pos++] = t[i];
                 buf[pos] = 0;
                 item->SetText(buf);
@@ -114,7 +115,7 @@ public:
                 item->SetCurrentlyPlaying(false);
                 buf[pos++] = _customExpanded ? u'-' : u'+';
                 buf[pos++] = u' ';
-                const char16_t* t = u"Custom";
+                const char16_t* t = Localization::Translate("theme_custom");
                 for (int i = 0; t[i] && pos < 62; i++) buf[pos++] = t[i];
                 buf[pos] = 0;
                 item->SetText(buf);

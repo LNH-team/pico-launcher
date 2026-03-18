@@ -115,7 +115,7 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     _languageChip.SetSelected(true);
     AddChildTail(&_languageChip);
 
-    _darkModeChip.SetText(_viewModel->GetDarkMode() ? u"On" : u"Off");
+    _darkModeChip.SetText(_viewModel->GetDarkMode() ? Localization::Translate("on") : Localization::Translate("off"));
     _darkModeChip.SetSelected(_viewModel->GetDarkMode());
     AddChildTail(&_darkModeChip);
 
@@ -245,12 +245,12 @@ void DisplaySettingsBottomSheetView::UpdateBgmChipText()
 {
     if (_bgmIndex == BgmAdapter::kItemOff)
     {
-        _bgmChip.SetText(u"Off");
+        _bgmChip.SetText(Localization::Translate("bgm_off"));
         return;
     }
     if (_bgmIndex < 0 || _bgmIndex >= _bgmFileCount)
     {
-        _bgmChip.SetText(u"Random");
+        _bgmChip.SetText(Localization::Translate("bgm_random"));
         return;
     }
     // Strip prefix (3DS_ or DSi_) and .bcstm extension for display, replace '_' with ' '
@@ -463,7 +463,7 @@ void DisplaySettingsBottomSheetView::UpdateLanguageAndLabels()
     _themeLabel.SetText(Localization::Translate("theme"));
     _languageLabel.SetText(Localization::Translate("language"));
     _darkModeLabel.SetText(Localization::Translate("dark_mode"));
-    _darkModeChip.SetText(_viewModel->GetDarkMode() ? u"On" : u"Off");
+    _darkModeChip.SetText(_viewModel->GetDarkMode() ? Localization::Translate("on") : Localization::Translate("off"));
 }
 
 void DisplaySettingsBottomSheetView::ToggleDarkMode()
@@ -471,7 +471,7 @@ void DisplaySettingsBottomSheetView::ToggleDarkMode()
     _viewModel->ToggleDarkMode();
     bool dark = _viewModel->GetDarkMode();
     _darkModeChip.SetSelected(dark);
-    _darkModeChip.SetText(dark ? u"On" : u"Off");
+    _darkModeChip.SetText(dark ? Localization::Translate("on") : Localization::Translate("off"));
 }
 
 bool DisplaySettingsBottomSheetView::HandleInput(
