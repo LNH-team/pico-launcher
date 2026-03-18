@@ -28,8 +28,9 @@ void BgmListItemView::SetText(const char16_t* text)
 
 void BgmListItemView::Update()
 {
-    _arrowLabel.SetPosition(_position.x + 2, _position.y + NAME_LABEL_Y);
-    _nameLabel.SetPosition(_position.x + NAME_LABEL_X, _position.y + NAME_LABEL_Y);
+    int indent = _indentLevel * 10;
+    _arrowLabel.SetPosition(_position.x + 2 + indent, _position.y + NAME_LABEL_Y);
+    _nameLabel.SetPosition(_position.x + NAME_LABEL_X + indent, _position.y + NAME_LABEL_Y);
 
     if (IsFocused())
         _arrowLabel.SetText(u">");

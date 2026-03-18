@@ -57,6 +57,7 @@ public:
     void BindView(View* view, int index) const override
     {
         auto* item = static_cast<BgmListItemView*>(view);
+        item->SetIndentLevel(0); // default, overridden for child items
 
         int flatIdx = index;
         char16_t buf[64];
@@ -106,9 +107,8 @@ public:
                 {
                     fileIdx = _3dsStart + flatIdx;
                     isCurrent = (fileIdx == _currentBgmIndex);
-                    // Indent child items
-                    buf[pos++] = u' '; buf[pos++] = u'|';
-                    if (isCurrent) { buf[pos++] = u'\u00B7'; } else { buf[pos++] = u' '; }
+                    item->SetIndentLevel(1);
+                    if (isCurrent) { buf[pos++] = u'\u00B7'; buf[pos++] = u' '; }
                     // Strip "3DS_" prefix, then replace '_' with ' '
                     const char* name = _bgmFileNames[fileIdx].GetString();
                     int j = 4; // skip "3DS_"
@@ -151,9 +151,8 @@ public:
                 {
                     fileIdx = _dsiStart + flatIdx;
                     isCurrent = (fileIdx == _currentBgmIndex);
-                    // Indent child items
-                    buf[pos++] = u' '; buf[pos++] = u'|';
-                    if (isCurrent) { buf[pos++] = u'\u00B7'; } else { buf[pos++] = u' '; }
+                    item->SetIndentLevel(1);
+                    if (isCurrent) { buf[pos++] = u'\u00B7'; buf[pos++] = u' '; }
                     // Strip "DSi_" prefix, then replace '_' with ' '
                     const char* name = _bgmFileNames[fileIdx].GetString();
                     int j = 4; // skip "DSi_"

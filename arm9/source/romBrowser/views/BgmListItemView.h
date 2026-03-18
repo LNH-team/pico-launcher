@@ -21,6 +21,7 @@ public:
     void SetText(const char16_t* text);
     void SetCurrentlyPlaying(bool playing) { _currentlyPlaying = playing; }
     void SetIsCategory(bool isCategory) { _isCategory = isCategory; }
+    void SetIndentLevel(int level) { _indentLevel = level; }
 
 private:
     Label2DView _arrowLabel;
@@ -28,4 +29,5 @@ private:
     const MaterialColorScheme* _materialColorScheme;
     bool _currentlyPlaying = false;
     bool _isCategory = false;
+    int _indentLevel = 0;
 };
