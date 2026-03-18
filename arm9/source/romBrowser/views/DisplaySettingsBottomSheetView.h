@@ -96,6 +96,7 @@ private:
     bool _bgmSelectMode = false;
     int _bgmListCursor = 0;   // 0 = Random, 1..N = file index
     int _bgmListScroll = 0;   // scroll offset for the list
+    int _touchDragAccum = 0;  // touch drag pixel accumulator
     static constexpr int kBgmVisibleItems = 8;
     Label2DView _bgmListLabels[kBgmVisibleItems];
     Label2DView _bgmSelectTitle;

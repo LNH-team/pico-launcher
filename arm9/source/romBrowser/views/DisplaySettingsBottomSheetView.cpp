@@ -317,24 +317,30 @@ void DisplaySettingsBottomSheetView::Update()
             sortOption.SetPosition(-300, -300);
 
         // Position BGM select title and list
-        _bgmSelectTitle.SetPosition(20, _position.y + 16);
+        _bgmSelectTitle.SetPosition(20, _position.y + 12);
 
         int totalItems = _bgmFileCount + 1; // +1 for "Random"
+        // Calculate how many items fit on screen
+        int availableHeight = 192 - (_position.y + 30);
+        int visibleCount = availableHeight / 14;
+        if (visibleCount > kBgmVisibleItems) visibleCount = kBgmVisibleItems;
+        if (visibleCount < 1) visibleCount = 1;
+
         // Adjust scroll so cursor is visible
         if (_bgmListCursor < _bgmListScroll)
             _bgmListScroll = _bgmListCursor;
-        if (_bgmListCursor >= _bgmListScroll + kBgmVisibleItems)
-            _bgmListScroll = _bgmListCursor - kBgmVisibleItems + 1;
+        if (_bgmListCursor >= _bgmListScroll + visibleCount)
+            _bgmListScroll = _bgmListCursor - visibleCount + 1;
         if (_bgmListScroll < 0) _bgmListScroll = 0;
-        if (_bgmListScroll > totalItems - kBgmVisibleItems)
-            _bgmListScroll = totalItems - kBgmVisibleItems;
+        if (_bgmListScroll > totalItems - visibleCount)
+            _bgmListScroll = totalItems - visibleCount;
         if (_bgmListScroll < 0) _bgmListScroll = 0;
 
         for (int i = 0; i < kBgmVisibleItems; i++)
         {
             int itemIdx = _bgmListScroll + i;
-            if (itemIdx < totalItems)
-                _bgmListLabels[i].SetPosition(28, _position.y + 38 + i * 16);
+            if (itemIdx < totalItems && i < visibleCount)
+                _bgmListLabels[i].SetPosition(28, _position.y + 30 + i * 14);
             else
                 _bgmListLabels[i].SetPosition(-300, -300);
         }
@@ -550,16 +556,32 @@ bool DisplaySettingsBottomSheetView::HandleTouch(
     if (_bgmSelectMode)
     {
         int bgmTotalItems = _bgmFileCount + 1;
+        int maxScroll = bgmTotalItems - kBgmVisibleItems;
+        if (maxScroll < 0) maxScroll = 0;
 
-        // Touch drag scrolling in BGM list
+        // Touch drag scrolling — accumulate pixels, scroll when threshold reached
         if (event.type == TouchEventType::Move)
         {
-            _bgmListScroll -= event.deltaY / 16;
-            if (_bgmListScroll < 0) _bgmListScroll = 0;
-            int maxScroll = bgmTotalItems - kBgmVisibleItems;
-            if (maxScroll < 0) maxScroll = 0;
-            if (_bgmListScroll > maxScroll) _bgmListScroll = maxScroll;
+            _touchDragAccum += event.deltaY;
+            while (_touchDragAccum >= 8 && _bgmListScroll > 0)
+            {
+                _bgmListScroll--;
+                _touchDragAccum -= 16;
+            }
+            while (_touchDragAccum <= -8 && _bgmListScroll < maxScroll)
+            {
+                _bgmListScroll++;
+                _touchDragAccum += 16;
+            }
+            if (_bgmListScroll <= 0) { _bgmListScroll = 0; if (_touchDragAccum < 0) _touchDragAccum = 0; }
+            if (_bgmListScroll >= maxScroll) { _bgmListScroll = maxScroll; if (_touchDragAccum > 0) _touchDragAccum = 0; }
             UpdateBgmListLabels();
+            return true;
+        }
+
+        if (event.type == TouchEventType::Down)
+        {
+            _touchDragAccum = 0;
             return true;
         }
 
@@ -568,7 +590,7 @@ bool DisplaySettingsBottomSheetView::HandleTouch(
             return true;
 
         int totalDelta = event.totalDeltaX * event.totalDeltaX + event.totalDeltaY * event.totalDeltaY;
-        if (totalDelta > 64)
+        if (totalDelta > 100)
             return true;
 
         for (int i = 0; i < kBgmVisibleItems; i++)
