@@ -129,7 +129,7 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     }
 
     // BGM select title (always child, positioned offscreen when not active)
-    _bgmSelectTitle.SetText(Localization::Translate("select_bgm"));
+    _bgmSelectTitle.SetText(u"Select BGM");
     AddChildTail(&_bgmSelectTitle);
 }
 
@@ -228,27 +228,17 @@ void DisplaySettingsBottomSheetView::UpdateBgmChipText()
 {
     if (_bgmIndex < 0 || _bgmIndex >= _bgmFileCount)
     {
-        _bgmChip.SetText(Localization::Translate("bgm_random"));
+        _bgmChip.SetText(u"Random");
         return;
     }
-    // Strip known prefix and .bcstm extension for display, replace '_' with ' '
+    // Strip prefix (3DS_ or DSi_) and .bcstm extension for display, replace '_' with ' '
     char16_t buf[32];
     const char* name = _bgmFileNames[_bgmIndex].GetString();
-    // Detect and skip known prefixes
-    struct { const char* prefix; int len; } prefixes[] = {
-        { "3DS_", 4 }, { "DSi_", 4 }, { "NS2_", 4 }, { "PSV_", 4 },
-        { "SwitchSports_", 13 }, { "Wii_", 4 }, { "WiiU_", 5 },
-    };
     int j = 0;
-    for (auto& p : prefixes)
-    {
-        bool match = true;
-        for (int k = 0; k < p.len; k++)
-        {
-            if (name[k] != p.prefix[k]) { match = false; break; }
-        }
-        if (match) { j = p.len; break; }
-    }
+    // Skip 3DS_ or DSi_ prefix
+    if ((name[0] == '3' && name[1] == 'D' && name[2] == 'S' && name[3] == '_') ||
+        (name[0] == 'D' && name[1] == 'S' && name[2] == 'i' && name[3] == '_'))
+        j = 4;
     int len = 0;
     while (name[j] && name[j] != '.' && len < 30)
     {
@@ -422,10 +412,7 @@ void DisplaySettingsBottomSheetView::UpdateLanguageAndLabels()
     _themeLabel.SetText(Localization::Translate("theme"));
     _languageLabel.SetText(Localization::Translate("language"));
     _darkModeLabel.SetText(Localization::Translate("dark_mode"));
-    _bgmLabel.SetText(Localization::Translate("bgm"));
     _darkModeChip.SetText(_viewModel->GetDarkMode() ? u"On" : u"Off");
-    _bgmSelectTitle.SetText(Localization::Translate("select_bgm"));
-    UpdateBgmChipText();
 }
 
 void DisplaySettingsBottomSheetView::ToggleDarkMode()
@@ -808,7 +795,7 @@ void DisplaySettingsBottomSheetView::EnterBgmSelectMode(FocusManager& focusManag
         delete _bgmAdapter;
         _bgmAdapter = nullptr;
     }
-    _bgmAdapter = new BgmAdapter(_bgmFileNames, _bgmFileCount, _materialColorScheme, _fontRepository, _bgmIndex, Localization::Translate("bgm_random"));
+    _bgmAdapter = new BgmAdapter(_bgmFileNames, _bgmFileCount, _materialColorScheme, _fontRepository, _bgmIndex);
 
     // Find the flat index for the currently selected BGM in the tree structure
     int initialIndex = 0; // default to Random

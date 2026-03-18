@@ -10,29 +10,18 @@ public:
     static constexpr int kItemRandom = -1;
     static constexpr int kItemCategory = -2;
 
-    struct Category
-    {
-        const char* prefix;      // File name prefix, e.g. "3DS_"
-        int prefixLen;           // Prefix length
-        const char16_t* nameEn;  // English category name
-        const char16_t* nameCn;  // Chinese category name (unused for now, same as En)
-        int start;
-        int count;
-        bool expanded;
-    };
-
-    static constexpr int kMaxCategories = 8;
-
     BgmAdapter(const String<char, 128>* bgmFileNames, int bgmFileCount,
         const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository,
-        int currentBgmIndex = -1, const char16_t* randomText = u"Random")
+        int currentBgmIndex = -1)
         : _bgmFileNames(bgmFileNames)
         , _bgmFileCount(bgmFileCount)
         , _materialColorScheme(materialColorScheme)
         , _fontRepository(fontRepository)
         , _currentBgmIndex(currentBgmIndex)
-        , _randomText(randomText)
-        , _categoryCount(0)
+        , _3dsExpanded(true)
+        , _dsiExpanded(true)
+        , _3dsStart(0), _3dsCount(0)
+        , _dsiStart(0), _dsiCount(0)
         , _otherStart(0), _otherCount(0)
     {
         ClassifyFiles();
@@ -41,12 +30,11 @@ public:
     u32 GetItemCount() const override
     {
         u32 count = 1; // Random
-        for (int c = 0; c < _categoryCount; c++)
-        {
-            if (_categories[c].count > 0)
-                count += 1 + (_categories[c].expanded ? _categories[c].count : 0);
-        }
-        count += _otherCount;
+        if (_3dsCount > 0)
+            count += 1 + (_3dsExpanded ? _3dsCount : 0); // header + items
+        if (_dsiCount > 0)
+            count += 1 + (_dsiExpanded ? _dsiCount : 0); // header + items
+        count += _otherCount; // other files (no header)
         return count;
     }
 
@@ -69,61 +57,61 @@ public:
     void BindView(View* view, int index) const override
     {
         auto* item = static_cast<BgmListItemView*>(view);
-        item->SetIndentLevel(0);
+        item->SetIndentLevel(0); // default, overridden for child items
 
         int flatIdx = index;
         char16_t buf[64];
         int pos = 0;
+        bool isCategory = false;
         bool isCurrent = false;
+        int fileIdx = -1;
 
+        // Decode flat index
         // 0: Random
         if (flatIdx == 0)
         {
             isCurrent = (_currentBgmIndex < 0);
             if (isCurrent) { buf[pos++] = u'\u00B7'; buf[pos++] = u' '; }
-            for (int i = 0; _randomText[i] && pos < 62; i++)
-                buf[pos++] = _randomText[i];
+            const char16_t* r = u"Random";
+            for (int i = 0; r[i] && pos < 62; i++)
+                buf[pos++] = r[i];
             buf[pos] = 0;
             item->SetIsCategory(false);
             item->SetCurrentlyPlaying(isCurrent);
             item->SetText(buf);
             return;
         }
-        flatIdx--;
+        flatIdx--; // consumed Random
 
-        // Category groups
-        for (int c = 0; c < _categoryCount; c++)
+        // 3DS group
+        if (_3dsCount > 0)
         {
-            const Category& cat = _categories[c];
-            if (cat.count <= 0)
-                continue;
-
-            // Category header
             if (flatIdx == 0)
             {
-                buf[pos++] = cat.expanded ? u'-' : u'+';
-                buf[pos++] = u' ';
-                const char16_t* name = cat.nameEn;
-                for (int i = 0; name[i] && pos < 62; i++)
-                    buf[pos++] = name[i];
+                // 3DS category header
+                isCategory = true;
+                const char16_t* arrow = _3dsExpanded ? u"- 3DS" : u"+ 3DS";
+                for (int i = 0; arrow[i] && pos < 62; i++)
+                    buf[pos++] = arrow[i];
                 buf[pos] = 0;
                 item->SetIsCategory(true);
                 item->SetCurrentlyPlaying(false);
                 item->SetText(buf);
                 return;
             }
-            flatIdx--;
+            flatIdx--; // consumed 3DS header
 
-            if (cat.expanded)
+            if (_3dsExpanded)
             {
-                if (flatIdx < cat.count)
+                if (flatIdx < _3dsCount)
                 {
-                    int fileIdx = cat.start + flatIdx;
+                    fileIdx = _3dsStart + flatIdx;
                     isCurrent = (fileIdx == _currentBgmIndex);
                     item->SetIndentLevel(1);
                     if (isCurrent) { buf[pos++] = u'\u00B7'; buf[pos++] = u' '; }
+                    // Strip "3DS_" prefix, then replace '_' with ' '
                     const char* name = _bgmFileNames[fileIdx].GetString();
-                    int j = cat.prefixLen; // skip prefix
+                    int j = 4; // skip "3DS_"
                     while (name[j] && name[j] != '.' && pos < 62)
                     {
                         buf[pos++] = (name[j] == '_') ? u' ' : (char16_t)(unsigned char)name[j];
@@ -135,14 +123,58 @@ public:
                     item->SetText(buf);
                     return;
                 }
-                flatIdx -= cat.count;
+                flatIdx -= _3dsCount;
+            }
+        }
+
+        // DSi group
+        if (_dsiCount > 0)
+        {
+            if (flatIdx == 0)
+            {
+                // DSi category header
+                isCategory = true;
+                const char16_t* arrow = _dsiExpanded ? u"- DSi" : u"+ DSi";
+                for (int i = 0; arrow[i] && pos < 62; i++)
+                    buf[pos++] = arrow[i];
+                buf[pos] = 0;
+                item->SetIsCategory(true);
+                item->SetCurrentlyPlaying(false);
+                item->SetText(buf);
+                return;
+            }
+            flatIdx--; // consumed DSi header
+
+            if (_dsiExpanded)
+            {
+                if (flatIdx < _dsiCount)
+                {
+                    fileIdx = _dsiStart + flatIdx;
+                    isCurrent = (fileIdx == _currentBgmIndex);
+                    item->SetIndentLevel(1);
+                    if (isCurrent) { buf[pos++] = u'\u00B7'; buf[pos++] = u' '; }
+                    // Strip "DSi_" prefix, then replace '_' with ' '
+                    const char* name = _bgmFileNames[fileIdx].GetString();
+                    int j = 4; // skip "DSi_"
+                    while (name[j] && name[j] != '.' && pos < 62)
+                    {
+                        buf[pos++] = (name[j] == '_') ? u' ' : (char16_t)(unsigned char)name[j];
+                        j++;
+                    }
+                    buf[pos] = 0;
+                    item->SetIsCategory(false);
+                    item->SetCurrentlyPlaying(isCurrent);
+                    item->SetText(buf);
+                    return;
+                }
+                flatIdx -= _dsiCount;
             }
         }
 
         // Other files (no header)
         if (flatIdx < _otherCount)
         {
-            int fileIdx = _otherStart + flatIdx;
+            fileIdx = _otherStart + flatIdx;
             isCurrent = (fileIdx == _currentBgmIndex);
             if (isCurrent) { buf[pos++] = u'\u00B7'; buf[pos++] = u' '; }
             const char* name = _bgmFileNames[fileIdx].GetString();
@@ -159,7 +191,7 @@ public:
             return;
         }
 
-        // Fallback
+        // Fallback (shouldn't happen)
         buf[0] = 0;
         item->SetIsCategory(false);
         item->SetCurrentlyPlaying(false);
@@ -176,15 +208,17 @@ public:
         if (index == 0) return false; // Random
         int flatIdx = index - 1;
 
-        for (int c = 0; c < _categoryCount; c++)
+        if (_3dsCount > 0)
         {
-            if (_categories[c].count <= 0)
-                continue;
-            if (flatIdx == 0) return true; // category header
+            if (flatIdx == 0) return true; // 3DS header
             flatIdx--;
-            if (_categories[c].expanded)
-                flatIdx -= _categories[c].count;
+            if (_3dsExpanded) flatIdx -= _3dsCount;
             if (flatIdx < 0) return false;
+        }
+
+        if (_dsiCount > 0)
+        {
+            if (flatIdx == 0) return true; // DSi header
         }
 
         return false;
@@ -196,15 +230,17 @@ public:
         if (index == 0) return;
         int flatIdx = index - 1;
 
-        for (int c = 0; c < _categoryCount; c++)
+        if (_3dsCount > 0)
         {
-            if (_categories[c].count <= 0)
-                continue;
-            if (flatIdx == 0) { _categories[c].expanded = !_categories[c].expanded; return; }
+            if (flatIdx == 0) { _3dsExpanded = !_3dsExpanded; return; }
             flatIdx--;
-            if (_categories[c].expanded)
-                flatIdx -= _categories[c].count;
+            if (_3dsExpanded) flatIdx -= _3dsCount;
             if (flatIdx < 0) return;
+        }
+
+        if (_dsiCount > 0)
+        {
+            if (flatIdx == 0) { _dsiExpanded = !_dsiExpanded; return; }
         }
     }
 
@@ -215,17 +251,25 @@ public:
         if (index == 0) return kItemRandom;
         int flatIdx = index - 1;
 
-        for (int c = 0; c < _categoryCount; c++)
+        if (_3dsCount > 0)
         {
-            if (_categories[c].count <= 0)
-                continue;
-            if (flatIdx == 0) return kItemCategory; // category header
+            if (flatIdx == 0) return kItemCategory; // 3DS header
             flatIdx--;
-            if (_categories[c].expanded)
+            if (_3dsExpanded)
             {
-                if (flatIdx < _categories[c].count)
-                    return _categories[c].start + flatIdx;
-                flatIdx -= _categories[c].count;
+                if (flatIdx < _3dsCount) return _3dsStart + flatIdx;
+                flatIdx -= _3dsCount;
+            }
+        }
+
+        if (_dsiCount > 0)
+        {
+            if (flatIdx == 0) return kItemCategory; // DSi header
+            flatIdx--;
+            if (_dsiExpanded)
+            {
+                if (flatIdx < _dsiCount) return _dsiStart + flatIdx;
+                flatIdx -= _dsiCount;
             }
         }
 
@@ -235,113 +279,45 @@ public:
         return kItemCategory; // shouldn't happen
     }
 
-    /// Returns the prefix length for a file at the given index, or 0 if uncategorized.
-    int GetPrefixLenForFile(int fileIndex) const
-    {
-        for (int c = 0; c < _categoryCount; c++)
-        {
-            if (fileIndex >= _categories[c].start &&
-                fileIndex < _categories[c].start + _categories[c].count)
-                return _categories[c].prefixLen;
-        }
-        return 0;
-    }
-
 private:
     const String<char, 128>* _bgmFileNames;
     int _bgmFileCount;
     const MaterialColorScheme* _materialColorScheme;
     const IFontRepository* _fontRepository;
     int _currentBgmIndex; // -1 = Random is current
-    const char16_t* _randomText;
 
-    Category _categories[kMaxCategories];
-    int _categoryCount;
+    bool _3dsExpanded;
+    bool _dsiExpanded;
+    int _3dsStart, _3dsCount;
+    int _dsiStart, _dsiCount;
     int _otherStart, _otherCount;
 
-    /// Known category definitions (prefix, prefixLen, nameEn, nameCn).
-    /// Files are sorted alphabetically, so categories appear in alpha order.
-    struct CategoryDef
-    {
-        const char* prefix;
-        int prefixLen;
-        const char16_t* nameEn;
-        const char16_t* nameCn;
-    };
-
-    static constexpr int kKnownCategoryCount = 7;
-
-    static bool MatchPrefix(const char* name, const char* prefix, int prefixLen)
-    {
-        for (int i = 0; i < prefixLen; i++)
-        {
-            if (name[i] != prefix[i])
-                return false;
-        }
-        return true;
-    }
-
+    /// Scans _bgmFileNames and classifies them into 3DS, DSi, and other groups.
+    /// Assumes files are already sorted by name (3DS_ first, then DSi_, then others).
     void ClassifyFiles()
     {
-        static const CategoryDef kDefs[kKnownCategoryCount] = {
-            { "3DS_",          4, u"3DS",            u"3DS" },
-            { "DSi_",          4, u"DSi",            u"DSi" },
-            { "NS2_",          4, u"NS2",            u"NS2" },
-            { "PSV_",          4, u"PS Vita",        u"PS Vita" },
-            { "SwitchSports_", 13, u"Switch Sports", u"Switch Sports" },
-            { "Wii_",          4, u"Wii",            u"Wii" },
-            { "WiiU_",         5, u"Wii U",          u"Wii U" },
-        };
-
-        _categoryCount = 0;
+        _3dsStart = 0;
+        _3dsCount = 0;
+        _dsiStart = 0;
+        _dsiCount = 0;
         _otherStart = 0;
         _otherCount = 0;
 
-        // Initialize category slots
-        for (int d = 0; d < kKnownCategoryCount; d++)
-        {
-            _categories[d].prefix = kDefs[d].prefix;
-            _categories[d].prefixLen = kDefs[d].prefixLen;
-            _categories[d].nameEn = kDefs[d].nameEn;
-            _categories[d].nameCn = kDefs[d].nameCn;
-            _categories[d].start = 0;
-            _categories[d].count = 0;
-            _categories[d].expanded = true;
-        }
-
-        // Count files per category
+        // First pass: count each category
         for (int i = 0; i < _bgmFileCount; i++)
         {
             const char* name = _bgmFileNames[i].GetString();
-            bool matched = false;
-            for (int d = 0; d < kKnownCategoryCount; d++)
-            {
-                if (MatchPrefix(name, kDefs[d].prefix, kDefs[d].prefixLen))
-                {
-                    _categories[d].count++;
-                    matched = true;
-                    break;
-                }
-            }
-            if (!matched)
+            if (name[0] == '3' && name[1] == 'D' && name[2] == 'S' && name[3] == '_')
+                _3dsCount++;
+            else if (name[0] == 'D' && name[1] == 'S' && name[2] == 'i' && name[3] == '_')
+                _dsiCount++;
+            else
                 _otherCount++;
         }
 
-        // Compute start indices (files are alphabetically sorted, so groups are contiguous)
-        int pos = 0;
-        _categoryCount = 0;
-        for (int d = 0; d < kKnownCategoryCount; d++)
-        {
-            if (_categories[d].count > 0)
-            {
-                _categories[d].start = pos;
-                pos += _categories[d].count;
-                // Pack non-empty categories to the front
-                if (_categoryCount != d)
-                    _categories[_categoryCount] = _categories[d];
-                _categoryCount++;
-            }
-        }
-        _otherStart = pos;
+        // Compute start indices (files should already be grouped by prefix due to alphabetical sort)
+        _3dsStart = 0;
+        _dsiStart = _3dsStart + _3dsCount;
+        _otherStart = _dsiStart + _dsiCount;
     }
 };

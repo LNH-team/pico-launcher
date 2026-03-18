@@ -61,9 +61,6 @@ TRANSLATIONS = {
     "information_language_spanish": "西班牙语",
     "information_language_japanese": "日语",
     "information_language_unknown": "未知",
-    "bgm": "背景音乐",
-    "select_bgm": "选择BGM",
-    "bgm_random": "随机",
 }
 
 
