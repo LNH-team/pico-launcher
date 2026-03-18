@@ -60,6 +60,11 @@ void BgmListItemView::Draw(GraphicsContext& graphicsContext)
         // Currently playing but not focused: use primary color for text
         textColor = _materialColorScheme->primary;
     }
+    else if (_isCategory)
+    {
+        // Category headers use onSurface for more prominent appearance
+        textColor = _materialColorScheme->onSurface;
+    }
 
     _arrowLabel.SetBackgroundColor(backColor);
     _arrowLabel.SetForegroundColor(textColor);

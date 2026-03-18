@@ -231,14 +231,20 @@ void DisplaySettingsBottomSheetView::UpdateBgmChipText()
         _bgmChip.SetText(u"Random");
         return;
     }
-    // Strip .bcstm extension for display
+    // Strip prefix (3DS_ or DSi_) and .bcstm extension for display, replace '_' with ' '
     char16_t buf[32];
     const char* name = _bgmFileNames[_bgmIndex].GetString();
+    int j = 0;
+    // Skip 3DS_ or DSi_ prefix
+    if ((name[0] == '3' && name[1] == 'D' && name[2] == 'S' && name[3] == '_') ||
+        (name[0] == 'D' && name[1] == 'S' && name[2] == 'i' && name[3] == '_'))
+        j = 4;
     int len = 0;
-    while (name[len] && name[len] != '.' && len < 30)
+    while (name[j] && name[j] != '.' && len < 30)
     {
-        buf[len] = (char16_t)(unsigned char)name[len];
+        buf[len] = (name[j] == '_') ? u' ' : (char16_t)(unsigned char)name[j];
         len++;
+        j++;
     }
     buf[len] = 0;
     _bgmChip.SetText(buf);
@@ -431,12 +437,28 @@ bool DisplaySettingsBottomSheetView::HandleInput(
         }
         if (inputProvider.Triggered(InputKey::A))
         {
-            if (_bgmRecycler)
+            if (_bgmRecycler && _bgmAdapter)
             {
                 int selectedIdx = _bgmRecycler->GetSelectedItem();
                 if (selectedIdx >= 0)
                 {
-                    ApplyBgmSelection(selectedIdx);
+                    if (_bgmAdapter->IsCategoryItem(selectedIdx))
+                    {
+                        _bgmAdapter->ToggleCategory(selectedIdx);
+                        focusManager.Unfocus();
+                        _bgmRecycler->SetAdapter(_bgmAdapter, selectedIdx);
+                        if (_objVramManager)
+                        {
+                            ((DescendingStackVramManager*)_objVramManager)->SetState(_savedVramState);
+                            _bgmRecycler->InitVram(VramContext(nullptr, _objVramManager, nullptr, nullptr));
+                        }
+                        _bgmRecycler->Focus(focusManager);
+                    }
+                    else
+                    {
+                        int bgmFileIdx = _bgmAdapter->GetBgmFileIndex(selectedIdx);
+                        ApplyBgmSelection(bgmFileIdx);
+                    }
                 }
             }
             return true;
@@ -744,7 +766,25 @@ void DisplaySettingsBottomSheetView::EnterBgmSelectMode(FocusManager& focusManag
         _bgmRecycler->SetTouchTapCallback([](int itemIdx, void* arg)
         {
             auto* self = static_cast<DisplaySettingsBottomSheetView*>(arg);
-            self->ApplyBgmSelection(itemIdx);
+            if (self->_bgmAdapter && self->_bgmAdapter->IsCategoryItem(itemIdx))
+            {
+                self->_bgmAdapter->ToggleCategory(itemIdx);
+                if (self->_focusManager)
+                    self->_focusManager->Unfocus();
+                self->_bgmRecycler->SetAdapter(self->_bgmAdapter, itemIdx);
+                if (self->_objVramManager)
+                {
+                    ((DescendingStackVramManager*)self->_objVramManager)->SetState(self->_savedVramState);
+                    self->_bgmRecycler->InitVram(VramContext(nullptr, self->_objVramManager, nullptr, nullptr));
+                }
+                if (self->_focusManager)
+                    self->_bgmRecycler->Focus(*self->_focusManager);
+            }
+            else if (self->_bgmAdapter)
+            {
+                int bgmFileIdx = self->_bgmAdapter->GetBgmFileIndex(itemIdx);
+                self->ApplyBgmSelection(bgmFileIdx);
+            }
         }, this);
         AddChildTail(_bgmRecycler.get());
     }
@@ -757,7 +797,21 @@ void DisplaySettingsBottomSheetView::EnterBgmSelectMode(FocusManager& focusManag
     }
     _bgmAdapter = new BgmAdapter(_bgmFileNames, _bgmFileCount, _materialColorScheme, _fontRepository, _bgmIndex);
 
-    int initialIndex = (_bgmIndex < 0 || _bgmIndex >= _bgmFileCount) ? 0 : (_bgmIndex + 1);
+    // Find the flat index for the currently selected BGM in the tree structure
+    int initialIndex = 0; // default to Random
+    if (_bgmIndex >= 0 && _bgmIndex < _bgmFileCount)
+    {
+        // Search through all flat indices to find the one matching _bgmIndex
+        int count = (int)_bgmAdapter->GetItemCount();
+        for (int i = 0; i < count; i++)
+        {
+            if (_bgmAdapter->GetBgmFileIndex(i) == _bgmIndex)
+            {
+                initialIndex = i;
+                break;
+            }
+        }
+    }
 
     focusManager.Unfocus();
     _bgmRecycler->SetAdapter(_bgmAdapter, initialIndex);
@@ -790,11 +844,11 @@ void DisplaySettingsBottomSheetView::ExitBgmSelectMode(FocusManager& focusManage
 
 void DisplaySettingsBottomSheetView::ApplyBgmSelection(int index)
 {
-    // Convert index: 0 = Random (-1), 1+ = file index
-    if (index == 0)
+    // index: -1 = Random, 0+ = file index in _bgmFileNames
+    if (index < 0)
         _bgmIndex = -1;
     else
-        _bgmIndex = index - 1;
+        _bgmIndex = index;
 
     UpdateBgmChipText();
 

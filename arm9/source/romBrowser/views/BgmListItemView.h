@@ -20,10 +20,12 @@ public:
 
     void SetText(const char16_t* text);
     void SetCurrentlyPlaying(bool playing) { _currentlyPlaying = playing; }
+    void SetIsCategory(bool isCategory) { _isCategory = isCategory; }
 
 private:
     Label2DView _arrowLabel;
     Label2DView _nameLabel;
     const MaterialColorScheme* _materialColorScheme;
     bool _currentlyPlaying = false;
+    bool _isCategory = false;
 };
