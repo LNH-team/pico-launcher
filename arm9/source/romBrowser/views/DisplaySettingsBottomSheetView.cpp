@@ -322,9 +322,10 @@ void DisplaySettingsBottomSheetView::Update()
         int totalItems = _bgmFileCount + 1; // +1 for "Random"
         // Calculate how many items fit on screen
         int availableHeight = 192 - (_position.y + 30);
-        int visibleCount = availableHeight / 14;
-        if (visibleCount > kBgmVisibleItems) visibleCount = kBgmVisibleItems;
-        if (visibleCount < 1) visibleCount = 1;
+        _bgmVisibleCount = availableHeight / 14;
+        if (_bgmVisibleCount > kBgmVisibleItems) _bgmVisibleCount = kBgmVisibleItems;
+        if (_bgmVisibleCount < 1) _bgmVisibleCount = 1;
+        int visibleCount = _bgmVisibleCount;
 
         // Adjust scroll so cursor is visible
         if (_bgmListCursor < _bgmListScroll)
@@ -556,7 +557,7 @@ bool DisplaySettingsBottomSheetView::HandleTouch(
     if (_bgmSelectMode)
     {
         int bgmTotalItems = _bgmFileCount + 1;
-        int maxScroll = bgmTotalItems - kBgmVisibleItems;
+        int maxScroll = bgmTotalItems - _bgmVisibleCount;
         if (maxScroll < 0) maxScroll = 0;
 
         // Touch drag scrolling — accumulate pixels, scroll when threshold reached
@@ -847,8 +848,8 @@ void DisplaySettingsBottomSheetView::EnterBgmSelectMode()
         _bgmListCursor = _bgmIndex + 1;
 
     // Ensure cursor is visible
-    if (_bgmListCursor >= kBgmVisibleItems)
-        _bgmListScroll = _bgmListCursor - kBgmVisibleItems + 1;
+    if (_bgmListCursor >= _bgmVisibleCount)
+        _bgmListScroll = _bgmListCursor - _bgmVisibleCount + 1;
 
     UpdateBgmListLabels();
 }
