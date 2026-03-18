@@ -17,7 +17,7 @@ public:
         , _fontRepository(fontRepository)
         , _builtinCount(0), _customCount(0)
         , _currentIndex(-1)
-        , _builtinExpanded(true), _customExpanded(true)
+        , _builtinExpanded(false), _customExpanded(false)
     {
         ScanThemes();
         if (currentThemeName)
