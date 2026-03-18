@@ -5,7 +5,6 @@
 #include "../IRomBrowserViewFactory.h"
 #include "romBrowser/viewModels/RomBrowserViewModel.h"
 #include "CarouselRecyclerView.h"
-#include "romBrowser/views/CoverFlowRecyclerView.h"
 #include "MaterialCoverFlowFileRecyclerAdapter.h"
 #include "MaterialAppBarView.h"
 
@@ -54,7 +53,7 @@ public:
 
     std::unique_ptr<RecyclerViewBase> CreateCoverFlowRecyclerView() const override
     {
-        return std::make_unique<CoverFlowRecyclerView>();
+        return std::make_unique<CarouselRecyclerView>(_materialColorScheme);
     }
 
     FileRecyclerAdapter* CreateCoverFlowRecyclerAdapter(
