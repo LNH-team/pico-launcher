@@ -314,7 +314,24 @@ bool DisplaySettingsBottomSheetView::HandleInput(
 bool DisplaySettingsBottomSheetView::HandleTouch(
     const TouchEvent& event, FocusManager& focusManager)
 {
+    // Touch drag scrolling
+    if (event.type == TouchEventType::Move)
+    {
+        _scrollOffset -= event.deltaY;
+        if (_scrollOffset < 0) _scrollOffset = 0;
+        int maxScroll = 200 - (192 - _position.y);
+        if (maxScroll < 0) maxScroll = 0;
+        if (_scrollOffset > maxScroll) _scrollOffset = maxScroll;
+        return true;
+    }
+
+    // Only handle taps (short touch-up)
     if (event.type != TouchEventType::Up || event.holdFrames > 24)
+        return false;
+
+    // Ignore if it was a drag gesture
+    int totalDelta = event.totalDeltaX * event.totalDeltaX + event.totalDeltaY * event.totalDeltaY;
+    if (totalDelta > 64)
         return false;
 
     // Check layout option taps

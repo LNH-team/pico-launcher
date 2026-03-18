@@ -1111,8 +1111,12 @@ void App::Update()
 
         if (!handledBlockedBInput && quickMenuActive && !_focusManager.GetCurrentFocus())
             _quickMenuPresenter.HandleInput(activeInput, _focusManager);
-        else if (!handledBlockedBInput && currentDialog && !_focusManager.GetCurrentFocus())
-            currentDialog->HandleInput(activeInput, _focusManager);
+        else if (!handledBlockedBInput && currentDialog)
+        {
+            // Let the dialog handle input first (for A/B on focused chips etc.)
+            if (!currentDialog->HandleInput(activeInput, _focusManager) && !blockNonBInput)
+                _focusManager.Update(_inputRepeater);
+        }
         else if (!handledBlockedBInput && !blockNonBInput)
             _focusManager.Update(_inputRepeater);
 
