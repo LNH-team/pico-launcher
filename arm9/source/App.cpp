@@ -37,6 +37,7 @@
 #include "themes/ThemeInfoFactory.h"
 #include "themes/ThemeFactory.h"
 #include "core/StringUtil.h"
+#include "core/mini-printf.h"
 #include "gui/Gx.h"
 #include "splashTop.h"
 #include "App.h"
@@ -330,7 +331,19 @@ void App::Run()
 
     _ioTaskQueue.Enqueue([this] (const vu8& cancelRequested)
     {
-        _bgmService.StartBgmFromConfig(_effectiveThemeName.GetString());
+        const char* bgmSetting = _appSettingsService.GetAppSettings().bgm.GetString();
+        if (bgmSetting && bgmSetting[0] != '\0')
+        {
+            // Play specific BGM from /_pico/bgm/
+            char path[256];
+            mini_snprintf(path, sizeof(path), "/_pico/bgm/%s", bgmSetting);
+            if (!_bgmService.StartBgm(path))
+                _bgmService.StartBgmFromConfig(_effectiveThemeName.GetString());
+        }
+        else
+        {
+            _bgmService.StartBgmFromConfig(_effectiveThemeName.GetString());
+        }
         return TaskResult<void>::Completed();
     });
     _fadeAnimator = Animator(16, 0, 16, &md::sys::motion::easing::linear);
@@ -603,7 +616,7 @@ void App::HandleShowDisplaySettingsTrigger()
 
     auto displaySettingsDialog = std::make_unique<DisplaySettingsBottomSheetView>(
         &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(),
-        _theme->GetFontRepository(), &_appSettingsService,
+        _theme->GetFontRepository(), &_appSettingsService, &_bgmService,
         _effectiveThemeName.GetString());
     displaySettingsDialog->SetGraphics(_iconButtonViewVram);
     displaySettingsDialog->SetChipGraphics(_chipViewVram);

@@ -15,6 +15,7 @@
 #define KEY_THEME                    "theme"
 #define KEY_LAST_USED_FILE_PATH      "lastUsedFilePath"
 #define KEY_DARK_MODE                "darkMode"
+#define KEY_BGM                      "bgm"
 #define KEY_FILE_ASSOCIATIONS        "fileAssociations"
 #define KEY_FILE_ASSOCIATIONS_APPLICATION_PATH  "appPath"
 
@@ -131,6 +132,7 @@ static std::unique_ptr<u8[]> writeJson(const AppSettings* appSettings, u32& leng
     json[KEY_THEME] = appSettings->theme.GetString();
     json[KEY_LAST_USED_FILE_PATH] = appSettings->lastUsedFilePath.GetString();
     json[KEY_DARK_MODE] = appSettings->darkMode;
+    json[KEY_BGM] = appSettings->bgm.GetString();
     serializeFileAssociations(json, appSettings);
 
     u32 outputSize = measureJsonPretty(json);
@@ -179,6 +181,7 @@ static void readJson(AppSettings* appSettings, const JsonDocument& json)
     appSettings->theme = json[KEY_THEME] | appSettings->theme.GetString();
     appSettings->lastUsedFilePath = json[KEY_LAST_USED_FILE_PATH] | appSettings->lastUsedFilePath.GetString();
     appSettings->darkMode = json[KEY_DARK_MODE] | appSettings->darkMode;
+    appSettings->bgm = json[KEY_BGM] | appSettings->bgm.GetString();
 
     RomBrowserLayout romBrowserLayout;
     if (tryParseRomBrowserLayout(json[KEY_ROM_BROWSER_LAYOUT].as<const char*>(),

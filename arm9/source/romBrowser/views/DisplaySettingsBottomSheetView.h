@@ -6,6 +6,7 @@
 #include "ChipView.h"
 #include "../viewModels/DisplaySettingsViewModel.h"
 #include "services/settings/IAppSettingsService.h"
+#include "bgm/IBgmService.h"
 
 class IRomBrowserController;
 class MaterialColorScheme;
@@ -36,7 +37,8 @@ public:
 
     DisplaySettingsBottomSheetView(DisplaySettingsViewModel* viewModel,
         const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository,
-        IAppSettingsService* appSettingsService, const char* appliedThemeName);
+        IAppSettingsService* appSettingsService, IBgmService* bgmService,
+        const char* appliedThemeName);
 
     void InitVram(const VramContext& vramContext) override;
     void Update() override;
@@ -68,6 +70,7 @@ private:
     Label2DView _themeLabel;
     Label2DView _languageLabel;
     Label2DView _darkModeLabel;
+    Label2DView _bgmLabel;
 
     std::array<IconButton2DView, 4> _layoutOptions;
     std::array<IconButton2DView, /*3*/2> _sortOptions;
@@ -75,11 +78,19 @@ private:
     ChipView _themeChip;
     ChipView _languageChip;
     ChipView _darkModeChip;
+    ChipView _bgmChip;
 
     int _scrollOffset = 0;
 
     const MaterialColorScheme* _materialColorScheme;
     const IFontRepository* _fontRepository;
+    IBgmService* _bgmService;
+
+    // BGM file list (fixed array, no heap allocation)
+    static constexpr int kMaxBgmFiles = 64;
+    String<char, 128> _bgmFileNames[kMaxBgmFiles];
+    int _bgmFileCount = 0;
+    int _bgmIndex = -1; // -1 = Random
 
     IconButton2DView CreateLayoutOptionIconButton();
     IconButton2DView CreateSortOptionIconButton();
@@ -87,6 +98,9 @@ private:
     void UpdateLabels();
     void UpdateLanguageAndLabels();
     void ToggleDarkMode();
+    void CycleBgm(bool forward);
+    void UpdateBgmChipText();
+    void ScanBgmFiles();
     void ScrollToFocus(View* target);
 
     bool _usePreloadedIcons = false;
