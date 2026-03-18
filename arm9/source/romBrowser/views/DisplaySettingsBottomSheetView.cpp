@@ -340,14 +340,6 @@ void DisplaySettingsBottomSheetView::Draw(GraphicsContext& graphicsContext)
         {
             _bgmSelectTitle.SetBackgroundColor(bgColor);
             _bgmSelectTitle.SetForegroundColor(_materialColorScheme->onSurface);
-
-            // Draw the RecyclerView
-            if (_bgmRecycler)
-            {
-                graphicsContext.SetClipArea(_bgmRecycler->GetBounds());
-                _bgmRecycler->Draw(graphicsContext);
-                graphicsContext.SetClipArea(GetBounds());
-            }
         }
         else
         {
@@ -367,6 +359,14 @@ void DisplaySettingsBottomSheetView::Draw(GraphicsContext& graphicsContext)
             _bgmLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         }
         BottomSheetView::Draw(graphicsContext);
+
+        // Draw RecyclerView after BottomSheetView (so it's on top)
+        if (_bgmSelectMode && _bgmRecycler)
+        {
+            graphicsContext.SetClipArea(_bgmRecycler->GetBounds());
+            _bgmRecycler->Draw(graphicsContext);
+            graphicsContext.SetClipArea(GetBounds());
+        }
     }
     graphicsContext.SetPriority(oldPrio);
     graphicsContext.ResetClipArea();
