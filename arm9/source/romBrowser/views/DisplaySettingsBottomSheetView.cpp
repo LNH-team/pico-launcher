@@ -250,13 +250,15 @@ void DisplaySettingsBottomSheetView::CycleBgm(bool forward)
 
     UpdateBgmChipText();
 
-    // Save setting (BGM takes effect on next launch)
+    // Save and restart (same as theme switch)
     auto& settings = _appSettingsService->GetAppSettings();
     if (_bgmIndex >= 0 && _bgmIndex < _bgmFileCount)
         settings.bgm = _bgmFileNames[_bgmIndex].GetString();
     else
         settings.bgm = "";
-    _appSettingsService->Save();
+    _viewModel->SaveSettingsNow();
+    _viewModel->RequestThemeReload();
+    _viewModel->Close();
 }
 
 void DisplaySettingsBottomSheetView::UpdateLabels()
