@@ -11,7 +11,6 @@ class IRomBrowserController;
 class MaterialColorScheme;
 class IFontRepository;
 class IVramManager;
-class IBgmService;
 struct TouchEvent;
 
 class DisplaySettingsBottomSheetView : public BottomSheetView
@@ -37,8 +36,7 @@ public:
 
     DisplaySettingsBottomSheetView(DisplaySettingsViewModel* viewModel,
         const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository,
-        IAppSettingsService* appSettingsService, IBgmService* bgmService,
-        const char* appliedThemeName);
+        IAppSettingsService* appSettingsService, const char* appliedThemeName);
 
     void InitVram(const VramContext& vramContext) override;
     void Update() override;
@@ -70,7 +68,6 @@ private:
     Label2DView _themeLabel;
     Label2DView _languageLabel;
     Label2DView _darkModeLabel;
-    Label2DView _bgmLabel;
 
     std::array<IconButton2DView, 4> _layoutOptions;
     std::array<IconButton2DView, /*3*/2> _sortOptions;
@@ -78,7 +75,6 @@ private:
     ChipView _themeChip;
     ChipView _languageChip;
     ChipView _darkModeChip;
-    ChipView _bgmChip;
 
     int _scrollOffset = 0;
 
@@ -91,8 +87,6 @@ private:
     void UpdateLabels();
     void UpdateLanguageAndLabels();
     void ToggleDarkMode();
-    void CycleBgm(bool forward);
-    void UpdateBgmChipText();
     void ScrollToFocus(View* target);
 
     bool _usePreloadedIcons = false;

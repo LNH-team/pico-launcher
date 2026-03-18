@@ -603,7 +603,7 @@ void App::HandleShowDisplaySettingsTrigger()
 
     auto displaySettingsDialog = std::make_unique<DisplaySettingsBottomSheetView>(
         &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(),
-        _theme->GetFontRepository(), &_appSettingsService, &_bgmService,
+        _theme->GetFontRepository(), &_appSettingsService,
         _effectiveThemeName.GetString());
     displaySettingsDialog->SetGraphics(_iconButtonViewVram);
     displaySettingsDialog->SetChipGraphics(_chipViewVram);

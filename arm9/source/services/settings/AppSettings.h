@@ -11,7 +11,6 @@ public:
     String<char, 64> theme = "material";
     String<char, 256> lastUsedFilePath = "";
     bool darkMode = false;
-    String<char, 128> bgm = "";
     RomBrowserDisplaySettings romBrowserDisplaySettings;
 
     std::unique_ptr<FileAssociation[]> fileAssociations;

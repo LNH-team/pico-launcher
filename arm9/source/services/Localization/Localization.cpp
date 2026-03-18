@@ -49,7 +49,6 @@ static const FallbackTranslation kEnglishFallbackTranslations[] =
     { "theme", u"Theme" },
     { "language", u"Language" },
     { "dark_mode", u"Dark Mode" },
-    { "bgm", u"BGM" },
 
     { "game_details", u"Game Details" },
     { "total_launches", u"Total Launches" },
