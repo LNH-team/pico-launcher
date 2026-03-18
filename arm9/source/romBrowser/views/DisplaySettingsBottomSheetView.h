@@ -11,6 +11,7 @@
 #include "bgm/IBgmService.h"
 #include "BgmListItemView.h"
 #include "BgmAdapter.h"
+#include "ThemeAdapter.h"
 
 class IRomBrowserController;
 class MaterialColorScheme;
@@ -47,10 +48,11 @@ public:
     ~DisplaySettingsBottomSheetView() override
     {
         _bgmRecycler.reset();
+        _themeRecycler.reset();
         if (_bgmAdapter != nullptr)
-        {
             delete _bgmAdapter;
-        }
+        if (_themeAdapter != nullptr)
+            delete _themeAdapter;
     }
 
     void InitVram(const VramContext& vramContext) override;
@@ -127,6 +129,16 @@ private:
     void EnterBgmSelectMode(FocusManager& focusManager);
     void ExitBgmSelectMode(FocusManager& focusManager);
     void ApplyBgmSelection(int index);
+
+    // Theme selection mode
+    bool _themeSelectMode = false;
+    std::unique_ptr<RecyclerView> _themeRecycler;
+    ThemeAdapter* _themeAdapter = nullptr;
+    Label2DView _themeSelectTitle;
+
+    void EnterThemeSelectMode(FocusManager& focusManager);
+    void ExitThemeSelectMode(FocusManager& focusManager);
+    void ApplyThemeSelection(int index);
 
     bool _usePreloadedIcons = false;
 

@@ -80,6 +80,7 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     , _fontRepository(fontRepository)
     , _bgmService(bgmService)
     , _bgmSelectTitle(200, 16, 25, fontRepository->GetFont(FontType::Medium11))
+    , _themeSelectTitle(200, 16, 25, fontRepository->GetFont(FontType::Medium11))
 {
     _viewModel->SetAppSettingsService(appSettingsService);
 
@@ -98,7 +99,15 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     _bgmLabel.SetText(Localization::Translate("bgm"));
     AddChildTail(&_bgmLabel);
 
-    _themeChip.SetText(_viewModel->IsMaterialTheme() ? u"Material" : u"Raspberry");
+    // Theme chip: show current theme name from settings
+    {
+        const char* themeName = appSettingsService->GetAppSettings().theme.GetString();
+        char16_t tbuf[32];
+        int tp = 0;
+        while (themeName[tp] && tp < 30) { tbuf[tp] = (char16_t)(unsigned char)themeName[tp]; tp++; }
+        tbuf[tp] = 0;
+        _themeChip.SetText(tbuf);
+    }
     _themeChip.SetSelected(true);
     AddChildTail(&_themeChip);
 
@@ -129,8 +138,12 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     }
 
     // BGM select title (always child, positioned offscreen when not active)
-    _bgmSelectTitle.SetText(u"Select BGM");
+    _bgmSelectTitle.SetText(Localization::Translate("select_bgm"));
     AddChildTail(&_bgmSelectTitle);
+
+    // Theme select title
+    _themeSelectTitle.SetText(Localization::Translate("select_theme"));
+    AddChildTail(&_themeSelectTitle);
 }
 
 IconButton2DView DisplaySettingsBottomSheetView::CreateLayoutOptionIconButton()
@@ -266,7 +279,7 @@ void DisplaySettingsBottomSheetView::Update()
 {
     BottomSheetView::Update();
 
-    if (_bgmSelectMode)
+    if (_themeSelectMode || _bgmSelectMode)
     {
         // Hide all normal controls offscreen
         _titleLabel.SetPosition(-300, -300);
@@ -285,14 +298,29 @@ void DisplaySettingsBottomSheetView::Update()
         for (auto& sortOption : _sortOptions)
             sortOption.SetPosition(-300, -300);
 
-        // Position BGM select title
-        _bgmSelectTitle.SetPosition(20, _position.y + 12);
-
-        // Position and update RecyclerView
-        if (_bgmRecycler)
+        if (_themeSelectMode)
         {
-            _bgmRecycler->SetPosition(BGM_LIST_X, _position.y + BGM_LIST_Y);
-            _bgmRecycler->Update();
+            _themeSelectTitle.SetPosition(20, _position.y + 12);
+            _bgmSelectTitle.SetPosition(-300, -300);
+            if (_themeRecycler)
+            {
+                _themeRecycler->SetPosition(BGM_LIST_X, _position.y + BGM_LIST_Y);
+                _themeRecycler->Update();
+            }
+            if (_bgmRecycler)
+                _bgmRecycler->SetPosition(-300, -300);
+        }
+        else
+        {
+            _bgmSelectTitle.SetPosition(20, _position.y + 12);
+            _themeSelectTitle.SetPosition(-300, -300);
+            if (_bgmRecycler)
+            {
+                _bgmRecycler->SetPosition(BGM_LIST_X, _position.y + BGM_LIST_Y);
+                _bgmRecycler->Update();
+            }
+            if (_themeRecycler)
+                _themeRecycler->SetPosition(-300, -300);
         }
     }
     else
@@ -330,8 +358,11 @@ void DisplaySettingsBottomSheetView::Update()
         _darkModeChip.SetPosition(70, _position.y + 170 - s);
         _bgmChip.SetPosition(70, _position.y + 202 - s);
 
-        // Hide BGM select title offscreen
+        // Hide select titles offscreen
         _bgmSelectTitle.SetPosition(-300, -300);
+        _themeSelectTitle.SetPosition(-300, -300);
+        if (_themeRecycler)
+            _themeRecycler->SetPosition(-300, -300);
     }
 }
 
@@ -342,20 +373,31 @@ void DisplaySettingsBottomSheetView::Draw(GraphicsContext& graphicsContext)
     {
         auto bgColor = _materialColorScheme->GetColor(md::sys::color::surfaceContainerLow);
 
-        if (_bgmSelectMode)
+        if (_themeSelectMode)
+        {
+            _themeSelectTitle.SetBackgroundColor(bgColor);
+            _themeSelectTitle.SetForegroundColor(_materialColorScheme->onSurface);
+            _themeSelectTitle.Draw(graphicsContext);
+
+            if (_themeRecycler)
+            {
+                graphicsContext.SetClipArea(_themeRecycler->GetBounds());
+                _themeRecycler->Draw(graphicsContext);
+                graphicsContext.SetClipArea(GetBounds());
+            }
+        }
+        else if (_bgmSelectMode)
         {
             _bgmSelectTitle.SetBackgroundColor(bgColor);
             _bgmSelectTitle.SetForegroundColor(_materialColorScheme->onSurface);
             _bgmSelectTitle.Draw(graphicsContext);
 
-            // Draw RecyclerView with clip to prevent overlap with title
             if (_bgmRecycler)
             {
                 graphicsContext.SetClipArea(_bgmRecycler->GetBounds());
                 _bgmRecycler->Draw(graphicsContext);
                 graphicsContext.SetClipArea(GetBounds());
             }
-            // Skip BottomSheetView::Draw in BGM mode (we drew everything manually)
         }
         else
         {
@@ -428,6 +470,26 @@ bool DisplaySettingsBottomSheetView::HandleInput(
 {
     _focusManager = &focusManager;
 
+    if (_themeSelectMode)
+    {
+        if (inputProvider.Triggered(InputKey::B))
+        {
+            ExitThemeSelectMode(focusManager);
+            return true;
+        }
+        if (inputProvider.Triggered(InputKey::A))
+        {
+            if (_themeRecycler && _themeAdapter)
+            {
+                int selectedIdx = _themeRecycler->GetSelectedItem();
+                if (selectedIdx >= 0)
+                    ApplyThemeSelection(selectedIdx);
+            }
+            return true;
+        }
+        return false;
+    }
+
     if (_bgmSelectMode)
     {
         if (inputProvider.Triggered(InputKey::B))
@@ -477,7 +539,7 @@ bool DisplaySettingsBottomSheetView::HandleInput(
         auto focus = focusManager.GetCurrentFocus();
         if (focus == &_themeChip)
         {
-            _viewModel->ToggleTheme(); // saves + closes dialog + triggers restart
+            EnterThemeSelectMode(focusManager);
             return true;
         }
         else if (focus == &_languageChip)
@@ -504,12 +566,17 @@ bool DisplaySettingsBottomSheetView::HandleTouch(
 {
     _focusManager = &focusManager;
 
+    if (_themeSelectMode)
+    {
+        if (_themeRecycler)
+            return _themeRecycler->HandleTouch(event, focusManager);
+        return true;
+    }
+
     if (_bgmSelectMode)
     {
         if (_bgmRecycler)
-        {
             return _bgmRecycler->HandleTouch(event, focusManager);
-        }
         return true;
     }
 
@@ -559,7 +626,7 @@ bool DisplaySettingsBottomSheetView::HandleTouch(
     if (_themeChip.GetBounds().Contains(event.position))
     {
         focusManager.Focus(&_themeChip);
-        _viewModel->ToggleTheme();
+        EnterThemeSelectMode(focusManager);
         return true;
     }
     if (_languageChip.GetBounds().Contains(event.position))
@@ -593,11 +660,10 @@ void DisplaySettingsBottomSheetView::OnDismissed()
 View* DisplaySettingsBottomSheetView::MoveFocus(View* currentFocus,
     FocusMoveDirection direction, View* source)
 {
-    if (_bgmSelectMode && source == _bgmRecycler.get())
-    {
-        // Don't let focus escape the recycler in bgm select mode
+    if (_themeSelectMode && source == _themeRecycler.get())
         return nullptr;
-    }
+    if (_bgmSelectMode && source == _bgmRecycler.get())
+        return nullptr;
 
     int idx = 0;
     for (auto& layoutOption : _layoutOptions)
@@ -857,6 +923,75 @@ void DisplaySettingsBottomSheetView::ApplyBgmSelection(int index)
         settings.bgm = _bgmFileNames[_bgmIndex].GetString();
     else
         settings.bgm = "";
+    _viewModel->SaveSettingsNow();
+    _viewModel->RequestThemeReload();
+    _viewModel->Close();
+}
+
+void DisplaySettingsBottomSheetView::EnterThemeSelectMode(FocusManager& focusManager)
+{
+    _themeSelectMode = true;
+    _focusManager = &focusManager;
+
+    int listHeight = 192 - _position.y - BGM_LIST_Y - 4;
+    listHeight = (listHeight / 16) * 16;
+    if (listHeight < 16) listHeight = 16;
+
+    if (!_themeRecycler)
+    {
+        _themeRecycler = std::make_unique<RecyclerView>(
+            BGM_LIST_X, _position.y + BGM_LIST_Y, 224, listHeight, RecyclerView::Mode::VerticalList);
+        _themeRecycler->SetShoulderPagingEnabled(false);
+        _themeRecycler->SetTouchTapCallback([](int itemIdx, void* arg)
+        {
+            auto* self = static_cast<DisplaySettingsBottomSheetView*>(arg);
+            self->ApplyThemeSelection(itemIdx);
+        }, this);
+        AddChildTail(_themeRecycler.get());
+    }
+
+    if (_themeAdapter)
+    {
+        delete _themeAdapter;
+        _themeAdapter = nullptr;
+    }
+    const char* currentTheme = _appSettingsService->GetAppSettings().theme.GetString();
+    _themeAdapter = new ThemeAdapter(_materialColorScheme, _fontRepository, currentTheme);
+
+    int initialIndex = _themeAdapter->GetCurrentIndex();
+    if (initialIndex < 0) initialIndex = 0;
+
+    focusManager.Unfocus();
+    _themeRecycler->SetAdapter(_themeAdapter, initialIndex);
+
+    if (_objVramManager)
+    {
+        _savedVramState = ((DescendingStackVramManager*)_objVramManager)->GetState();
+        _themeRecycler->InitVram(VramContext(nullptr, _objVramManager, nullptr, nullptr));
+    }
+    _themeRecycler->Focus(focusManager);
+}
+
+void DisplaySettingsBottomSheetView::ExitThemeSelectMode(FocusManager& focusManager)
+{
+    focusManager.Unfocus();
+
+    if (_objVramManager)
+        ((DescendingStackVramManager*)_objVramManager)->SetState(_savedVramState);
+
+    if (_themeRecycler)
+        _themeRecycler->SetPosition(-300, -300);
+
+    _themeSelectMode = false;
+    focusManager.Focus(&_themeChip);
+    ScrollToFocus(&_themeChip);
+}
+
+void DisplaySettingsBottomSheetView::ApplyThemeSelection(int index)
+{
+    if (!_themeAdapter) return;
+    auto& settings = _appSettingsService->GetAppSettings();
+    settings.theme = _themeAdapter->GetThemeName(index);
     _viewModel->SaveSettingsNow();
     _viewModel->RequestThemeReload();
     _viewModel->Close();
