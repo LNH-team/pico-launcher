@@ -457,11 +457,6 @@ std::unique_ptr<SdFolder> RomBrowserController::BuildFavoritesFolder()
         fileInfos = (FileInfo**)malloc(sizeof(FileInfo*) * favoritesCount);
 
     u32 fileCount = 0;
-    bool favoritesChanged = false;
-    std::unique_ptr<String<char, 256>[]> validFavorites;
-    u32 validCount = 0;
-    if (favoritesCount > 0)
-        validFavorites = std::make_unique_for_overwrite<String<char, 256>[]>(favoritesCount);
 
     for (u32 i = 0; i < favoritesCount; i++)
     {
@@ -470,22 +465,10 @@ std::unique_ptr<SdFolder> RomBrowserController::BuildFavoritesFolder()
         if (TryCreateFileInfoFromPath(favoritePath, fileInfo))
         {
             fileInfos[fileCount++] = fileInfo;
-            validFavorites[validCount++] = favoritePath;
         }
-        else
-        {
-            favoritesChanged = true;
-        }
-    }
-
-    if (favoritesChanged)
-    {
-        if (validCount == 0)
-            appSettings.favorites.reset();
-        else
-            appSettings.favorites = std::move(validFavorites);
-        appSettings.numberOfFavorites = validCount;
-        _appSettingsService->Save();
+        // Don't remove favorites that fail to load — the file may be
+        // temporarily inaccessible (wrong drive context, SD removed, etc.).
+        // Favorites are only removed when the user explicitly unfavorites.
     }
 
     if (fileCount == 0)
