@@ -519,10 +519,17 @@ bool RomBrowserController::TryCreateFileInfoFromPath(const char* fullPath, FileI
     else
     {
         u32 dirLength = (u32)(fileName - fullPath);
-        if (dirLength + 1 > sizeof(dirPath))
+        if (dirLength + 2 > sizeof(dirPath))
             return false;
         memcpy(dirPath, fullPath, dirLength);
         dirPath[dirLength] = 0;
+        // "fat:" without trailing slash means current dir, not root.
+        // Append "/" so FatFs opens the volume root directory.
+        if (dirLength > 0 && dirPath[dirLength - 1] == ':')
+        {
+            dirPath[dirLength] = '/';
+            dirPath[dirLength + 1] = 0;
+        }
         fileName++;
     }
 
