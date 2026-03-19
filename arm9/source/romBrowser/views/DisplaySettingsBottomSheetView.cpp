@@ -464,6 +464,8 @@ void DisplaySettingsBottomSheetView::UpdateLanguageAndLabels()
     _languageLabel.SetText(Localization::Translate("language"));
     _darkModeLabel.SetText(Localization::Translate("dark_mode"));
     _darkModeChip.SetText(_viewModel->GetDarkMode() ? Localization::Translate("on") : Localization::Translate("off"));
+    _bgmLabel.SetText(Localization::Translate("bgm"));
+    UpdateBgmChipText();
 }
 
 void DisplaySettingsBottomSheetView::ToggleDarkMode()
@@ -842,6 +844,7 @@ void DisplaySettingsBottomSheetView::EnterBgmSelectMode(FocusManager& focusManag
 {
     _bgmSelectMode = true;
     _focusManager = &focusManager;
+    _bgmSelectTitle.SetText(Localization::Translate("select_bgm"));
 
     // Compute list height: fill from BGM_LIST_Y to bottom of screen
     // Round down to multiple of 16 (item height) to avoid partial items
@@ -957,6 +960,7 @@ void DisplaySettingsBottomSheetView::EnterThemeSelectMode(FocusManager& focusMan
 {
     _themeSelectMode = true;
     _focusManager = &focusManager;
+    _themeSelectTitle.SetText(Localization::Translate("select_theme"));
 
     int listHeight = 192 - _position.y - BGM_LIST_Y - 4;
     listHeight = (listHeight / 16) * 16;
