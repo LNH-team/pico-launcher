@@ -22,10 +22,7 @@
 #include "rng/RandomGenerator.h"
 #include "rng/LinearCongruentialGenerator.h"
 #include "rng/ThreadSafeRandomGenerator.h"
-#include "NotoSansSC-Regular-10_nft2.h"
-#include "NotoSansSC-Medium-7_5_nft2.h"
-#include "NotoSansSC-Medium-10_nft2.h"
-#include "NotoSansSC-Medium-11_nft2.h"
+#include "WenQuanYi-Bitmap-12_nft2.h"
 #include "gui/font/nitroFont2.h"
 #include "picoLoaderBootstrap.h"
 #include "rtcIpc.h"
@@ -217,10 +214,7 @@ int main(int argc, char* argv[])
     }
     // maybe warn if important files are missing as well?
 
-    nft2_unpack((nft2_header_t*)NotoSansSC_Regular_10_nft2);
-    nft2_unpack((nft2_header_t*)NotoSansSC_Medium_10_nft2);
-    nft2_unpack((nft2_header_t*)NotoSansSC_Medium_11_nft2);
-    nft2_unpack((nft2_header_t*)NotoSansSC_Medium_7_5_nft2);
+    nft2_unpack((nft2_header_t*)WenQuanYi_Bitmap_12_nft2);
 
     gProcessManager.Goto<App>();
     gProcessManager.MainLoop();
