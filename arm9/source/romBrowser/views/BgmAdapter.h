@@ -3,7 +3,6 @@
 #include "core/String.h"
 #include "BgmListItemView.h"
 #include "services/Localization/Localization.h"
-#include "BgmTranslations.h"
 
 class BgmAdapter : public RecyclerAdapter
 {
@@ -112,27 +111,13 @@ public:
                     item->SetIndentLevel(1);
                     item->SetCurrentlyPlaying(isCurrent);
                     if (isCurrent) { buf[pos++] = u'\u00B7'; buf[pos++] = u' '; }
-                    // Try Chinese translation first
                     const char* name = _bgmFileNames[fileIdx].GetString();
-                    // Build stripped key (without prefix and .bcstm)
-                    char strippedKey[128];
-                    int sk = 0;
+                    // Strip platform prefix and .bcstm extension, replace _ with space
                     int j = _categories[c].prefixLen;
-                    while (name[j] && name[j] != '.' && sk < 126)
-                        strippedKey[sk++] = name[j++];
-                    strippedKey[sk] = 0;
-
-                    const char16_t* zhName = FindBgmChineseTranslation(strippedKey);
-                    if (zhName)
+                    while (name[j] && name[j] != '.' && pos < 62)
                     {
-                        for (int i = 0; zhName[i] && pos < 62; i++)
-                            buf[pos++] = zhName[i];
-                    }
-                    else
-                    {
-                        // Fallback: replace _ with space
-                        for (int i = 0; strippedKey[i] && pos < 62; i++)
-                            buf[pos++] = (strippedKey[i] == '_') ? u' ' : (char16_t)(unsigned char)strippedKey[i];
+                        buf[pos++] = (name[j] == '_') ? u' ' : (char16_t)(unsigned char)name[j];
+                        j++;
                     }
                     buf[pos] = 0;
                     item->SetText(buf);
