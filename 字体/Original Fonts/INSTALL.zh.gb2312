@@ -1,0 +1,212 @@
+========================================================== 
+                   文泉驿点阵宋体
+		       安装指南
+
+==========================================================
+
+目录
+
+== PCF/BDF格式字体的安装方法 ==
+1.下载
+2.解压缩
+3.移动 (可选项)
+4.设置字体路径
+5.测试
+6.作为普通用户安装
+7.在您的系统上面打开中文支持
+== TTF格式字体的安装方法   ==
+== RPM安装包的安装方法   ==
+== 其他问题 ==
+
+
+注：(对于使用Debian以及基于Debian的Linux发行版的用户，请参照本文最后的"其它问题")
+
+
+
+文泉驿点阵宋体（中等，粗体）被打包成三种等价的格式：BDF（Bitmap Distribution
+Format)，PCF (Portable Compiled Format)和TTF(True-Type)。这几种格式都被
+大多数X窗口系统所支持，您可以选择任意的一种安装。
+
+
+== PCF/BDF格式字体的安装方法 ==
+
+1.下载
+
+您首先需要从下面的我们在sourceforge站点地址下载安装包，下载页面为：
+
+http://sf.net/project/showfiles.php?group_id=128192&package_id=156288
+
+选择最新发布的版本和您所想要的格式，然后把您的安装包保存到一个临时的目录，比如
+/tmp
+
+2.解压缩
+
+下载的包一般是用tar和gzip所压缩的，使用下面的命令来解压缩
+
+  tar zxvf wqy-bitmapfont*.tar.gz
+
+或者
+
+  gunzip wqy-bitmapfont*.tar.gz
+  tar xvf wqy-bitmapfont*.tar
+
+
+3.移动 (可选项)
+
+所有的文件都将被解压缩到目录一个叫作wqy-bitmapfont的子目录,
+您可以把把这个目录移动到您想安装字体的目录，一个比较好的建议是
+/usr/share/fonts/wenquanyi/wqy-bitmapfont
+
+为了移动目录，您需要使用"su"或者"sudo"来获取root权限。（如果您
+没有root权限，请查看下面的第六小节）
+
+4.设置字体路径
+
+现在您需要告诉X窗口系统去找所安装的字体，假设您把字体安装到了这个目录
+/usr/share/fonts/wenquanyi/wqy-bitmapfont/
+您需要运行如下的命令：
+   su
+   cd /usr/share/fonts/wenquanyi/wqy-bitmapfont/
+   rm fonts.dir fonts.scale fc-cache.*
+   mkfontdir .
+   cp fonts.dir fonts.scale
+   xset +fp /usr/share/fonts/wenquanyi/wqy-bitmapfont/
+
+最后一个命令是把字体目录添加到X窗口字体路径列表。为了永久性的
+添加这个目录，您需要把下面一行
+
+ "/usr/share/fonts/wenquanyi/wqy-bitmapfont,"
+
+添加到/etc/X11/fs/config这个文件中，添加的位置是
+"catalogue =/usr/lib/X11/fonts/misc/"这一行的下面。
+
+如果您的系统中没有这个文件，您可能需要通过修改/etc/X11/xorg.conf
+或者/etc/X11/XF86Config-4来添加这个目录
+
+  ......
+  Section "Files"
+      ......
+      FontPath    "unix/:7100"
+      ......
+      FontPath    "/usr/share/fonts/wenquanyi/wqy-bitmapfont"
+  EndSection
+  ......
+
+至此，您已经完成了对X核心字体的配置工作。大多数不太老
+的Linux图形程序都支持fontconfig。为了让fontconfig使用这个
+点阵字体，您需要将
+
+  <dir>/usr/share/fonts/wenquanyi/wqy-bitmapfont/</dir>
+
+添加到/etc/fonts/fonts.conf或者~/.fonts.conf中(在</fontconfig>之前)，
+如果您的字体直接安装在了/usr/share/fonts/目录下，这一步可以省略。
+
+在这个版本，我们提供了为文泉驿点阵宋体专门优化使用的fontconfig
+配置文件，该文件名为"85-wqy-bitmapsong.conf"。如果你的系统中有
+/etc/fonts/conf.d/这个目录，则把这个文件直接拷贝到这个目录下应该
+自动完成安装，否则，您需要把下面一行
+
+  <include>/usr/share/fonts/wenquanyi/wqy-bitmapfont/85-wqy-bitmapsong.conf</include>
+
+粘贴在/etc/fonts/fonts.conf中的合适的位置中。如果你的系统中
+使用了fontconfig 2.4.x，您也可以把这个文件拷贝到~/.fontconfig/
+
+现在重新启动一下您的X窗口，您应该可以在字体选择框中看到文泉驿
+点阵宋体的名字了。
+
+
+5.测试
+
+为了检测字体是否成功安装，可以使用下面的命令
+
+   xlsfonts | grep wenquanyi 
+
+您将会看到类似下面的输出：(除此之外还有gb2312/big5等后缀的字体名称)
+   -wenquanyi-wenquanyi bitmap song-bold-r-normal--0-0-75-75-p-0-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-bold-r-normal--12-120-75-75-p-80-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-bold-r-normal--13-130-75-75-p-80-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-bold-r-normal--15-150-75-75-p-80-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-bold-r-normal--16-160-75-75-p-80-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-medium-r-normal--0-0-75-75-p-0-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-medium-r-normal--12-120-75-75-p-80-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-medium-r-normal--13-130-75-75-p-80-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-medium-r-normal--15-150-75-75-p-80-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-medium-r-normal--16-160-75-75-p-80-iso10646-1
+   ...
+
+如果是fontconfig，您需要检查
+
+   fc-list | grep 'WenQuanYi'
+
+应该能看到两行输出，类似如下：
+   WenQuanYi Bitmap Song:style=Bold
+   WenQuanYi Bitmap Song:style=Regular
+
+字体成功安装之后您就可以在KDE或者GNOME的字体选择对话框中选择
+使用文泉驿点阵宋体。
+
+
+6.作为普通用户安装
+
+如果您没有root用户权限，比如，您使用的是公共的机器，那么安装这个字体也是
+同样的简单。如果您使用的是KDE，在菜单上面找到"控制中心"，选择"系统管理"，
+然后点击"安装字体"，在面板上点击右键，选择"添加字体"，然后选择字体文件
+（bdf/pcf)。
+
+如果您使用的是Gnome环境，双击"我的电脑"，在地址栏输入"fonts:/"然后回车，然后
+再打开另外一个文件浏览器，找到字体文件(bdf/pcf.gz)，把字体拖到文件夹fonts:/
+或者使用复制粘贴。
+
+如果您没有启动图形界面，您也可以直接把字体文件解压缩到~/.fonts目录（如果没有这
+个目录，就创建一个）。
+
+
+7.在您的系统上面打开中文支持
+
+有了中文字体，您的系统正确处理中文信息还需要有正确的中文编码和区域设置。
+这些通常可以通过安装一些语言包来实现，比如sudo apt-get install kde-i18n-Chinese*
+如果您已经安装了这些语言包，您还需要设置一些环境变量。您可以把
+
+ LC_CTYPE=zh_CN.UTF-8
+
+写到~/.i18n文件中（如果这个文件不存在，您可以使用touch ~/.i18n来创建它），
+然后重新启动您的系统（您也可以使用"ls -d /usr/lib/locale/zh_*"
+这个命令所输出的其它的locales）。
+
+为了在终端显示中文信息，可以使用"LC_CTYPE"替换"LC_ALL"。如果您希望所有的菜单都
+使用中文，在KDE环境下面，找到"控制中心"，展开"Region and Assistance"，找到
+"国家/地区 和语言，在"添加语言里面选择"中国"；如果您使用的是Gnome环境，您需要
+在"选项"里面选择"语言"，然后添加"中国"。然后如果需要的话重新启动您的图形界面
+来使用这些设置。
+
+
+== TTF格式字体的安装方法   ==
+
+TTF格式的字体可能不是很容易安装。这个字体采用了一种比较特殊的TTF格式，即SFNT TTF
+格式。这种字体中只有点阵部分，而没有矢量部分。幸运的是，FreeType2支持这种格式；
+不幸的是，很多字体设置的工具却不能正确识别这种字体中的信息，比如ttfmkdir和
+fc-cache。我们在您下载的TTF安装包里面已经包含了手工编辑的字体设置文件，即
+fonts.dir/fonts.scale/fonts.cache-1。您通过如前所述的方法设置好字体路径
+之后，如果你使用fc-cache -fv等命令之后，这些手工书写的文件将会被错误信息覆盖。
+您所需要作的是进入字体安装的目录，然后解压一个叫作font.config.tar.gz的文件，
+这样将会将恢复曾经备份过的字体信息。有时候您在解压之后，可能还需要touch *一下，
+并重新启动X窗口。
+
+== RPM安装包的安装方法   ==
+
+如果您使用的是Redhat/Fedora Core等发行版，那么您可以直接使用RPM包
+进行安装，安装方法非常简单，只用一个命令：
+
+ sudo rpm -Uvh wqy-bitmapfont*noarch.rpm
+
+重新启动X窗口之后，您就应该可以找到新安装的字体了。
+
+
+== 其他问题 ==
+
+由于debian 3.1（sarge)及其更新版本在默认的情况下不使用纯粹的点阵字体，
+如果您是debian用户，请您将I.4小节中提到的85-wqy-bitmapsong.conf文件
+拷贝到/etc/fonts/conf中，并重新启动X即可。
+
+==========================================================
+

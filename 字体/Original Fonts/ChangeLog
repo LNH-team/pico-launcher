@@ -1,0 +1,145 @@
+========================================================== 
+
+               Wen Quan Yi Bitmap Song 
+
+                     ChangeLog
+----------------------------------------------------------
+
+WenQuanYi Bitmap Song ChangeLog:
+
+2010/02/18  Qianqian Fang (fangqq#gmail_com) (0.9.9.8 - Hero RC1):
+          1. updated all documents and prepare to release 1.0RC1.
+
+2010/01/09  Hong Wang (hongolina#gmail_com)  (0.9.9-cvs20100109):
+          1. thanks to Hong for her huge effort for manually 
+             optimizing the 20,000 13px Han glyphs, this work was 
+             submitted and merged to the official nightly-build.
+             the 13px Han glyphs now look great!
+
+2009/08/22  Qianqian Fang (fangqq#gmail_com)  (0.9.9-cvs20090822):
+          1. added "ttf" as a new target in the Makefile, this will
+             compile an SFNT TTF using fontforge (the current 
+             fontconfig does not support SFNT TTF, see Bug#23336)
+          2. the 13px CJK bitmaps officially merged to the main
+             bitmap song nightly-build package
+
+2008/05/03  Qianqian Fang (fangqq#gmail_com)  (0.9.9-cvs20090503):
+          1. added Liberation GPLv2 bitmaps for non-CJK glyphs,
+             use "make -f Makefile_liber" to activate
+          2. stopped packaging the fake-emboldened faces in the 
+             nightly-build
+          3. online editor javascript upgraded to a new script (Pixel)
+
+2007/11/22  Qianqian Fang (fangqq#gmail_com)  (0.9.9-cvs20071122):
+          1. new nightly-build service opened for 8pt, 13px and 14pt 
+             bitmaps.
+
+2007/11/03(0.9.9):
+          1. include the complete CJK Extension A glyphs 
+             (6,582 x 4 point sizes), provide full coverage 
+             to Standard GB18030
+          2. First round standard-compliance validation 
+             for all CJK basic characters between U4E00-U9FA5
+          3. Numerous bitmap glyph fine-tuning and corrections
+
+          major contributors for this release include ZaiJianQingRen,
+          tchaikov, WangHong, PONY, Fundawang, twang467, 
+          MarkLam and FangQ
+
+2007/04/07(0.8.1):
+          1. update fontconfig file from strong to soft binding,
+             this prevents the overiding monospace and anti-aliased
+             latin fonts by wqy fonts
+          2. update hundreds of Chinese characters, correct several
+             wrong glyphs
+
+2007/02/18  Qianqian Fang (fangqq#gmail_com) (0.8.0):
+          1. set all number glyphs ("0"-"9") equal width
+          2. about 1/10 of all CJK characters were standardized with 
+             national standard GB19966
+          3. more CJK glyphs were fine tuned
+
+2006/12/30  Qianqian Fang (fangqq#gmail_com) (0.8.0 RC1): 
+          1. replace 11pt and 12pt basic Latin with hand-hinted bitmap
+             glyphs from Computer Modern Unicode Font Sans Serif face.
+          2. set the width of "space" (U+0020) as half-width of CJK 
+             characters
+          3. rebuild debian deb package from source, set xfonts-wqy as
+             conflict package
+          4. updated more than 100 CJK glyphs
+
+2006/12/18  Qianqian Fang (fangqq#gmail_com) (0.8.0 beta): 
+          1. all 12pt CJK glyphs between U4E00-U9FA5 were replaced
+             by Chinese bitmap font national standard GB19966-2005
+             (a mandatory standard which became active in May 2006);
+          2. more than 2000 most frequently used Hanzi glyphs were
+             optimized and re-adjusted;
+          3. more than 1000 non-CJK glyphs were updated including all 12pt
+             Latin characters, IPA glyphs, arrows, mathematical symbols etc;
+          4. alias for Chinese encodings such as GB2312,GB18030,
+             GBK and Big5 were included via font alias files;
+          5. an experimental fontconfig file was provided which allows
+             the use of WenQuanYi bitmap font complementing with
+             other existing vector CJK fonts.
+
+          major contributors for this release are eka, FangQ, 
+          tchaikov, hzhsun and wanghong
+
+
+2006/5/21  Qianqian Fang (fangqq#gmail_com) (0.7.0): 
+          1. about 541 glyphs of the most frequently used 
+             characters have been optimized since 0.6.9
+          2. Latin glyphs were also improved significantly
+          3. font baseline positions and underline positions
+             were adjusted
+          4. TTF format (sbit only TTF) is now provided
+          5. more detailed installation instructions were added
+             to the document
+
+          major contributors for this release are FangQ and tchaikov
+
+2006/3/19  Qianqian Fang (fangqq#gmail_com) (0.6.9): 
+          1. removed all YanHuang GBK Bitmap fonts(the 12pt 
+             face of previous releases), replaced with 12pt 
+             GB2312 font by Chinese Academia Sinica and
+             HabianCJK Project public domain fonts.
+          2. dramatic improvement of the most frequently
+             used characters for all other pixels sizes,
+             the font quality is as good as commertial fonts.
+          3. Latin characeters were adjusted, especially 
+             the spacings
+          4. all glyphs in 9/10/11pt fonts were moved upward 
+             by 1px
+          5. provided two optional font sizes: 10.5pt and 14pt 
+             (medium and bold) in a separate package
+          6. used "Permission of font embedding clause" in GPL
+             v2.0 license. 
+
+2005/8/8  Qianqian Fang (fangqq#gmail_com)  (release v0.6): 
+
+          1. extensive improvement on the most frequently 
+             used Chinese characters (simplified/traditional),
+             more than ten thousands of glyphs were adjusted
+             and re-drawn.
+          2. redesigned the Latin letters and digits
+          3. Hangul glyphs now support both medium and bold faces
+          4. move 12pt Chinese glyphs downward by 2 pixels
+          5. correct font header information
+          6. included un-gzipped pcf and sfnt formats in the release
+             for faster glyph rendering
+          7. corrected a bug in the bolding algorithm, 
+             regenerated all bold face CJK characters
+
+2005/6/25   Qianqian Fang (fangqq#gmail_com) (release v0.5, preview release): 
+          1. initial release, version 0.5
+          2. complete CJK Unified Ideographics glyphs
+             for 9/10/11/12 pt bitmap glyphs
+          3. improve more than 20,000 existing firefly
+             and Redflag bitmap
+          4. update English letters and numbers to Sans-Serif style
+          5. create bold font for the corresponding CJK 
+             characters
+          6. add Korean glyphs for 12pt font extracted from 
+             yhunifont(http://wqy.sourceforge.net/cgi-bin/index.cgi?yhunifont).
+
+========================================================== 

@@ -40,17 +40,18 @@ except ImportError:
 
 
 # ---------------------------------------------------------------------------
-# GB2312 Level 1 character set (3755 characters)
+# GB2312 character set (Level 1 + Level 2 = 6763 characters)
 # ---------------------------------------------------------------------------
 
-def _gb2312_level1_chars() -> List[int]:
-    """Return Unicode code points for GB2312 Level 1 (rows 16-55).
+def _gb2312_chars() -> List[int]:
+    """Return Unicode code points for GB2312 Level 1 + Level 2 (rows 16-87).
 
-    GB2312 Level 1 contains 3755 of the most frequently used
-    simplified Chinese characters, ordered by pinyin.
+    GB2312 Level 1 (rows 16-55): 3755 frequently used characters, ordered by pinyin.
+    GB2312 Level 2 (rows 56-87): 3008 less common characters, ordered by radical/stroke.
+    Total: 6763 characters.
     """
     chars: List[int] = []
-    for row in range(16, 56):  # rows 16..55 inclusive
+    for row in range(16, 88):  # rows 16..87 inclusive (Level 1 + Level 2)
         for col in range(1, 95):  # columns 1..94
             high = row + 0xA0
             low = col + 0xA0
@@ -114,8 +115,8 @@ def _build_default_charset(include_cjk: bool = True) -> List[int]:
         for cp in range(0xFF01, 0xFF5F):
             chars.add(cp)
 
-        # GB2312 Level 1
-        for cp in _gb2312_level1_chars():
+        # GB2312 Level 1 + Level 2 (6763 characters)
+        for cp in _gb2312_chars():
             chars.add(cp)
 
     return sorted(chars)
