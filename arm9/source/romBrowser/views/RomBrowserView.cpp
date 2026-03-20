@@ -1,7 +1,6 @@
 #include "common.h"
 #include "IconGridItemView.h"
 #include "gui/GraphicsContext.h"
-#include "gui/VramContext.h"
 #include "gui/input/InputProvider.h"
 #include "gui/input/TouchEvent.h"
 #include "RomBrowserView.h"
@@ -37,30 +36,6 @@ RomBrowserView::~RomBrowserView()
 {
     _fileGridView.reset();
     delete _fileRecyclerAdapter;
-}
-
-void RomBrowserView::UpdateViewModel(
-    const SharedPtr<RomBrowserViewModel>& viewModel,
-    const RomBrowserDisplayMode& displayMode,
-    const IThemeFileIconFactory* themeFileIconFactory,
-    const IRomBrowserViewFactory* romBrowserViewFactory,
-    VBlankTextureLoader* vblankTextureLoader,
-    const VramContext& vramContext)
-{
-    _viewModel = viewModel;
-
-    // Create new adapter with the new viewModel's data
-    auto* oldAdapter = _fileRecyclerAdapter;
-    _fileRecyclerAdapter = displayMode.CreateRecyclerAdapter(
-        _viewModel.GetPointer(), themeFileIconFactory, romBrowserViewFactory, vblankTextureLoader);
-
-    _fileRecyclerAdapter->InitVram(vramContext);
-
-    // SetAdapter will reuse the view pool (fast path) and release old bindings via old adapter
-    _fileGridView->SetAdapter(_fileRecyclerAdapter, _viewModel->GetSelectedItem());
-    _fileGridView->InitVram(vramContext);
-
-    delete oldAdapter;
 }
 
 void RomBrowserView::InitVram(const VramContext& vramContext)

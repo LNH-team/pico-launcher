@@ -678,17 +678,6 @@ void RomBrowserTopScreenView::UpdateRomMetadataLabels()
         showVersion ? layout.version.y : -320);
 }
 
-void RomBrowserTopScreenView::UpdateViewModel(const SharedPtr<RomBrowserViewModel>& viewModel)
-{
-    _viewModel = viewModel;
-    _lastSelectedItem = -1;
-    _selectedFileCover.Reset();
-    _selectedInternalFileInfo.reset();
-    _selectedFileIcon.reset();
-    _coverGraphicsUploaded = false;
-    _selectedRomMetadata = SelectedRomMetadata();
-}
-
 void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
 {
     ViewContainer::InitVram(vramContext);

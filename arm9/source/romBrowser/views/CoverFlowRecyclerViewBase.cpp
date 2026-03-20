@@ -15,32 +15,12 @@ void CoverFlowRecyclerViewBase::SetAdapter(const RecyclerAdapter* adapter, int i
 {
     if (_adapter)
     {
-        // Fast path: reuse existing view pool (fixed size, same view type)
-        // Release all currently bound items with the old adapter
         _selectedItem = nullptr;
-        for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
+        for (u32 i = 0; i < _viewPool.size(); i++)
         {
-            if (_viewPool[i].itemIdx >= 0)
-            {
-                _adapter->ReleaseView(_viewPool[i].view, _viewPool[i].itemIdx);
-                _viewPool[i].itemIdx = -1;
-            }
+            _adapter->DestroyView(_viewPool[i].view);
         }
-        _viewPoolFreeCount = _viewPool.size();
-        _curRangeStart = 0;
-        _curRangeLength = 0;
-
-        _adapter = adapter;
-        _itemCount = _adapter->GetItemCount();
-
-        if (initialSelectedIndex < 0 || (u32)initialSelectedIndex >= _itemCount)
-            initialSelectedIndex = 0;
-        if (_itemCount > 0)
-            SetSelectedItem(initialSelectedIndex, true);
-        return;
     }
-
-    // First-time setup: create view pool
     _adapter = adapter;
     // _adapter->GetViewSize(_itemWidth, _itemHeight);
     _itemCount = _adapter->GetItemCount();

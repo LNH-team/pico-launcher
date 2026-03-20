@@ -32,41 +32,6 @@ void RecyclerView::SetAdapter(const RecyclerAdapter* adapter, int initialSelecte
 {
     if (_adapter)
     {
-        // Check if we can reuse the existing view pool
-        int newItemWidth, newItemHeight;
-        adapter->GetViewSize(newItemWidth, newItemHeight);
-
-        if (newItemWidth == _itemWidth && newItemHeight == _itemHeight && _viewPool)
-        {
-            // Fast path: reuse view pool (same view dimensions = same pool size)
-            // Release all currently bound items with the old adapter
-            _selectedItem = nullptr;
-            for (u32 i = _viewPoolFreeCount; i < _viewPoolTotalCount; i++)
-            {
-                if (_viewPool[i].itemIdx >= 0)
-                {
-                    _adapter->ReleaseView(_viewPool[i].view, _viewPool[i].itemIdx);
-                    _viewPool[i].itemIdx = -1;
-                }
-            }
-            _viewPoolFreeCount = _viewPoolTotalCount;
-            _xOffset = 0;
-            _yOffset = 0;
-            _curRangeStart = 0;
-            _curRangeLength = 0;
-
-            _adapter = adapter;
-            _itemCount = _adapter->GetItemCount();
-
-            if (initialSelectedIndex < 0 || initialSelectedIndex >= (int)_itemCount)
-                initialSelectedIndex = 0;
-            EnsureVisible(initialSelectedIndex, false);
-            if (_itemCount > 0)
-                SetSelectedItem(initialSelectedIndex);
-            return;
-        }
-
-        // Slow path: view dimensions changed, must recreate pool
         _selectedItem = nullptr;
         for (u32 i = 0; i < _viewPoolTotalCount; i++)
         {

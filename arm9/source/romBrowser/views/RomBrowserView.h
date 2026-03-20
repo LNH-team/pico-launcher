@@ -8,7 +8,6 @@
 #include "../Theme/IThemeFileIconFactory.h"
 
 class IRomBrowserViewFactory;
-struct VramContext;
 
 class RomBrowserView : public View
 {
@@ -21,14 +20,6 @@ public:
         VBlankTextureLoader* vblankTextureLoader);
 
     ~RomBrowserView();
-
-    void UpdateViewModel(
-        const SharedPtr<RomBrowserViewModel>& viewModel,
-        const RomBrowserDisplayMode& displayMode,
-        const IThemeFileIconFactory* themeFileIconFactory,
-        const IRomBrowserViewFactory* romBrowserViewFactory,
-        VBlankTextureLoader* vblankTextureLoader,
-        const VramContext& vramContext);
 
     void InitVram(const VramContext& vramContext) override;
     void Update() override;
