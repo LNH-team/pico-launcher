@@ -85,7 +85,7 @@ magick input.png -resize 107x96! -background black -alpha remove -alpha off -gra
 | DSpico-中文增强版-v3.1-完整版.7z | 847 MB | 完整版 |
 | DSpico-中文增强版-v3.1-精简版.7z | 32 MB | 不含封面/BGM/主题 |
 
-产物存放在 `产物/` 目录下。
+产物存放在 `dist/` 目录下。
 
 ## 工具脚本
 
