@@ -8,6 +8,7 @@
 class GraphicsContext;
 class VramContext;
 class InputProvider;
+struct TouchEvent;
 
 /// @brief Base class for views.
 class View
@@ -57,6 +58,15 @@ public:
         return false;
     }
 
+    /// @brief Handles a touch event for the view.
+    /// @param event The touch event.
+    /// @param focusManager The focus manager.
+    /// @return True if the touch was handled, or false otherwise.
+    virtual bool HandleTouch(const TouchEvent& event, FocusManager& focusManager)
+    {
+        return false;
+    }
+
     /// @brief Gets the bounds of the view.
     /// @return The bounds of the view.
     virtual Rectangle GetBounds() const = 0;
@@ -94,6 +104,12 @@ public:
     /// @return True if the view is currently focused, or false otherwise.
     bool IsFocused() const { return _isFocused; }
 
+    /// @brief Retains the focused appearance even when real input focus moved elsewhere.
+    void SetVisualFocusRetained(bool retained) { _visualFocusRetained = retained; }
+
+    /// @brief Gets whether the view should look focused.
+    bool HasVisualFocus() const { return _isFocused || _visualFocusRetained; }
+
 protected:
     Point _position;
     bool _isFocused;
@@ -103,4 +119,5 @@ protected:
 
 private:
     View* _parent;
+    bool _visualFocusRetained = false;
 };

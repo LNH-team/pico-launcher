@@ -7,13 +7,15 @@
 
 #pragma GCC optimize("Os")
 
-#define JSON_RESERVED_SIZE  2048
+#define JSON_RESERVED_SIZE  8192
 
 #define KEY_LANGUAGE                 "language"
 #define KEY_ROM_BROWSER_LAYOUT       "romBrowserLayout"
 #define KEY_ROM_BROWSER_SORT_MODE    "romBrowserSortMode"
 #define KEY_THEME                    "theme"
 #define KEY_LAST_USED_FILE_PATH      "lastUsedFilePath"
+#define KEY_DARK_MODE                "darkMode"
+#define KEY_BGM                      "bgm"
 #define KEY_FILE_ASSOCIATIONS        "fileAssociations"
 #define KEY_FILE_ASSOCIATIONS_APPLICATION_PATH  "appPath"
 
@@ -129,6 +131,8 @@ static std::unique_ptr<u8[]> writeJson(const AppSettings* appSettings, u32& leng
     json[KEY_ROM_BROWSER_SORT_MODE] = serializeRomBrowserSortMode(appSettings->romBrowserDisplaySettings.sortMode);
     json[KEY_THEME] = appSettings->theme.GetString();
     json[KEY_LAST_USED_FILE_PATH] = appSettings->lastUsedFilePath.GetString();
+    json[KEY_DARK_MODE] = appSettings->darkMode;
+    json[KEY_BGM] = appSettings->bgm.GetString();
     serializeFileAssociations(json, appSettings);
 
     u32 outputSize = measureJsonPretty(json);
@@ -140,11 +144,13 @@ static std::unique_ptr<u8[]> writeJson(const AppSettings* appSettings, u32& leng
     return fileData;
 }
 
-void JsonAppSettingsSerializer::Serialize(const AppSettings* appSettings, const char* filePath) const
+std::unique_ptr<u8[]> JsonAppSettingsSerializer::SerializeToBuffer(const AppSettings* appSettings, u32& outLength) const
 {
-    u32 length = 0;
-    std::unique_ptr<u8[]> fileData = writeJson(appSettings, length);
+    return writeJson(appSettings, outLength);
+}
 
+void JsonAppSettingsSerializer::WriteBufferToFile(const u8* data, u32 length, const char* filePath) const
+{
     const auto file = std::make_unique<File>();
     if (file->Open(filePath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK)
     {
@@ -153,7 +159,7 @@ void JsonAppSettingsSerializer::Serialize(const AppSettings* appSettings, const 
     }
 
     u32 bytesWritten;
-    if (file->Write(fileData.get(), length, bytesWritten) != FR_OK || bytesWritten != length)
+    if (file->Write(data, length, bytesWritten) != FR_OK || bytesWritten != length)
     {
         LOG_ERROR("Error while writing settings file\n");
         return;
@@ -162,11 +168,20 @@ void JsonAppSettingsSerializer::Serialize(const AppSettings* appSettings, const 
     LOG_DEBUG("Settings file written\n");
 }
 
+void JsonAppSettingsSerializer::Serialize(const AppSettings* appSettings, const char* filePath) const
+{
+    u32 length = 0;
+    std::unique_ptr<u8[]> fileData = SerializeToBuffer(appSettings, length);
+    WriteBufferToFile(fileData.get(), length, filePath);
+}
+
 static void readJson(AppSettings* appSettings, const JsonDocument& json)
 {
     appSettings->language = json[KEY_LANGUAGE] | appSettings->language.GetString();
     appSettings->theme = json[KEY_THEME] | appSettings->theme.GetString();
     appSettings->lastUsedFilePath = json[KEY_LAST_USED_FILE_PATH] | appSettings->lastUsedFilePath.GetString();
+    appSettings->darkMode = json[KEY_DARK_MODE] | appSettings->darkMode;
+    appSettings->bgm = json[KEY_BGM] | appSettings->bgm.GetString();
 
     RomBrowserLayout romBrowserLayout;
     if (tryParseRomBrowserLayout(json[KEY_ROM_BROWSER_LAYOUT].as<const char*>(),

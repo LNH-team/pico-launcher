@@ -9,6 +9,7 @@
 #include "listIcon.h"
 #include "gui/IVramManager.h"
 #include "gui/input/InputProvider.h"
+#include "gui/input/TouchEvent.h"
 #include "RomBrowserBottomScreenView.h"
 
 RomBrowserBottomScreenView::RomBrowserBottomScreenView(
@@ -60,6 +61,12 @@ View* RomBrowserBottomScreenView::MoveFocus(View* currentFocus, FocusMoveDirecti
     {
         return nullptr;
     }
+
+    if (!_romBrowserView)
+    {
+        return nullptr;
+    }
+
     if (source == &_romBrowserAppBarView)
     {
         if (_romBrowserDisplayMode->IsVertical())
@@ -93,6 +100,18 @@ View* RomBrowserBottomScreenView::MoveFocus(View* currentFocus, FocusMoveDirecti
 
 bool RomBrowserBottomScreenView::HandleInput(const InputProvider& inputProvider, FocusManager& focusManager)
 {
+    if (inputProvider.Triggered(InputKey::Select))
+    {
+        if (_viewModel->TryShowQuickMenu()) {
+            return true;
+        }
+    }
+    if (inputProvider.Triggered(InputKey::B)
+        && _viewModel->GetRomBrowserAppBarViewModel()->IsFavoritesViewActive())
+    {
+        _romBrowserAppBarView.HandleInput(inputProvider, focusManager);
+        return true;
+    }
     if (inputProvider.Triggered(InputKey::B))
     {
         _viewModel->NavigateUp();
@@ -101,8 +120,26 @@ bool RomBrowserBottomScreenView::HandleInput(const InputProvider& inputProvider,
     return View::HandleInput(inputProvider, focusManager);
 }
 
+bool RomBrowserBottomScreenView::IsViewInsideRomBrowser(const View* view) const
+{
+    if (!_romBrowserView || !view)
+        return false;
+
+    for (auto current = view; current; current = current->GetParent())
+    {
+        if (current == _romBrowserView.get())
+            return true;
+        if (current == this || current == &_romBrowserAppBarView)
+            return false;
+    }
+
+    return false;
+}
+
 void RomBrowserBottomScreenView::RomBrowserViewModelInvalidated(const VramContext& vramContext)
 {
+    _touchCaptureChild = nullptr;
+
     if (_viewModel->GetRomBrowserViewModel().IsValid())
     {
         _romBrowserView = std::make_unique<RomBrowserView>(
@@ -114,5 +151,54 @@ void RomBrowserBottomScreenView::RomBrowserViewModelInvalidated(const VramContex
     else
     {
         _romBrowserView.reset();
+    }
+}
+
+bool RomBrowserBottomScreenView::HandleTouch(const TouchEvent& event, FocusManager& focusManager)
+{
+    if (event.type == TouchEventType::Down)
+    {
+        _touchCaptureChild = nullptr;
+
+        static constexpr int RECYCLER_START = 42;
+        bool inAppBarZone = _romBrowserDisplayMode->IsVertical()
+            ? (event.position.x < RECYCLER_START)
+            : (event.position.y < RECYCLER_START);
+
+        if (inAppBarZone)
+        {
+            _romBrowserAppBarView.HandleTouch(event, focusManager);
+            _touchCaptureChild = &_romBrowserAppBarView;
+            return true;
+        }
+
+        if (_romBrowserAppBarView.HandleTouch(event, focusManager))
+        {
+            _touchCaptureChild = &_romBrowserAppBarView;
+            return true;
+        }
+
+        if (_romBrowserView && _viewModel->IsRomBrowserVisible())
+        {
+            if (_romBrowserView->HandleTouch(event, focusManager))
+            {
+                _touchCaptureChild = _romBrowserView.get();
+                return true;
+            }
+        }
+
+        return false;
+    }
+    else
+    {
+        if (_touchCaptureChild)
+        {
+            _touchCaptureChild->HandleTouch(event, focusManager);
+            if (event.type == TouchEventType::Up)
+                _touchCaptureChild = nullptr;
+            return true;
+        }
+
+        return false;
     }
 }

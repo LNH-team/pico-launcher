@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include "gui/views/View.h"
 #include "gui/views/Label2DView.h"
 #include "gui/materialDesign.h"
@@ -8,8 +9,8 @@
 class MaterialColorScheme;
 class IVramManager;
 
-#define CHIP_VIEW_MIN_WIDTH     53
-#define CHIP_VIEW_MAX_WIDTH     96
+#define CHIP_VIEW_MIN_WIDTH     80
+#define CHIP_VIEW_MAX_WIDTH     140
 
 class ChipView : public View
 {
@@ -31,9 +32,10 @@ public:
         const IFontRepository* fontRepository)
         : _vramOffset(0), _isSelected(false), _backgroundColor(backgroundColor)
         , _label(CHIP_VIEW_MAX_WIDTH - 20, 16, 30, fontRepository->GetFont(FontType::Medium10))
+        , _secondaryLabel(CHIP_VIEW_MAX_WIDTH - 20, 12, 30, fontRepository->GetFont(FontType::Medium7_5))
         , _iconVramOffset(0xFFFFFFFF), _materialColorScheme(materialColorScheme) { }
 
-    void InitVram(const VramContext& vramContext) override { _label.InitVram(vramContext); }
+    void InitVram(const VramContext& vramContext) override { _label.InitVram(vramContext); _secondaryLabel.InitVram(vramContext); }
 
     void SetText(const char16_t* text) { _label.SetText(text); }
     void SetText(const char16_t* text, u32 length) { _label.SetText(text, length); }
@@ -41,8 +43,6 @@ public:
     QueueTask<void> SetTextAsync(TaskQueueBase* taskQueue, const char16_t* text, u32 length) { return _label.SetTextAsync(taskQueue, text, length); }
 
     void Draw(GraphicsContext& graphicsContext) override;
-
-    void VBlank() override { _label.VBlank(); }
 
     void SetGraphics(const VramToken& vramToken)
     {
@@ -59,18 +59,50 @@ public:
         _iconVramOffset = enabled ? vramOffset : 0xFFFFFFFF;
     }
 
+    void SetCenteredText(bool centered)
+    {
+        _centeredText = centered;
+    }
+
+    void SetSecondaryText(const char16_t* text)
+    {
+        _hasSecondaryText = text != nullptr && text[0] != 0;
+        if (_hasSecondaryText)
+            _secondaryLabel.SetText(text);
+        else
+            _secondaryLabel.SetText(u"");
+    }
+
+    void SetFixedWidth(int width)
+    {
+        _fixedWidth = width;
+    }
+
+    void SetMinWidth(int minWidth)
+    {
+        _minWidth = std::clamp(minWidth, 64, CHIP_VIEW_MAX_WIDTH);
+    }
+
     int GetWidth() const
     {
+        if (_fixedWidth > 0)
+            return std::max(_fixedWidth, _minWidth);
+
         int width;
+        int primaryTextWidth = _label.GetStringWidth();
+        if (_hasSecondaryText)
+            primaryTextWidth = std::max(primaryTextWidth, static_cast<int>(_secondaryLabel.GetStringWidth()));
+
         if (_iconVramOffset == 0xFFFFFFFF)
-            width = 10 + _label.GetStringWidth() + 10;
+            width = 10 + primaryTextWidth + 10;
         else
-            width = 22 + _label.GetStringWidth() + 10;
-        width = std::clamp(width, CHIP_VIEW_MIN_WIDTH, CHIP_VIEW_MAX_WIDTH);
+            width = 22 + primaryTextWidth + 10;
+        width = std::clamp(width, _minWidth, CHIP_VIEW_MAX_WIDTH);
         return width;
     }
 
-    int GetHeight() const { return 20; }
+    int GetHeight() const { return _hasSecondaryText ? 28 : 20; }
+    void VBlank() override { _label.VBlank(); _secondaryLabel.VBlank(); }
 
     static VramToken UploadGraphics(IVramManager& vramManager);
 
@@ -84,8 +116,13 @@ private:
     bool _isSelected;
     md::sys::color _backgroundColor;
     Label2DView _label;
+    Label2DView _secondaryLabel;
     u32 _iconVramOffset;
     const MaterialColorScheme* _materialColorScheme;
+    bool _centeredText = false;
+    int _fixedWidth = -1;
+    int _minWidth = CHIP_VIEW_MIN_WIDTH;
+    bool _hasSecondaryText = false;
 
     void DrawIcon(GraphicsContext& graphicsContext, const Rgb<8, 8, 8>& fgColor);
 };

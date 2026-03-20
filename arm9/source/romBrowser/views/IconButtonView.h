@@ -47,6 +47,13 @@ public:
         _actionArg = arg;
     }
 
+    /// @brief Triggers the button action directly (used by touch input).
+    void ActivateAction()
+    {
+        if (_action)
+            _action(this, _actionArg);
+    }
+
     void SetState(State state)
     {
         _state = state;

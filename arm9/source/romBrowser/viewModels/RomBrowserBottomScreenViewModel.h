@@ -19,7 +19,12 @@ public:
         auto state = _romBrowserController->GetStateMachine().GetCurrentState();
         return state == RomBrowserState::Browser
             || state == RomBrowserState::GameInfo
+            || state == RomBrowserState::Cheats
+            || state == RomBrowserState::CheatDescription
             || state == RomBrowserState::DisplaySettings
+            || state == RomBrowserState::DisplayInfo
+            || state == RomBrowserState::LayoutEditor
+            || state == RomBrowserState::QuickMenu
             || state == RomBrowserState::Launching;
     }
 
@@ -36,6 +41,16 @@ public:
     void NavigateUp()
     {
         _romBrowserController->NavigateUp();
+    }
+
+    bool TryShowQuickMenu()
+    {
+        auto state = _romBrowserController->GetStateMachine().GetCurrentState();
+        if (state != RomBrowserState::Browser)
+            return false;
+
+        _romBrowserController->ShowQuickMenu();
+        return true;
     }
 
 private:

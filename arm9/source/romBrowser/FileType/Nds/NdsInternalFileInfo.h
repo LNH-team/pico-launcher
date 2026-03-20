@@ -12,6 +12,8 @@ public:
 
     constexpr const char* GetGameCode() const override { return _gameCode; }
     const char16_t* GetGameTitle() const override;
+    constexpr u8 GetUnitCode() const { return _unitCode; }
+    constexpr u8 GetRomVersion() const { return _romVersion; }
 
     std::unique_ptr<FileIcon> CreateGameIcon() const override
     {
@@ -25,5 +27,7 @@ public:
 private:
     nds_banner_t _banner alignas(32);
     bool _hasBanner;
+    u8 _unitCode;
+    u8 _romVersion;
     char _gameCode[5];
 };

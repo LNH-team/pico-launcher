@@ -65,7 +65,7 @@ template <>
 class Task<void> : public TaskBase
 {
 protected:
-    virtual TaskResult<void> ExecuteFunc() const = 0;
+    virtual TaskResult<void> ExecuteFunc() = 0;
 
 private:
     TaskState ExecuteDirect() override
@@ -79,11 +79,11 @@ template <class T, typename FuncType>
 class FuncTask : public Task<T>
 {
 public:
-    FuncTask(const FuncType& function)
-        : _function(function) { }
+    FuncTask(FuncType&& function)
+        : _function(std::move(function)) { }
 
 private:
-    const FuncType _function;
+    FuncType _function;
 
-    TaskResult<T> ExecuteFunc() const override { return _function((const volatile u8&)this->_cancelRequested); }
+    TaskResult<T> ExecuteFunc() override { return _function((const volatile u8&)this->_cancelRequested); }
 };

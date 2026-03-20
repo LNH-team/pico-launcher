@@ -180,6 +180,22 @@ void CarouselRecyclerView::RenderRoundedCorners(GraphicsContext& graphicsContext
     Gx::End();
 }
 
+Rectangle CarouselRecyclerView::GetSelectedItemTapBounds() const
+{
+    if (!_selectedItem)
+        return Rectangle(0, 0, 0, 0);
+    for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
+    {
+        if (&_viewPool[i] == _selectedItem)
+        {
+            int x = (_viewPoolEx[i].xPositionAnimator.GetValue() + 0.5).Int();
+            int w = (_viewPoolEx[i].widthAnimator.GetValue() + 0.5).Int();
+            return Rectangle(x, Y_OFFSET, w, COVER_HEIGHT);
+        }
+    }
+    return Rectangle(0, 0, 0, 0);
+}
+
 void CarouselRecyclerView::UpdateItemPosition(int viewPoolIndex, bool initial)
 {
     ViewPoolEntry* item = &_viewPool[viewPoolIndex];

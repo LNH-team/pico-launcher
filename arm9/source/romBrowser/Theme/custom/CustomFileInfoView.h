@@ -1,5 +1,6 @@
 #pragma once
 #include "core/task/TaskQueue.h"
+#include "core/String.h"
 #include "gui/views/Label2DView.h"
 #include "../../views/BannerView.h"
 
@@ -14,48 +15,11 @@ public:
     void Update() override;
     void Draw(GraphicsContext& graphicsContext) override;
 
-    void SetFirstLineAsync(TaskQueueBase* taskQueue, const char* firstLine, bool ellipsis) override
-    {
-        _firstLine.SetEllipsis(ellipsis);
-        if (taskQueue)
-            _firstLine.SetTextAsync(taskQueue, firstLine);
-        else
-            _firstLine.SetText(firstLine);
-    }
-
-    void SetFirstLineAsync(TaskQueueBase* taskQueue, const char16_t* firstLine, u32 length, bool ellipsis) override
-    {
-        _firstLine.SetEllipsis(ellipsis);
-        if (taskQueue)
-            _firstLine.SetTextAsync(taskQueue, firstLine, length);
-        else
-            _firstLine.SetText(firstLine, length);
-    }
-
-    void SetSecondLineAsync(TaskQueueBase* taskQueue, const char16_t* secondLine, u32 length) override
-    {
-        if (taskQueue)
-            _secondLine.SetTextAsync(taskQueue, secondLine, length);
-        else
-            _secondLine.SetText(secondLine, length);
-    }
-
-    void SetThirdLineAsync(TaskQueueBase* taskQueue, const char16_t* thirdLine, u32 length) override
-    {
-        if (taskQueue)
-            _thirdLine.SetTextAsync(taskQueue, thirdLine, length);
-        else
-            _thirdLine.SetText(thirdLine, length);
-    }
-
-    void SetFileNameAsync(TaskQueueBase* taskQueue, const TCHAR* fileName, bool useAsTitle) override
-    {
-        BannerView::SetFileNameAsync(taskQueue, fileName, useAsTitle);
-        if (taskQueue)
-            _filenameLabelView.SetTextAsync(taskQueue, fileName);
-        else
-            _filenameLabelView.SetText(fileName);
-    }
+    void SetFirstLineAsync(TaskQueueBase* taskQueue, const char* firstLine, bool ellipsis) override;
+    void SetFirstLineAsync(TaskQueueBase* taskQueue, const char16_t* firstLine, u32 length, bool ellipsis) override;
+    void SetSecondLineAsync(TaskQueueBase* taskQueue, const char16_t* secondLine, u32 length) override;
+    void SetThirdLineAsync(TaskQueueBase* taskQueue, const char16_t* thirdLine, u32 length) override;
+    void SetFileNameAsync(TaskQueueBase* taskQueue, const TCHAR* fileName, bool useAsTitle) override;
 
     Rectangle GetBounds() const override
     {
@@ -67,6 +31,18 @@ private:
     Label2DView _secondLine;
     Label2DView _thirdLine;
     Label2DView _filenameLabelView;
+    const IFontRepository* _fontRepository;
     Rgb<8, 8, 8> _backgroundColor;
     Rgb<8, 8, 8> _textColor;
+
+    char16_t _baseFileName[256] = { 0 };
+    char16_t _fileNameScroller[320] = { 0 };
+    bool _fileNameScrollPrepared = false;
+    int _fileNameScrollCycleQ8 = 0;
+    int _fileNameScrollOffsetQ8 = 0;
+    int _fileNameScrollPauseFrames = 0;
+
+    void PrepareFileNameScrollIfNeeded(const BannerView::LayoutConfig& cfg);
+    void UpdateFileNameScroll(const BannerView::LayoutConfig& cfg);
+    void ApplyLayoutFonts(const BannerView::LayoutConfig& cfg);
 };

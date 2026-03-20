@@ -42,6 +42,20 @@ public:
 
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
 
+    bool HandleTouch(const TouchEvent& event, FocusManager& focusManager) override;
+
+    void FocusAppBar(FocusManager& focusManager, RomBrowserAppBarView::AppBarButton button)
+    {
+        _romBrowserAppBarView.Focus(focusManager, button);
+    }
+
+    RomBrowserAppBarView::AppBarButton GetFocusedAppBarButton(const FocusManager& focusManager) const
+    {
+        return _romBrowserAppBarView.GetFocusedButton(focusManager);
+    }
+
+    bool IsViewInsideRomBrowser(const View* view) const;
+
     void RomBrowserViewModelInvalidated(const VramContext& vramContext);
 
     bool IsAppBarFocused(const FocusManager& focusManager) const
@@ -58,4 +72,6 @@ private:
     RomBrowserAppBarView _romBrowserAppBarView;
     std::unique_ptr<RomBrowserView> _romBrowserView;
     VBlankTextureLoader* _vblankTextureLoader;
+
+    View* _touchCaptureChild = nullptr;
 };

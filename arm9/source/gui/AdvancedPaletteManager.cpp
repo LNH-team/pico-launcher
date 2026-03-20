@@ -89,14 +89,8 @@ u32 AdvancedPaletteManagerBase::TryMerge(PaletteRow* rows, const PaletteRow& new
 
 u32 AdvancedPaletteManagerBase::AllocRowInternal(PaletteRow* rows, const IPalette& palette, int yStart, int yEnd)
 {
-    if (yStart < 0)
-    {
-        yStart = 0;
-    }
-    if (yEnd > 192)
-    {
-        yEnd = 192;
-    }
+    yStart = std::clamp(yStart, 0, 192);
+    yEnd = std::clamp(yEnd, 0, 192);
 
     u32 newIdx = _usedRows;
     PaletteRow& newRow = rows[newIdx];

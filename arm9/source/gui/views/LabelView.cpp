@@ -58,7 +58,7 @@ void LabelView::UpdateTileBuffer()
     if (_textBuffer[0] != 0)
     {
         nft2_string_render_params_t renderParams;
-        renderParams.x = 0;
+        renderParams.x = _textOffsetX;
         renderParams.y = 0;
         renderParams.width = _width;
         renderParams.height = _height;
@@ -88,18 +88,21 @@ void LabelView::SetText(const char* text)
 {
     SetTextBuffer(text);
     UpdateTileBuffer();
+    _stringWidth = _newStringWidth;
 }
 
 void LabelView::SetText(const char16_t* text)
 {
     SetTextBuffer(text);
     UpdateTileBuffer();
+    _stringWidth = _newStringWidth;
 }
 
 void LabelView::SetText(const char16_t* text, u32 length)
 {
     SetTextBuffer(text, length);
     UpdateTileBuffer();
+    _stringWidth = _newStringWidth;
 }
 
 QueueTask<void> LabelView::SetTextAsync(TaskQueueBase* taskQueue, const char* text)

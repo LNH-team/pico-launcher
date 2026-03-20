@@ -2,6 +2,7 @@
 #include "IconGridItemView.h"
 #include "gui/GraphicsContext.h"
 #include "gui/input/InputProvider.h"
+#include "gui/input/TouchEvent.h"
 #include "RomBrowserView.h"
 
 RomBrowserView::RomBrowserView(
@@ -14,8 +15,21 @@ RomBrowserView::RomBrowserView(
 {
     _fileGridView = displayMode.CreateRecyclerView(romBrowserViewFactory);
     _fileGridView->SetParent(this);
+    _fileGridView->SetTouchTapRequiresSelected(true);
     _fileRecyclerAdapter = displayMode.CreateRecyclerAdapter(
         _viewModel.GetPointer(), themeFileIconFactory, romBrowserViewFactory, vblankTextureLoader);
+
+    _fileGridView->SetTouchTapCallback([](int itemIdx, void* arg) {
+        auto* self = static_cast<RomBrowserView*>(arg);
+        self->_viewModel->SetSelectedItem(itemIdx);
+        self->_viewModel->ItemActivated();
+    }, this);
+
+    _fileGridView->SetTouchLongPressCallback([](int itemIdx, void* arg) {
+        auto* self = static_cast<RomBrowserView*>(arg);
+        self->_viewModel->SetSelectedItem(itemIdx);
+        self->_viewModel->ShowGameInfo();
+    }, this);
 }
 
 RomBrowserView::~RomBrowserView()
@@ -98,4 +112,9 @@ bool RomBrowserView::HandleInput(const InputProvider& inputProvider, FocusManage
         }
     }
     return View::HandleInput(inputProvider, focusManager);
+}
+
+bool RomBrowserView::HandleTouch(const TouchEvent& event, FocusManager& focusManager)
+{
+    return _fileGridView->HandleTouch(event, focusManager);
 }

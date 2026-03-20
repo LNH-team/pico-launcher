@@ -5,8 +5,14 @@
 
 Theme::Theme(const TCHAR* folderName, const Rgb<8, 8, 8>& primaryColor, bool darkMode)
     : _folderName(folderName)
+    , _primaryColor(primaryColor)
 {
     MaterialColorSchemeFactory::FromPrimaryColor(primaryColor, darkMode, _materialColorScheme);
+}
+
+void Theme::SetDarkMode(bool darkMode)
+{
+    MaterialColorSchemeFactory::FromPrimaryColor(_primaryColor, darkMode, _materialColorScheme);
 }
 
 bool Theme::OpenThemeFile(File& file, const TCHAR* subPath) const

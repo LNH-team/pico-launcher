@@ -74,7 +74,7 @@ static inline void renderGlyph(const nft2_header_t* font, const nft2_glyph_t* gl
                 u32 tileX = finalX >> 3;
                 u32 tileY = finalY >> 3;
 
-                u32 tileIdx = (tileY >> 1) * stride + (tileX >> 2) * 8 + (tileY & 1) * 4 + (tileX & 3);
+                u32 tileIdx = (tileY >> 1) * (stride >> 2) + (tileX >> 2) * 8 + (tileY & 1) * 4 + (tileX & 3);
 
                 u32 offset = tileIdx * 64 + ((finalY & 7) << 3) + (finalX & 7);
                 u32 value = dst[offset >> 1];
@@ -123,7 +123,7 @@ ITCM_CODE void nft2_renderString(const nft2_header_t* font, const char16_t* stri
         if (c == '\n')
         {
             xPos = renderParams->x;
-            yPos += font->ascend + font->descend + 1;
+            yPos += font->ascend + font->descend - 1;
             if (yPos >= (int)renderParams->height)
                 break;
             continue;
@@ -161,7 +161,7 @@ ITCM_CODE void nft2_measureString(const nft2_header_t* font, const char16_t* str
         if (c == '\n')
         {
             xPos = 0;
-            yPos += font->ascend + font->descend + 1;
+            yPos += font->ascend + font->descend - 1;
             continue;
         }
 

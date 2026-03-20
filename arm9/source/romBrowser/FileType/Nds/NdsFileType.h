@@ -32,5 +32,4 @@ public:
 private:
     constexpr NdsFileType()
         : FileType("nds", FileTypeClassification::Game) { }
-
 };

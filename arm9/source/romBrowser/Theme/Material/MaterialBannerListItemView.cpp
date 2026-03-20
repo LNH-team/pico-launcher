@@ -31,8 +31,9 @@ void MaterialBannerListItemView::Draw(GraphicsContext& graphicsContext)
     if (!graphicsContext.IsVisible(Rectangle(_position.x - 2, _position.y - 2, 207, 48)))
         return;
 
+    const bool hasVisualFocus = HasVisualFocus();
     auto backColor = _materialColorScheme->inverseOnSurface;
-    auto frontColor = _isFocused
+    auto frontColor = hasVisualFocus
         ? _materialColorScheme->mainIconBg
         : _materialColorScheme->surfaceBright;
     u16 bgPltt[16];
@@ -75,7 +76,7 @@ void MaterialBannerListItemView::Draw(GraphicsContext& graphicsContext)
         .WithPriority(graphicsContext.GetPriority())
         .Build(oam[3]);
 
-    if (_isFocused)
+    if (hasVisualFocus)
     {
         _firstLine->SetBackgroundColor(frontColor);
         _firstLine->SetForegroundColor(_materialColorScheme->onSecondaryContainer);

@@ -1,11 +1,17 @@
 #include "common.h"
 #include <array>
 #include "picoLoaderBootstrap.h"
+#include "core/StringUtil.h"
 #include "PicoLoaderProcess.h"
+#include "services/LaunchStats/LaunchStatsService.h"
 #include "FileType/ExtensionFileTypeProvider.h"
 #include "FileType/FileType.h"
 #include "SdFolderFactory.h"
+#include "fat/Directory.h"
 #include "services/settings/IAppSettingsService.h"
+#include "cheats/UsrCheatRepositoryFactory.h"
+#include "cheats/EmptyCheatRepository.h"
+#include "cheats/PicoLoaderCheatDataFactory.h"
 #include "RomBrowserController.h"
 
 RomBrowserController::RomBrowserController(
@@ -13,10 +19,31 @@ RomBrowserController::RomBrowserController(
     TaskQueueBase* bgTaskQueue)
     : _appSettingsService(appSettingsService)
     , _ioTaskQueue(ioTaskQueue), _bgTaskQueue(bgTaskQueue)
-    , _fileTypeProvider(appSettingsService->GetAppSettings()) { }
+    , _fileTypeProvider(appSettingsService->GetAppSettings())
+    {
+    }
+
+void RomBrowserController::NavigateUp()
+{
+    if (_favoritesViewActive)
+    {
+        _favoritesViewActive = false;
+        _romBrowserViewModel = SharedPtr(new RomBrowserViewModel(this, _navigateFileName));
+        _viewModelInvalidated = true;
+        return;
+    }
+
+    NavigateToPath("..");
+}
 
 void RomBrowserController::NavigateToPath(const TCHAR* name)
 {
+    if (_favoritesLoadPending)
+    {
+        _favoritesTask.CancelTask();
+        _favoritesLoadPending = false;
+    }
+    _favoritesViewActive = false;
     StringUtil::Copy(_navigatePath, name, sizeof(_navigatePath) / sizeof(_navigatePath[0]));
     _stateMachine.Fire(RomBrowserStateTrigger::Navigate);
 }
@@ -27,15 +54,83 @@ void RomBrowserController::LaunchFile(const FileInfo& fileInfo)
     _stateMachine.Fire(RomBrowserStateTrigger::Launch);
 }
 
-void RomBrowserController::ShowGameInfo()
+void RomBrowserController::ShowGameInfo(const FileInfo& fileInfo)
 {
-    // Currently disabled, as the game info panel is not complete
-    // _stateMachine.Fire(RomBrowserStateTrigger::ShowGameInfo);
+    if (fileInfo.GetFileType()->GetClassification() == FileTypeClassification::Folder)
+        return;
+
+    _launchFileInfo = FileInfo(fileInfo);
+    _stateMachine.Fire(RomBrowserStateTrigger::ShowGameInfo);
 }
 
 void RomBrowserController::HideGameInfo()
 {
     _stateMachine.Fire(RomBrowserStateTrigger::HideGameInfo);
+}
+
+void RomBrowserController::ShowCheats()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::ShowCheats);
+}
+
+void RomBrowserController::HideCheats()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::HideCheats);
+}
+
+void RomBrowserController::ShowCheatDescription(const char* cheatName, const char* description, const char* gameCode, u32 crc,
+    int scrollOffset, int cursorIndex, int folderIndex, int rootScrollOffset, int rootCursorIndex,
+    bool enabledOnlyMode, int savedViewScrollOffset, int savedViewCursorIndex, int savedViewFolderIndex)
+{
+    StringUtil::Copy(_cheatName, cheatName, sizeof(_cheatName) / sizeof(_cheatName[0]));
+    StringUtil::Copy(_cheatDescription, description, sizeof(_cheatDescription) / sizeof(_cheatDescription[0]));
+    StringUtil::Copy(_cheatGameCode, gameCode ? gameCode : "", sizeof(_cheatGameCode) / sizeof(_cheatGameCode[0]));
+    _cheatCrc = crc;
+    _cheatFocusScrollOffset = scrollOffset;
+    _cheatFocusCursorIndex = cursorIndex;
+    _cheatFocusFolderIndex = folderIndex;
+    _cheatFocusRootScrollOffset = rootScrollOffset;
+    _cheatFocusRootCursorIndex = rootCursorIndex;
+    _cheatFocusEnabledOnlyMode = enabledOnlyMode;
+    _cheatFocusSavedViewScrollOffset = savedViewScrollOffset;
+    _cheatFocusSavedViewCursorIndex = savedViewCursorIndex;
+    _cheatFocusSavedViewFolderIndex = savedViewFolderIndex;
+    _stateMachine.Fire(RomBrowserStateTrigger::ShowCheatDescription);
+}
+
+void RomBrowserController::HideCheatDescription()
+{
+    memset(_cheatDescription, 0, sizeof(_cheatDescription));
+    _stateMachine.Fire(RomBrowserStateTrigger::HideCheatDescription);
+}
+
+void RomBrowserController::ShowLayoutEditor()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::ShowLayoutEditor);
+}
+
+void RomBrowserController::HideLayoutEditor()
+{
+    if (_saveSettingsPending)
+    {
+        _saveSettingsPending = false;
+        _ioTaskQueue->Enqueue([this] (const vu8& cancelRequested)
+        {
+            _appSettingsService->Save();
+            return TaskResult<void>::Completed();
+        });
+    }
+    _stateMachine.Fire(RomBrowserStateTrigger::HideLayoutEditor);
+}
+
+void RomBrowserController::ShowQuickMenu()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::ShowQuickMenu);
+}
+
+void RomBrowserController::HideQuickMenu()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::HideQuickMenu);
 }
 
 void RomBrowserController::ShowDisplaySettings()
@@ -57,12 +152,97 @@ void RomBrowserController::HideDisplaySettings()
     _stateMachine.Fire(RomBrowserStateTrigger::HideDisplaySettings);
 }
 
+void RomBrowserController::ShowDisplayInfo()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::ShowDisplayInfo);
+}
+
+void RomBrowserController::HideDisplayInfo()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::HideDisplayInfo);
+}
+
 void RomBrowserController::SetRomBrowserDisplaySettings(
     const RomBrowserDisplaySettings& romBrowserDisplaySettings)
 {
+    const auto previousDisplaySettings = _appSettingsService->GetAppSettings().romBrowserDisplaySettings;
+    if (previousDisplaySettings.layout == romBrowserDisplaySettings.layout
+        && previousDisplaySettings.sortMode == romBrowserDisplaySettings.sortMode)
+    {
+        return;
+    }
+
     _appSettingsService->GetAppSettings().romBrowserDisplaySettings = romBrowserDisplaySettings;
-    _saveSettingsPending = true;
-    _stateMachine.Fire(RomBrowserStateTrigger::ChangeDisplayMode);
+    bool inDisplaySettings = _stateMachine.GetCurrentState() == RomBrowserState::DisplaySettings;
+    if (inDisplaySettings)
+    {
+        _saveSettingsPending = true;
+    }
+    else
+    {
+        _saveSettingsPending = false;
+        SaveSettingsAsync();
+    }
+
+    if (previousDisplaySettings.layout != romBrowserDisplaySettings.layout)
+    {
+        _stateMachine.Fire(RomBrowserStateTrigger::ChangeDisplayMode);
+    }
+    else
+    {
+        _romBrowserViewModel = SharedPtr(new RomBrowserViewModel(this));
+        _viewModelInvalidated = true;
+    }
+}
+
+void RomBrowserController::ToggleFavoritesView()
+{
+    if (_favoritesLoadPending)
+        return;
+
+    if (_favoritesViewActive)
+    {
+        _favoritesViewActive = false;
+        _romBrowserViewModel = SharedPtr(new RomBrowserViewModel(this, _navigateFileName));
+        _viewModelInvalidated = true;
+        return;
+    }
+
+    StartFavoritesLoad();
+}
+
+void RomBrowserController::ToggleSelectedFileFavorite()
+{
+    const auto* fileInfo = GetSelectedFileInfo();
+    if (!fileInfo)
+        return;
+
+    char fullPath[256];
+    if (!TryBuildFilePath(*fileInfo, fullPath, sizeof(fullPath)))
+        return;
+
+    if (IsFavoritePath(fullPath))
+        RemoveFavoritePath(fullPath);
+    else
+        AddFavoritePath(fullPath);
+
+    _saveStateBinPending = true;
+
+    if (_favoritesViewActive && !_favoritesLoadPending)
+        StartFavoritesLoad();
+}
+
+bool RomBrowserController::IsSelectedFileFavorite()
+{
+    const auto* fileInfo = GetSelectedFileInfo();
+    if (!fileInfo)
+        return false;
+
+    char fullPath[256];
+    if (!TryBuildFilePath(*fileInfo, fullPath, sizeof(fullPath)))
+        return false;
+
+    return IsFavoritePath(fullPath);
 }
 
 void RomBrowserController::Update()
@@ -103,6 +283,12 @@ void RomBrowserController::Update()
             break;
         }
     }
+
+    if (_favoritesLoadPending && _favoritesTask.IsValid()
+        && _favoritesTask.GetTask().IsCompletedSuccessfully())
+    {
+        CompleteFavoritesLoad();
+    }
 }
 
 void RomBrowserController::HandleTrigger()
@@ -139,6 +325,15 @@ void RomBrowserController::HandleNavigateTrigger()
         {
             _coverRepository = std::make_unique<CoverRepository>();
             _coverRepository->Initialize();
+        }
+        if (!_cheatRepository)
+        {
+            _cheatRepository = UsrCheatRepositoryFactory().FromUsrCheatDat("/_pico/extras/usrcheat.dat");
+            if (!_cheatRepository)
+            {
+                // When usrcheat.dat is not found or cannot be read use a dummy empty cheat repository
+                _cheatRepository = std::make_unique<EmptyCheatRepository>();
+            }
         }
 
         u64 startTick = gTickCounter.GetValue();
@@ -178,13 +373,18 @@ void RomBrowserController::HandleLaunchTrigger()
     LOG_DEBUG("RomBrowserStateTrigger::Launch\n");
     _ioTaskQueue->Enqueue([this] (const vu8& cancelRequested)
     {
-        f_getcwd(_navigatePath, sizeof(_navigatePath) / sizeof(_navigatePath[0]));
-        int idx = strlcat(_navigatePath, "/", sizeof(_navigatePath));
-        if (_navigatePath[idx - 2] == '/')
-            _navigatePath[idx - 1] = 0;
-        strlcat(_navigatePath, _launchFileInfo.GetFileName(), sizeof(_navigatePath));
-        _appSettingsService->GetAppSettings().lastUsedFilePath = _navigatePath;
+        if (!TryBuildFilePath(_launchFileInfo, _navigatePath, sizeof(_navigatePath)))
+        {
+            LOG_ERROR("Failed to build launch path.\n");
+            return TaskResult<void>::Completed();
+        }
+        auto& appSettings = _appSettingsService->GetAppSettings();
+        appSettings.lastUsedFilePath = _navigatePath;
         _appSettingsService->Save();
+
+        LaunchStatsService::Instance().Increment(_launchFileInfo.GetFileName());
+
+        LoadCheats();
 
         auto loadParams = pload_getLoadParams();
         loadParams->savePath[0] = 0;
@@ -206,4 +406,266 @@ void RomBrowserController::HandleChangeDisplayModeTrigger()
 {
     LOG_DEBUG("RomBrowserStateTrigger::ChangeDisplayMode\n");
     _romBrowserViewModel = SharedPtr(new RomBrowserViewModel(this));
+}
+
+void RomBrowserController::StartFavoritesLoad()
+{
+    _favoritesLoadPending = true;
+    _favoritesTask = _ioTaskQueue->Enqueue([this] (const vu8& cancelRequested)
+    {
+        _newFavoritesFolder = BuildFavoritesFolder();
+        return TaskResult<void>::Completed();
+    });
+}
+
+void RomBrowserController::CompleteFavoritesLoad()
+{
+    _favoritesTask.Dispose();
+    _favoritesFolder = std::move(_newFavoritesFolder);
+    _favoritesLoadPending = false;
+    _favoritesViewActive = true;
+    _romBrowserViewModel = SharedPtr(new RomBrowserViewModel(this));
+    _viewModelInvalidated = true;
+}
+
+bool RomBrowserController::TryBuildFilePath(const FileInfo& fileInfo, char* outPath, u32 outPathSize) const
+{
+    const char* fullPath = fileInfo.GetFullPath();
+    if (fullPath && fullPath[0] != 0)
+    {
+        StringUtil::Copy(outPath, fullPath, outPathSize);
+        return true;
+    }
+
+    if (f_getcwd(outPath, outPathSize) != FR_OK)
+        return false;
+
+    int idx = strlcat(outPath, "/", outPathSize);
+    if (idx > 1 && outPath[idx - 2] == '/')
+        outPath[idx - 1] = 0;
+    strlcat(outPath, fileInfo.GetFileName(), outPathSize);
+    return true;
+}
+
+std::unique_ptr<SdFolder> RomBrowserController::BuildFavoritesFolder()
+{
+    auto& appSettings = _appSettingsService->GetAppSettings();
+    const u32 favoritesCount = appSettings.numberOfFavorites;
+
+    FileInfo** fileInfos = nullptr;
+    if (favoritesCount > 0)
+        fileInfos = (FileInfo**)malloc(sizeof(FileInfo*) * favoritesCount);
+
+    u32 fileCount = 0;
+
+    for (u32 i = 0; i < favoritesCount; i++)
+    {
+        const char* favoritePath = appSettings.favorites[i].GetString();
+        FileInfo* fileInfo = nullptr;
+        if (TryCreateFileInfoFromPath(favoritePath, fileInfo))
+        {
+            fileInfos[fileCount++] = fileInfo;
+        }
+        // Don't remove favorites that fail to load — the file may be
+        // temporarily inaccessible (wrong drive context, SD removed, etc.).
+        // Favorites are only removed when the user explicitly unfavorites.
+    }
+
+    if (fileCount == 0)
+    {
+        free(fileInfos);
+        fileInfos = nullptr;
+    }
+    else if (fileCount < favoritesCount)
+    {
+        fileInfos = (FileInfo**)realloc(fileInfos, sizeof(FileInfo*) * fileCount);
+    }
+
+    return std::make_unique<SdFolder>(fileInfos, fileCount);
+}
+
+bool RomBrowserController::TryCreateFileInfoFromPath(const char* fullPath, FileInfo*& outFileInfo) const
+{
+    if (!fullPath || fullPath[0] == 0)
+        return false;
+
+    const char* fileName = strrchr(fullPath, '/');
+    if (!fileName)
+        return false;
+
+    char dirPath[256];
+    if (fileName == fullPath)
+    {
+        StringUtil::Copy(dirPath, "/", sizeof(dirPath));
+        fileName++;
+    }
+    else
+    {
+        u32 dirLength = (u32)(fileName - fullPath);
+        if (dirLength + 2 > sizeof(dirPath))
+            return false;
+        memcpy(dirPath, fullPath, dirLength);
+        dirPath[dirLength] = 0;
+        // "fat:" without trailing slash means current dir, not root.
+        // Append "/" so FatFs opens the volume root directory.
+        if (dirLength > 0 && dirPath[dirLength - 1] == ':')
+        {
+            dirPath[dirLength] = '/';
+            dirPath[dirLength + 1] = 0;
+        }
+        fileName++;
+    }
+
+    if (fileName[0] == 0)
+        return false;
+
+    Directory directory;
+    if (directory.Open(dirPath) != FR_OK)
+        return false;
+
+    FILINFO fileInfo;
+    while (directory.Read(&fileInfo) == FR_OK)
+    {
+        if (fileInfo.fname[0] == 0)
+            break;
+        if (strcasecmp(fileInfo.fname, fileName) == 0)
+        {
+            if (fileInfo.fattrib & AM_DIR)
+                return false;
+            const auto* fileType = _fileTypeProvider.GetFileType(fileInfo.fname);
+            outFileInfo = new FileInfo(fileInfo.fname, fileType,
+                FastFileRef(directory.GetFatFsDirectory(), &fileInfo), fullPath);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool RomBrowserController::IsFavoritePath(const char* fullPath) const
+{
+    const auto& appSettings = _appSettingsService->GetAppSettings();
+    for (u32 i = 0; i < appSettings.numberOfFavorites; i++)
+    {
+        const char* fav = appSettings.favorites[i].GetString();
+        const char* favSuffix = strchr(fav, ':');
+        const char* pathSuffix = strchr(fullPath, ':');
+        const char* a = favSuffix ? favSuffix : fav;
+        const char* b = pathSuffix ? pathSuffix : fullPath;
+        if (!strcasecmp(a, b))
+            return true;
+    }
+    return false;
+}
+
+void RomBrowserController::AddFavoritePath(const char* fullPath)
+{
+    if (IsFavoritePath(fullPath))
+        return;
+
+    auto& appSettings = _appSettingsService->GetAppSettings();
+    u32 newCount = appSettings.numberOfFavorites + 1;
+    auto newFavorites = std::make_unique_for_overwrite<String<char, 256>[]>(newCount);
+    for (u32 i = 0; i < appSettings.numberOfFavorites; i++)
+    {
+        newFavorites[i] = appSettings.favorites[i];
+    }
+    newFavorites[newCount - 1] = fullPath;
+    appSettings.favorites = std::move(newFavorites);
+    appSettings.numberOfFavorites = newCount;
+}
+
+void RomBrowserController::RemoveFavoritePath(const char* fullPath)
+{
+    auto& appSettings = _appSettingsService->GetAppSettings();
+    if (appSettings.numberOfFavorites == 0)
+        return;
+
+    bool found = false;
+    for (u32 i = 0; i < appSettings.numberOfFavorites; i++)
+    {
+        const char* fav = appSettings.favorites[i].GetString();
+        const char* favSuffix = strchr(fav, ':');
+        const char* pathSuffix = strchr(fullPath, ':');
+        const char* a = favSuffix ? favSuffix : fav;
+        const char* b = pathSuffix ? pathSuffix : fullPath;
+        if (!strcasecmp(a, b))
+        {
+            found = true;
+            break;
+        }
+    }
+    if (!found)
+        return;
+
+    u32 newCount = appSettings.numberOfFavorites - 1;
+    if (newCount == 0)
+    {
+        appSettings.favorites.reset();
+        appSettings.numberOfFavorites = 0;
+        return;
+    }
+
+    auto newFavorites = std::make_unique_for_overwrite<String<char, 256>[]>(newCount);
+    u32 writeIndex = 0;
+    for (u32 i = 0; i < appSettings.numberOfFavorites; i++)
+    {
+        const char* fav = appSettings.favorites[i].GetString();
+        const char* favSuffix = strchr(fav, ':');
+        const char* pathSuffix = strchr(fullPath, ':');
+        const char* a = favSuffix ? favSuffix : fav;
+        const char* b = pathSuffix ? pathSuffix : fullPath;
+        if (strcasecmp(a, b) == 0)
+            continue;
+        if (writeIndex < newCount)
+            newFavorites[writeIndex++] = appSettings.favorites[i];
+    }
+    appSettings.favorites = std::move(newFavorites);
+    appSettings.numberOfFavorites = writeIndex;
+}
+
+void RomBrowserController::SaveSettingsNow()
+{
+    _saveSettingsPending = false;
+    SaveSettingsAsync();
+}
+
+void RomBrowserController::SaveSettingsAsync()
+{
+    u32 length = 0;
+    auto data = _appSettingsService->SerializeToBuffer(length);
+    auto shared = std::shared_ptr<u8[]>(std::move(data));
+    _ioTaskQueue->Enqueue([this, shared, len = length] (const vu8& cancelRequested)
+    {
+        _appSettingsService->WriteToFile(shared.get(), len);
+        return TaskResult<void>::Completed();
+    });
+}
+
+const FileInfo* RomBrowserController::GetSelectedFileInfo() const
+{
+    if (!_romBrowserViewModel.IsValid())
+        return nullptr;
+
+    int selectedItem = _romBrowserViewModel->GetSelectedItem();
+    if (selectedItem < 0)
+        return nullptr;
+
+    auto& fileInfoManager = _romBrowserViewModel->GetFileInfoManager();
+    if (selectedItem >= (int)fileInfoManager.GetItemCount())
+        return nullptr;
+
+    return &fileInfoManager.GetItem(selectedItem);
+}
+
+void RomBrowserController::LoadCheats() const
+{
+    if (!_cheatRepository)
+    {
+        return;
+    }
+
+    auto cheats = _cheatRepository->GetCheatsForGame(_launchFileInfo.GetFastFileRef());
+    auto cheatData = PicoLoaderCheatDataFactory().CreateCheatData(cheats);
+    pload_setCheatData(cheatData);
 }

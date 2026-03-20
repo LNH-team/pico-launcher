@@ -2,6 +2,8 @@
 #include "common.h"
 #include <memory>
 #include "services/settings/IAppSettingsService.h"
+#include "services/State/AppStateBin.h"
+#include "services/State/AppStateBinSerializer.h"
 #include "bgm/IBgmService.h"
 #include "services/process/IProcess.h"
 #include "gui/SimplePaletteManager.h"
@@ -14,6 +16,7 @@
 #include "gui/input/PadInputSource.h"
 #include "gui/input/SampledInputProvider.h"
 #include "gui/input/InputRepeater.h"
+#include "gui/input/TouchProvider.h"
 #include "gui/VBlankTextureLoader.h"
 #include "gui/Rgb6Palette.h"
 #include "core/task/TaskQueue.h"
@@ -22,10 +25,13 @@
 #include "romBrowser/viewModels/DisplaySettingsViewModel.h"
 #include "romBrowser/views/RomBrowserBottomScreenView.h"
 #include "romBrowser/views/RomBrowserTopScreenView.h"
+#include "romBrowser/views/DisplaySettingsBottomSheetView.h"
 #include "romBrowser/views/IconButton2DView.h"
 #include "romBrowser/views/ChipView.h"
+#include "romBrowser/views/QuickMenuPresenter.h"
 #include "romBrowser/Theme/Material/MaterialThemeFileIconFactory.h"
 #include "romBrowser/RomBrowserController.h"
+#include "services/Layout/LayoutService.h"
 #include "DialogPresenter.h"
 #include "themes/ITheme.h"
 #include "core/SharedPtr.h"
@@ -79,6 +85,9 @@ private:
     PadInputSource _inputSource;
     SampledInputProvider _inputProvider;
     InputRepeater _inputRepeater;
+    TouchProvider _touchProvider;
+    View* _touchCaptureTarget = nullptr;
+    bool _touchCapturedByDialog = false;
 
     std::unique_ptr<RomBrowserBottomScreenView> _romBrowserBottomScreenView;
     std::unique_ptr<RomBrowserTopScreenView> _romBrowserTopScreenView;
@@ -86,6 +95,7 @@ private:
     RomBrowserController _romBrowserController;
 
     DisplaySettingsViewModel _displaySettingsBottomSheetViewModel;
+    LayoutService _layoutService;
 
     FocusManager _focusManager;
 
@@ -94,28 +104,68 @@ private:
     RomBrowserBottomScreenViewModel _romBrowserBottomScreenViewModel;
 
     DialogPresenter _dialogPresenter;
+    QuickMenuPresenter _quickMenuPresenter;
 
+    enum class PendingDialog
+    {
+        None,
+        GameInfo,
+        Cheats,
+        DisplaySettings,
+        LayoutEditor,
+        DisplayInfo
+    };
+
+    PendingDialog _pendingDialog = PendingDialog::None;
+
+    VramState _vramStateBeforeThemeLoad;
     VramState _vramStateBeforeMakeBottomScreenView;
     VramState _vramStateAfterMakeBottomScreenView;
     bool _changeDisplayMode = false;
+    bool _pendingAppRestart = false;
+    bool _sleepModeWasActive = false;
+    bool _displaySettingsReturnToAppBar = false;
+    RomBrowserAppBarView::AppBarButton _displaySettingsReturnAppBarButton
+        = RomBrowserAppBarView::APP_BAR_BUTTON_BACK;
+    bool _directMenuAccessReturnToAppBar = false;
+    RomBrowserAppBarView::AppBarButton _directMenuAccessReturnAppBarButton
+        = RomBrowserAppBarView::APP_BAR_BUTTON_BACK;
 
     ChipView::VramToken _chipViewVram;
     IconButton2DView::VramToken _iconButtonViewVram;
+    DisplaySettingsBottomSheetView::IconVramToken _displaySettingsIconVram;
 
     bool _vcountIrqStarted = false;
 
     void InitVramMapping() const;
     void DisplaySplashScreen() const;
     void LoadTheme();
+    void ApplyThemeColors();
     void VCountIrq();
     void HandleTrigger(RomBrowserStateTrigger trigger, RomBrowserState newState);
     void HandleShowGameInfoTrigger();
     void HandleHideGameInfoTrigger();
+    void HandleShowCheatsTrigger();
+    void HandleHideCheatsTrigger();
+    void HandleShowCheatDescriptionTrigger();
+    void HandleHideCheatDescriptionTrigger();
     void HandleShowDisplaySettingsTrigger();
     void HandleHideDisplaySettingsTrigger();
+    void HandleShowDisplayInfoTrigger();
+    void HandleHideDisplayInfoTrigger();
+    void HandleShowLayoutEditorTrigger();
+    void HandleHideLayoutEditorTrigger();
+    void HandleShowQuickMenuTrigger();
+    void HandleHideQuickMenuTrigger();
     void HandleNavigateTrigger();
     void HandleFolderLoadDoneTrigger();
+    void HandleRomBrowserViewModelInvalidated();
+    void RefreshThemeColors();
     void HandleChangeDisplayModeTrigger(RomBrowserState newState);
+    void ClearRetainedRomBrowserFocus(bool includeAppBar);
+    void RestoreDirectMenuAccessFocus();
+    void DrainTaskQueues();
+    void ShowPendingDialog();
 
     bool IsRomBrowserVisible() const;
 
@@ -123,7 +173,26 @@ private:
     void Update();
     void Draw();
     void VBlank();
+    void DispatchTouch(const TouchEvent& event);
 
     void StoreVramState(VramState& vramState) const;
     void RestoreVramState(const VramState& vramState);
+
+    static constexpr int kMaxThemeCount = 64;
+    std::array<String<char, 64>, kMaxThemeCount> _themeNames;
+    int _themeCount = 0;
+
+    String<char, 64> _effectiveThemeName;
+
+    u8 _loadedPrimaryColorR = 0xFF;
+    u8 _loadedPrimaryColorG = 0xFF;
+    u8 _loadedPrimaryColorB = 0xFF;
+    bool _loadedDarkTheme = false;
+
+    static constexpr const char* kStateBinPath = "/_pico/extras/state.bin";
+
+    AppStateBinSerializer _stateBinSerializer;
+
+    void LoadAppStateBin();
+    void SaveAppStateBinAsync();
 };

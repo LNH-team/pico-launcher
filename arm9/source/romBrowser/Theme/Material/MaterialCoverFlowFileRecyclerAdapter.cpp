@@ -1,7 +1,7 @@
 #include "common.h"
 #include "romBrowser/FileInfoManager.h"
 #include "core/task/TaskQueue.h"
-#include "MaterialCoverView.h"
+#include "romBrowser/views/CoverView.h"
 #include "romBrowser/Theme/IRomBrowserViewFactory.h"
 #include "romBrowser/FileType/UnknownFileCover.h"
 #include "romBrowser/ICoverRepository.h"
@@ -15,19 +15,19 @@ void MaterialCoverFlowFileRecyclerAdapter::GetViewSize(int& width, int& height) 
 
 View* MaterialCoverFlowFileRecyclerAdapter::CreateView() const
 {
-    return new MaterialCoverView(_vblankTextureLoader);
+    return new CoverView(_vblankTextureLoader);
 }
 
 void MaterialCoverFlowFileRecyclerAdapter::DestroyView(View* view) const
 {
-    auto coverView = static_cast<MaterialCoverView*>(view);
+    auto coverView = static_cast<CoverView*>(view);
     delete coverView;
 }
 
 TaskResult<void> MaterialCoverFlowFileRecyclerAdapter::BindView(View* view, int index,
     const InternalFileInfo* internalFileInfo, const vu8& cancelRequested) const
 {
-    auto coverView = static_cast<MaterialCoverView*>(view);
+    auto coverView = static_cast<CoverView*>(view);
     auto cover = _fileInfoManager->GetFileCover(index);
     if (cancelRequested)
     {
@@ -48,7 +48,7 @@ TaskResult<void> MaterialCoverFlowFileRecyclerAdapter::BindView(View* view, int 
 void MaterialCoverFlowFileRecyclerAdapter::ReleaseView(View* view, int index) const
 {
     LOG_DEBUG("Releasing %d\n", index);
-    auto coverView = static_cast<MaterialCoverView*>(view);
+    auto coverView = static_cast<CoverView*>(view);
     coverView->ClearCover();
     _fileInfoManager->ReleaseFileInfo(index);
 }

@@ -2,6 +2,9 @@
 #include "ViewContainer.h"
 #include "DialogType.h"
 
+struct TouchEvent;
+class FocusManager;
+
 /// @brief View meant to be displayed as a dialog on top of other content.
 class DialogView : public ViewContainer
 {
@@ -9,6 +12,10 @@ public:
     /// @brief Gets the type of dialog.
     /// @return The type of dialog.
     virtual DialogType GetDialogType() const = 0;
+
+    /// @brief Gets the type ID of the dialog for RTTI.
+    /// @return The unique ID of the dialog type.
+    virtual int GetDialogTypeId() const { return 0; }
 
     /// @brief Moves the focus to this dialog.
     /// @param focusManager The focus manager to use.
@@ -18,4 +25,31 @@ public:
     ///        this dialog for the purpose of culling views behind it.
     /// @return A rectangle that is fully covered by the dialog.
     virtual Rectangle GetFullyCoveredArea() const = 0;
+
+    /// @brief Determines whether the standard bottom-sheet background
+    ///        layer should be rendered for this dialog.
+    /// @return True to keep the shared background, false to leave it blank.
+    virtual bool UseBottomSheetBackground() const { return true; }
+
+    /// @brief Target scrim blend level (0-16) applied while the dialog is visible.
+    virtual int GetScrimTargetBlend() const { return 5; }
+
+    /// @brief Called when the dialog is dismissed by a touch gesture
+    ///        (swipe-down or scrim tap).
+    virtual void OnDismissed() { }
+
+    /// @brief Returns whether drag/scrim dismiss gestures are allowed.
+    virtual bool AllowDismissGestures() const { return true; }
+
+    /// @brief Handles a touch event forwarded from the DialogPresenter
+    ///        when the user taps inside the dialog area.
+    /// @param event The touch event.
+    /// @param focusManager The focus manager.
+    /// @return True if the touch was handled.
+    bool HandleTouch(const TouchEvent& event, FocusManager& focusManager) override
+    {
+        (void)event;
+        (void)focusManager;
+        return false;
+    }
 };

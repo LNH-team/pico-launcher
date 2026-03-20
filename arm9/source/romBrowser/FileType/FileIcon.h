@@ -5,7 +5,7 @@
 class PaletteManager;
 class GraphicsContext;
 
-#define FILE_ICON_VRAM_SIZE     4096
+#define FILE_ICON_VRAM_SIZE     1024
 
 /// @brief Abstract base class representing a file icon.
 class FileIcon
@@ -15,8 +15,8 @@ public:
 
     /// @brief Uploads the graphics of this icon to the specified \p vram address.
     /// @param vram The vram address to load the graphics to.
-    virtual void UploadGraphics(vu16* vram) const = 0;
-
+    virtual void UploadGraphics(vu16* vram) = 0;
+    
     /// @brief Updates this icon.
     virtual void Update() { }
 

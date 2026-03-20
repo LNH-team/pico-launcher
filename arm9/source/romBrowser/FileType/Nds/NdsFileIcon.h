@@ -8,7 +8,7 @@ class NdsFileIcon : public FileIcon
 public:
     explicit NdsFileIcon(const nds_banner_t* banner);
 
-    void UploadGraphics(vu16* vram) const override;
+    void UploadGraphics(vu16* vram) override;
     void Update() override;
     void Draw(GraphicsContext& graphicsContext, const Rgb<8, 8, 8>& backgroundColor) override;
 
@@ -21,4 +21,8 @@ private:
     u32 _animLength;
     u16 _tokenStartTimes[65];
     bool _loop;
+
+    vu16* _vramAddress = nullptr;
+    int _currentVramSlot = 0;
+    int _currentGfxIdx = -1;
 };

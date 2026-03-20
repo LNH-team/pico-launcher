@@ -1,0 +1,255 @@
+========================================================== 
+
+            Wen Quan Yi Bitmap Song CJK Fonts
+
+                  Installation Guide
+
+----------------------------------------------------------
+
+The WenQuanYi Bitmap Song font (medium and bold weight) was
+packaged into three equivalent formats: BDF (Bitmap Distribution 
+Format), PCF (Portable Compiled Format) and TTF(True-type). 
+All formats are supported by most modern X-window systems 
+(TTF format requires FreeType 2.x or later). You can choose 
+any of them based on your preference.
+
+
+== Quick Summary ==
+
+We highly suggest you downloading our DEB (for debian-based 
+systems) or RPM (for Redhat-based systems) installation 
+packages. One-command-installation can be achieved by
+	dpkg -i  wqy-bitmapfont-*.deb
+for deb package, or 
+	rpm -ivh wqy-bitmapfont-*.rpm
+For some users, the installed font can not be selected 
+from font list, you may verify and make sure that a file
+named "85-wqy-bitmapsong.conf" is copied to /etc/fonts/conf.d
+directory.
+
+
+== PCF/BDF Package Installation   ==
+
+1. download
+
+You can find the installation package from
+our sourceforge download site at
+
+http://sourceforge.net/project/showfiles.php?group_id=128192&package_id=156288
+
+choose the latest release and select your preferred 
+font format, save the installation file to a temporary 
+directory, for example /tmp.
+
+2. decompression
+
+The package is usually a gz-ed tarball, to extract the files
+
+  tar zxvf wqy-bitmapfont*.tar.gz
+
+or 
+
+  gunzip wqy-bitmapfont*.tar.gz
+  tar xvf wqy-bitmapfont*.tar
+
+
+3. move directory (optional)
+
+You can find all extracted file under a subdirectory 
+called "wqy-bitmapfont". You might want to move this 
+directory to the location where you want
+to install the font, a good place is
+
+/usr/share/fonts/wenquanyi/wqy-bitmapfont
+
+To move the directory, you need to use "su" or "sudo" to obtain
+root privileges. (If you don't have root privileges, please
+refer to Section 6)
+
+4. font path setup
+
+Now you need to tell X-window where to find the installed font. 
+There are two major font management mechanisms: X-core font
+and fontconfig. We will discuss the installation for 
+X-core font first.
+
+Assuming you have installed the font to 
+/usr/share/fonts/wenquanyi/wqy-bitmapfont/
+
+execute the follow commands
+
+   su
+   cd /usr/share/fonts/wenquanyi/wqy-bitmapfont/
+   rm fonts.dir fonts.scale fc-cache.*
+   mkfontdir .
+   cp fonts.dir fonts.scale
+   xset +fp /usr/share/fonts/wenquanyi/wqy-bitmapfont/
+
+the last command adds the font path to the font path
+list of current X-window session. To permanently add this path, 
+you need to add 
+
+  FontPath     "/usr/share/fonts/wenquanyi/wqy-bitmapfont/" 
+
+to /etc/X11/xorg.conf, under any line starting with "FontPath",
+for example:
+
+  FontPath     "unix/:7100"
+
+if your system does not have xorg.conf, you are probabily 
+running XFree86, then you should do the same thing for
+/etc/X11/XF86Config-4
+
+If you see "unix/:7100" in your xorg.conf, your X window 
+is using "xfs". Typing the path to the font in /etc/X11/fs/config
+under the line "catalogue =/usr/lib/X11/fonts/misc/," 
+can do the same thing as you modify xorg.conf.
+
+Now you have done with X Core font set up. Most recent 
+versions of Linux X programs support Xft/fontconfig, which 
+is a set of font search/selection rules. To make fontconfig 
+aware of the newly installed WenQuanYi bitmap font, you need to 
+insert the following line
+
+  <dir>/usr/share/fonts/wenquanyi/wqy-bitmapfont/</dir>
+
+to /etc/fonts/fonts.conf  or ~/.fonts.conf, however, if you
+installed the font into a subdirectory under /usr/share/fonts/, 
+this is not required.
+
+we provided a fontconfig file specifically optimized for wqy bitmap fonts,
+named "85-wqy-bitmapsong.conf". To activate the optimized settings, you 
+need to install this file as well. If /etc/fonts/conf/ directory exists
+in your system, please directly move this file to that directory. If it does
+not exist, you need to add the following line to the
+end of /etc/fonts/fonts.conf (before </fontconfig>)
+
+  <include>/usr/share/fonts/wenquanyi/wqy-bitmapfont/85-wqy-bitmapsong.conf</include>
+
+if you are using the latest fontconfig-2.4.x, you can also move this file
+to ~/.fontconfig/ directory, it will also do the job.
+
+After all of above steps, type "fc-cache -f -v" to update fontconfig, 
+In most cases, you need to restart your X-window  in order to activate
+all the settings.
+
+
+5. test
+
+To test if the font is successfully installed, the following 
+command
+
+   /usr/X11R6/bin/xlsfonts | grep 'wenquanyi'
+
+
+would print something like followings (you may also see font names for gb2312/big5 etc)
+
+   -wenquanyi-wenquanyi bitmap song-bold-r-normal--0-0-75-75-p-0-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-bold-r-normal--12-120-75-75-p-119-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-bold-r-normal--13-130-75-75-p-80-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-bold-r-normal--15-150-75-75-p-80-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-bold-r-normal--16-160-75-75-p-80-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-medium-r-normal--0-0-75-75-p-0-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-medium-r-normal--12-120-75-75-p-119-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-medium-r-normal--13-130-75-75-p-80-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-medium-r-normal--15-150-75-75-p-80-iso10646-1
+   -wenquanyi-wenquanyi bitmap song-medium-r-normal--16-160-75-75-p-80-iso10646-1
+   ....
+
+for fontconfig, you need 
+
+   fc-list | grep 'WenQuanYi'
+
+you would expect to see the following two lines as output
+
+   WenQuanYi Bitmap Song:style=Bold
+   WenQuanYi Bitmap Song:style=Regular
+
+With KDE or GNOME font selection tools, you should be able to see 
+"WenQuanYi Bitmap Song" in the font name list.
+
+
+6. installation as a normal user
+
+If you do not have root privilege, for example, you are using 
+public machines, to install this font is also very simple. 
+If you are using KDE, find "Control Center" from the K-menu 
+(or type kcontrol from console), choose "System Administration" 
+and click on "Font Installer", right click on the middle panel, 
+choose "add font", locate the extracted fonts (bdf/pcf) files.
+
+If you are using Gnome environment, double click on "Computer",
+type "fonts:/" on the address bar, and type enter. Open another
+file browser and select the bdf/pcf.gz font files, drag or 
+copy/paste to the fonts:/ folder.
+
+If you do not have X-window started, you can also install the 
+font by extracting the BDF/PCF files to ~/.fonts/ directory 
+(if it does not exist, create one after making sure you have 
+fontconfig installed).
+
+You may also add the following line to ~/.fonts.conf to use
+pre-set configurations
+
+  <dir>/path/to/wqy-bitmapfonts/</dir>
+  <include>/path/to/85-wqy-bitmapsong.conf</include>
+
+7. Turn on Chinese language support on your system
+
+To correctly display Chinese, your system should
+support Chinese language. You need to install the related
+packages (for example, sudo apt-get install kde-i18n-Chinese*)
+Then put the following line
+
+ LC_CTYPE=zh_CN.UTF-8
+
+into ~/.i18n and reboot your system (this file may not exist, in 
+that case, you need to create it first by "touch ~/.i18n".
+you can also use other locales in the output of 
+"ls -d /usr/lib/locale/zh_*"). To enable command line Chinese 
+message, replace "LC_CTYPE" by "LC_ALL". If you want all menu displayed
+with Chinese language, on KDE, goto "Control center", click on "Region and
+Assistance", find "Country/Region and Language", choose "Chinese" from 
+"Add language"; if you are using Gnome, you need to select "Preference"
+and "Language", then add "Chinese". Restart your X or system
+if necessary to enable this setting. If you can not select "Chinese" for
+either desktop environments, you need to install the corresponding
+language package first.
+
+
+== TTF Package Installation   ==
+
+To install TTF version of Wenquanyi bitmap font is a little bit tricky.
+The font file is a special type of TTF, called SFNT (or sbit only) TTF.
+This format is supported by FreeType 2.x or later. Unfortunately, 
+ttfmkdir and fc-cache can not recognize this format. So, we packaged
+hand-writen configuration files, fonts.dir/fonts.scale/fonts.cache-1,
+in the release. 
+
+The installation process is very similar to PCF/BDF version, you can
+type ttmkfdir and fc-cache -fv, in that case, the hand-writen config
+files will be overwriten. You can find a font.config.tar.gz in the 
+installation file, you need to decompress this file and restore
+the correct fonts.* files. In the future, anytime you submit 
+fc-cache -fv, you need to repeat the above process.
+
+== RPM Package Installation   ==
+
+if your system support RPM, to use RPM package is the simplest.
+you simply type
+
+sudo rpm -Uvh wqy-bitmapfont*noarch.rpm
+
+then after restarting your X-window, you should be able
+to use this font.
+
+== Other issues   ==
+
+For some old applications, such as Emacs, XMMS, you may need to 
+do some extra configurations, you can search our FAQ page for
+more details
+
+  http://wqy.sourceforge.net/cgi-bin/index.cgi?FAQ
+
+
+========================================================== 

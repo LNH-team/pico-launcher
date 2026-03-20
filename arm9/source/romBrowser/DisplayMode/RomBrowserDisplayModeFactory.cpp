@@ -28,7 +28,7 @@ const RomBrowserDisplayMode* RomBrowserDisplayModeFactory::GetRomBrowserDisplayM
         }
         default:
         {
-            return nullptr;
+            return &RomBrowserHorizontalIconGridDisplayMode::sInstance;
         }
     }
 }

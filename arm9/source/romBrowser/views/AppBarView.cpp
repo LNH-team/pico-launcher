@@ -1,7 +1,9 @@
 #include "common.h"
+#include "gui/input/TouchEvent.h"
 #include "AppBarView.h"
 
 #define BUTTON_SIZE     32
+#define TOUCH_EXPAND    8
 
 AppBarView::AppBarView(int x, int y, Orientation orientation,
     int startButtonCount, int endButtonCount, const MaterialColorScheme* materialColorScheme)
@@ -122,7 +124,7 @@ void AppBarView::UpdateButtonPositionsVertical()
     }
 }
 
-int AppBarView::FindButtonIndex(const View* view)
+int AppBarView::FindButtonIndex(const View* view) const
 {
     for (int i = 0; i < _startButtonCount + _endButtonCount; i++)
     {
@@ -133,4 +135,84 @@ int AppBarView::FindButtonIndex(const View* view)
     }
 
     return -1;
+}
+
+bool AppBarView::HandleTouch(const TouchEvent& event, FocusManager& focusManager)
+{
+    if (event.type == TouchEventType::Down)
+    {
+        _touchPressedButton = -1;
+        for (int i = 0; i < _startButtonCount + _endButtonCount; i++)
+        {
+            Rectangle hitBounds(
+                _buttons[i]->GetBounds().GetX() - TOUCH_EXPAND,
+                _buttons[i]->GetBounds().GetY() - TOUCH_EXPAND,
+                _buttons[i]->GetBounds().GetWidth() + TOUCH_EXPAND * 2,
+                _buttons[i]->GetBounds().GetHeight() + TOUCH_EXPAND * 2);
+            if (hitBounds.Contains(event.position))
+            {
+                _touchPressedButton = i;
+                focusManager.Focus(_buttons[i]);
+                return true;
+            }
+        }
+    }
+    else if (event.type == TouchEventType::Up)
+    {
+        int dx = event.position.x - event.startPosition.x;
+        int dy = event.position.y - event.startPosition.y;
+        int absDx = dx < 0 ? -dx : dx;
+        int absDy = dy < 0 ? -dy : dy;
+
+        bool quickTap = event.holdFrames <= TOUCH_TAP_MAX_FRAMES
+                     && absDx <= TOUCH_TAP_MAX_DRIFT && absDy <= TOUCH_TAP_MAX_DRIFT;
+
+        if (quickTap)
+        {
+            if (_touchPressedButton >= 0)
+            {
+                focusManager.Focus(_buttons[_touchPressedButton]);
+                _buttons[_touchPressedButton]->ActivateAction();
+                _touchPressedButton = -1;
+                return true;
+            }
+
+            for (int i = 0; i < _startButtonCount + _endButtonCount; i++)
+            {
+                Rectangle hitBounds(
+                    _buttons[i]->GetBounds().GetX() - TOUCH_EXPAND,
+                    _buttons[i]->GetBounds().GetY() - TOUCH_EXPAND,
+                    _buttons[i]->GetBounds().GetWidth() + TOUCH_EXPAND * 2,
+                    _buttons[i]->GetBounds().GetHeight() + TOUCH_EXPAND * 2);
+                if (hitBounds.Contains(event.startPosition) || hitBounds.Contains(event.position))
+                {
+                    focusManager.Focus(_buttons[i]);
+                    _buttons[i]->ActivateAction();
+                    _touchPressedButton = -1;
+                    return true;
+                }
+            }
+        }
+        _touchPressedButton = -1;
+    }
+    else if (event.type == TouchEventType::Move)
+    {
+        for (int i = 0; i < _startButtonCount + _endButtonCount; i++)
+        {
+            Rectangle hitBounds(
+                _buttons[i]->GetBounds().GetX() - TOUCH_EXPAND,
+                _buttons[i]->GetBounds().GetY() - TOUCH_EXPAND,
+                _buttons[i]->GetBounds().GetWidth() + TOUCH_EXPAND * 2,
+                _buttons[i]->GetBounds().GetHeight() + TOUCH_EXPAND * 2);
+            if (hitBounds.Contains(event.position))
+            {
+                focusManager.Focus(_buttons[i]);
+                return true;
+            }
+        }
+
+        if (_touchPressedButton >= 0)
+            return true;
+    }
+    return false;
 }

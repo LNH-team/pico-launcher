@@ -84,6 +84,7 @@ public:
 
     u32 AllocRow(const IPalette& palette, int yStart, int yEnd) override
     {
+        yEnd++; // avoid back to back allocation
         return AllocRowInternal(_rows[_curSet], palette, yStart, yEnd);
     }
 
