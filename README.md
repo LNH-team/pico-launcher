@@ -2,8 +2,6 @@
 
 基于 [MattiaTheBest115/pico-launcher](https://github.com/MattiaTheBest115/pico-launcher) develop 分支
 
-[中文说明](README_CN.md) | [English](README_EN.md)
-
 ## 功能特性
 
 - 中文字体（GB2312 全集 6763 字）+ 中英双语切换
@@ -27,33 +25,3 @@
 docker run --rm -v "$(pwd):/work" -w /work skylyrac/blocksds:slim-v1.15.7 make
 ```
 
----
-
-# Pico Launcher Chinese Enhanced v3.1
-
-Based on [MattiaTheBest115/pico-launcher](https://github.com/MattiaTheBest115/pico-launcher) develop branch
-
-[中文说明](README_CN.md) | [English](README_EN.md)
-
-## Features
-
-- Chinese font (GB2312 full set, 6763 chars) + bilingual UI
-- Touch screen support
-- 155 BGM tracks (7 platform categories)
-- 15 themes (built-in + custom)
-- Dark mode
-- 3D CoverFlow
-- 4,658 NDS covers + 2,044 GBA covers
-- 7,091 cheat entries
-- GBARunner3 for GBA games
-- TWiLight Menu++ v27.23.0 / AKMenu-Next v2.0.5
-
-## Installation
-
-Extract archive to SD card root and overwrite.
-
-## Building
-
-```bash
-docker run --rm -v "$(pwd):/work" -w /work skylyrac/blocksds:slim-v1.15.7 make
-```
