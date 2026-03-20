@@ -26,6 +26,8 @@ public:
         const IBgmService* bgmService,
         const LayoutService* layoutService);
 
+    void UpdateViewModel(const SharedPtr<RomBrowserViewModel>& viewModel);
+
     void InitVram(const VramContext& vramContext) override;
     void Update() override;
     void Draw(GraphicsContext& graphicsContext) override;

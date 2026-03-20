@@ -142,11 +142,23 @@ void RomBrowserBottomScreenView::RomBrowserViewModelInvalidated(const VramContex
 
     if (_viewModel->GetRomBrowserViewModel().IsValid())
     {
-        _romBrowserView = std::make_unique<RomBrowserView>(
-            _viewModel->GetRomBrowserViewModel(), *_romBrowserDisplayMode,
-            _themeFileIconFactory, _romBrowserViewFactory, _vblankTextureLoader);
-        _romBrowserView->SetParent(this);
-        _romBrowserView->InitVram(vramContext);
+        if (_romBrowserView)
+        {
+            // Fast path: reuse existing view (avoids heap fragmentation)
+            _romBrowserView->UpdateViewModel(
+                _viewModel->GetRomBrowserViewModel(), *_romBrowserDisplayMode,
+                _themeFileIconFactory, _romBrowserViewFactory, _vblankTextureLoader,
+                vramContext);
+        }
+        else
+        {
+            // First time: create new view
+            _romBrowserView = std::make_unique<RomBrowserView>(
+                _viewModel->GetRomBrowserViewModel(), *_romBrowserDisplayMode,
+                _themeFileIconFactory, _romBrowserViewFactory, _vblankTextureLoader);
+            _romBrowserView->SetParent(this);
+            _romBrowserView->InitVram(vramContext);
+        }
     }
     else
     {

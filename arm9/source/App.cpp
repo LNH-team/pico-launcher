@@ -862,20 +862,28 @@ void App::HandleFolderLoadDoneTrigger()
         _focusManager.Unfocus();
     }
 
-    _romBrowserTopScreenView.reset();
-    RestoreVramState(_vramStateAfterMakeBottomScreenView);
-    auto displayMode = RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
-        _romBrowserController.GetRomBrowserDisplaySettings().layout);
-    _romBrowserTopScreenView = std::make_unique<RomBrowserTopScreenView>(
-        _romBrowserController.GetRomBrowserViewModel(),
-        displayMode,
-        _materialThemeFileIconFactory.get(),
-        _theme->GetRomBrowserViewFactory(),
-        &_theme->GetMaterialColorScheme(),
-        _theme->GetFontRepository(),
-        &_bgmService,
-        &_layoutService);
-    _romBrowserTopScreenView->InitVram(_subVramContext);
+    if (_romBrowserTopScreenView)
+    {
+        // Fast path: reuse existing top screen view (avoids heap fragmentation)
+        _romBrowserTopScreenView->UpdateViewModel(
+            _romBrowserController.GetRomBrowserViewModel());
+    }
+    else
+    {
+        RestoreVramState(_vramStateAfterMakeBottomScreenView);
+        auto displayMode = RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
+            _romBrowserController.GetRomBrowserDisplaySettings().layout);
+        _romBrowserTopScreenView = std::make_unique<RomBrowserTopScreenView>(
+            _romBrowserController.GetRomBrowserViewModel(),
+            displayMode,
+            _materialThemeFileIconFactory.get(),
+            _theme->GetRomBrowserViewFactory(),
+            &_theme->GetMaterialColorScheme(),
+            _theme->GetFontRepository(),
+            &_bgmService,
+            &_layoutService);
+        _romBrowserTopScreenView->InitVram(_subVramContext);
+    }
     _romBrowserBottomScreenView->RomBrowserViewModelInvalidated(_mainVramContext);
     if (!_focusManager.GetCurrentFocus())
         _romBrowserBottomScreenView->Focus(_focusManager);
@@ -897,20 +905,28 @@ void App::HandleRomBrowserViewModelInvalidated()
         && _romBrowserBottomScreenView->GetFocusedAppBarButton(_focusManager)
             == RomBrowserAppBarView::APP_BAR_BUTTON_FAVORITES;
 
-    _romBrowserTopScreenView.reset();
-    RestoreVramState(_vramStateAfterMakeBottomScreenView);
-    auto displayMode = RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
-        _romBrowserController.GetRomBrowserDisplaySettings().layout);
-    _romBrowserTopScreenView = std::make_unique<RomBrowserTopScreenView>(
-        _romBrowserController.GetRomBrowserViewModel(),
-        displayMode,
-        _materialThemeFileIconFactory.get(),
-        _theme->GetRomBrowserViewFactory(),
-        &_theme->GetMaterialColorScheme(),
-        _theme->GetFontRepository(),
-        &_bgmService,
-        &_layoutService);
-    _romBrowserTopScreenView->InitVram(_subVramContext);
+    if (_romBrowserTopScreenView)
+    {
+        // Fast path: reuse existing top screen view (avoids heap fragmentation)
+        _romBrowserTopScreenView->UpdateViewModel(
+            _romBrowserController.GetRomBrowserViewModel());
+    }
+    else
+    {
+        RestoreVramState(_vramStateAfterMakeBottomScreenView);
+        auto displayMode = RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
+            _romBrowserController.GetRomBrowserDisplaySettings().layout);
+        _romBrowserTopScreenView = std::make_unique<RomBrowserTopScreenView>(
+            _romBrowserController.GetRomBrowserViewModel(),
+            displayMode,
+            _materialThemeFileIconFactory.get(),
+            _theme->GetRomBrowserViewFactory(),
+            &_theme->GetMaterialColorScheme(),
+            _theme->GetFontRepository(),
+            &_bgmService,
+            &_layoutService);
+        _romBrowserTopScreenView->InitVram(_subVramContext);
+    }
     _romBrowserBottomScreenView->RomBrowserViewModelInvalidated(_mainVramContext);
 
     if (_romBrowserController.IsFavoritesViewActive())
