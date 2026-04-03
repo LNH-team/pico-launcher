@@ -30,6 +30,7 @@
 #include "ExitMode.h"
 #include "Arm7State.h"
 #include "mmc/tmio.h"
+#include "ipcServices/BackLightIpcService.h"
 
 static NocashOutputStream sNocashOutputStream;
 static PlainLogger sPlainLogger = PlainLogger(LogLevel::All, std::unique_ptr<IOutputStream>(&sNocashOutputStream));
@@ -39,6 +40,7 @@ static DsiSdIpcService sDsiSdIpcService;
 static DldiIpcService sDldiIpcService;
 static SoundIpcService sSoundIpcService;
 static RtcIpcService sRtcIpcService;
+static BackLightIpcService sBackLightIpcService;
 
 ILogger* gLogger = &sThreadSafeLogger;
 
@@ -144,6 +146,7 @@ static void initializeArm7()
     snd_setMasterEnable(true);
     sSoundIpcService.Start();
     sRtcIpcService.Start();
+    sBackLightIpcService.Start();
 
     gfx_setVCountMatchLine(96);
     rtos_setIrqFunc(RTOS_IRQ_VCOUNT, vcountIrq);

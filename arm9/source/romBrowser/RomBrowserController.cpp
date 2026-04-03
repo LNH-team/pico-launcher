@@ -10,6 +10,9 @@
 #include "cheats/EmptyCheatRepository.h"
 #include "cheats/PicoLoaderCheatDataFactory.h"
 #include "RomBrowserController.h"
+#include <libtwl/ipc/ipcFifoSystem.h>
+#include <ipcChannels.h>
+#include <nds/system.h>
 
 RomBrowserController::RomBrowserController(
     IAppSettingsService* appSettingsService, TaskQueueBase* ioTaskQueue,
@@ -66,6 +69,13 @@ void RomBrowserController::SetRomBrowserDisplaySettings(
     _appSettingsService->GetAppSettings().romBrowserDisplaySettings = romBrowserDisplaySettings;
     _saveSettingsPending = true;
     _stateMachine.Fire(RomBrowserStateTrigger::ChangeDisplayMode);
+}
+
+void RomBrowserController::AdjustBacklightLevel()
+{
+    if (++light_level>5) 
+        light_level = isDSiMode() ? 1 : 2; //DSlight only has 4 distinct light levels.
+    ipc_sendFifoMessage(IPC_CHANNEL_BACKLI,light_level);
 }
 
 void RomBrowserController::Update()

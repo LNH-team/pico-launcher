@@ -29,6 +29,8 @@ public:
     void ShowDisplaySettings() override;
     void HideDisplaySettings() override;
 
+    void AdjustBacklightLevel() override;
+
     void Update() override;
 
     const SdFolder& GetSdFolder() const override { return *_sdFolder; }
@@ -68,6 +70,7 @@ private:
     std::unique_ptr<CoverRepository> _coverRepository;
     ExtensionFileTypeProvider _fileTypeProvider;
     std::unique_ptr<ICheatRepository> _cheatRepository;
+    u32 light_level = 5;
 
     void HandleTrigger();
     void HandleNavigateTrigger();

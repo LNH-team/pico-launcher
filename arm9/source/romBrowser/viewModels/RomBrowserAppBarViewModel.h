@@ -18,6 +18,11 @@ public:
         _romBrowserController->ShowDisplaySettings();
     }
 
+    void AdjustBacklightLevel()
+    {
+        _romBrowserController->AdjustBacklightLevel();
+    }
+
     constexpr RomBrowserLayout GetRomBrowserLayout() const
     {
         return _romBrowserController->GetRomBrowserDisplaySettings().layout;

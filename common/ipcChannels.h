@@ -1,5 +1,6 @@
 #pragma once
 
+#define IPC_CHANNEL_BACKLI  15
 #define IPC_CHANNEL_DSI_SD  16
 #define IPC_CHANNEL_DLDI    17
 #define IPC_CHANNEL_LOADER  18
