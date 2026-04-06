@@ -1,5 +1,6 @@
 #include "common.h"
 #include <memory>
+#include <string.h>
 #include <libtwl/mem/memVram.h>
 #include <libtwl/gfx/gfx.h>
 #include <libtwl/gfx/gfxBackground.h>
@@ -36,22 +37,25 @@
 #define KEY_ELEMENT_WIDTH           "width"
 #define KEY_ELEMENT_TEXT_COLOR      "textColor"
 #define KEY_ELEMENT_BLEND_COLOR     "blendColor"
+#define KEY_ELEMENT_FONT            "font"
+#define KEY_ELEMENT_VISIBLE         "visible"
+#define KEY_ELEMENT_MARQUEE         "marquee"
 
 static const CustomThemeInfo sDefaultCustomThemeInfo
 {
     .topIconInfo = CustomTopIconInfo(Point(24, 132), Rgb8(200, 200, 200)),
-    .topBannerTextLine0Info = CustomTopTextElementInfo(Point(70, 126), 176, Rgb8(30, 30, 30), Rgb8(200, 200, 200)),
-    .topBannerTextLine1Info = CustomTopTextElementInfo(Point(70, 141), 176, Rgb8(30, 30, 30), Rgb8(200, 200, 200)),
-    .topBannerTextLine2Info = CustomTopTextElementInfo(Point(70, 155), 176, Rgb8(30, 30, 30), Rgb8(200, 200, 200)),
-    .topFileNameTextInfo = CustomTopTextElementInfo(Point(18, 170), 220, Rgb8(30, 30, 30), Rgb8(200, 200, 200)),
+    .topBannerTextLine0Info = CustomTopTextElementInfo(Point(70, 126), 176, Rgb8(30, 30, 30), Rgb8(200, 200, 200), FontType::Medium11),
+    .topBannerTextLine1Info = CustomTopTextElementInfo(Point(70, 141), 176, Rgb8(30, 30, 30), Rgb8(200, 200, 200), FontType::Regular10),
+    .topBannerTextLine2Info = CustomTopTextElementInfo(Point(70, 155), 176, Rgb8(30, 30, 30), Rgb8(200, 200, 200), FontType::Regular10),
+    .topFileNameTextInfo = CustomTopTextElementInfo(Point(18, 170), 220, Rgb8(30, 30, 30), Rgb8(200, 200, 200), FontType::Medium7_5),
     .topCoverInfo = CustomTopCoverInfo(Point(75, 18)),
 
     .gridIconInfo = CustomBottomIconInfo(Rgb8(200, 200, 200)),
 
     .bannerListIconInfo = CustomBottomIconInfo(Rgb8(200, 200, 200)),
-    .bannerListTextLine0Info = CustomBannerListTextElementInfo(Rgb8(30, 30, 30)),
-    .bannerListTextLine1Info = CustomBannerListTextElementInfo(Rgb8(30, 30, 30)),
-    .bannerListTextLine2Info = CustomBannerListTextElementInfo(Rgb8(30, 30, 30))
+    .bannerListTextLine0Info = CustomBannerListTextElementInfo(Rgb8(30, 30, 30), FontType::Medium10),
+    .bannerListTextLine1Info = CustomBannerListTextElementInfo(Rgb8(30, 30, 30), FontType::Regular10),
+    .bannerListTextLine2Info = CustomBannerListTextElementInfo(Rgb8(30, 30, 30), FontType::Regular10)
 };
 
 static CustomTopBackgroundType parseTopBackgroundType(const char* topBackgroundTypeString)
@@ -86,6 +90,23 @@ static Point parsePoint(const JsonObjectConst& json, const Point& defaultPoint)
     );
 }
 
+static FontType parseFontType(const char* fontString, FontType defaultFontType)
+{
+    if (fontString == nullptr)
+        return defaultFontType;
+
+    if (strcmp(fontString, "regular10") == 0)
+        return FontType::Regular10;
+    if (strcmp(fontString, "medium7_5") == 0)
+        return FontType::Medium7_5;
+    if (strcmp(fontString, "medium10") == 0)
+        return FontType::Medium10;
+    if (strcmp(fontString, "medium11") == 0)
+        return FontType::Medium11;
+
+    return defaultFontType;
+}
+
 static CustomBannerListTextElementInfo parseCustomBannerListTextElementInfo(
     const JsonObjectConst& json, const CustomBannerListTextElementInfo& defaultInfo)
 {
@@ -95,7 +116,9 @@ static CustomBannerListTextElementInfo parseCustomBannerListTextElementInfo(
     }
 
     return CustomBannerListTextElementInfo(
-        parseColor(json[KEY_ELEMENT_TEXT_COLOR], defaultInfo.GetTextColor())
+        parseColor(json[KEY_ELEMENT_TEXT_COLOR], defaultInfo.GetTextColor()),
+        parseFontType(json[KEY_ELEMENT_FONT], defaultInfo.GetFontType()),
+        json[KEY_ELEMENT_VISIBLE] | defaultInfo.IsVisible()
     );
 }
 
@@ -107,7 +130,8 @@ static CustomBottomIconInfo parseCustomBottomIconInfo(const JsonObjectConst& jso
     }
 
     return CustomBottomIconInfo(
-        parseColor(json[KEY_ELEMENT_BLEND_COLOR], defaultInfo.GetBlendColor())
+        parseColor(json[KEY_ELEMENT_BLEND_COLOR], defaultInfo.GetBlendColor()),
+        json[KEY_ELEMENT_VISIBLE] | defaultInfo.IsVisible()
     );
 }
 
@@ -120,7 +144,8 @@ static CustomTopIconInfo parseCustomTopIconInfo(const JsonObjectConst& json, con
 
     return CustomTopIconInfo(
         parsePoint(json[KEY_ELEMENT_POSITION], defaultInfo.GetPosition()),
-        parseColor(json[KEY_ELEMENT_BLEND_COLOR], defaultInfo.GetBlendColor())
+        parseColor(json[KEY_ELEMENT_BLEND_COLOR], defaultInfo.GetBlendColor()),
+        json[KEY_ELEMENT_VISIBLE] | defaultInfo.IsVisible()
     );
 }
 
@@ -132,7 +157,8 @@ static CustomTopCoverInfo parseCustomTopCoverInfo(const JsonObjectConst& json, c
     }
 
     return CustomTopCoverInfo(
-        parsePoint(json[KEY_ELEMENT_POSITION], defaultInfo.GetPosition())
+        parsePoint(json[KEY_ELEMENT_POSITION], defaultInfo.GetPosition()),
+        json[KEY_ELEMENT_VISIBLE] | defaultInfo.IsVisible()
     );
 }
 
@@ -148,7 +174,10 @@ static CustomTopTextElementInfo parseCustomTextElementInfo(
         parsePoint(json[KEY_ELEMENT_POSITION], defaultInfo.GetPosition()),
         json[KEY_ELEMENT_WIDTH] | defaultInfo.GetWidth(),
         parseColor(json[KEY_ELEMENT_TEXT_COLOR], defaultInfo.GetTextColor()),
-        parseColor(json[KEY_ELEMENT_BLEND_COLOR], defaultInfo.GetBlendColor())
+        parseColor(json[KEY_ELEMENT_BLEND_COLOR], defaultInfo.GetBlendColor()),
+        parseFontType(json[KEY_ELEMENT_FONT], defaultInfo.GetFontType()),
+        json[KEY_ELEMENT_VISIBLE] | defaultInfo.IsVisible(),
+        json[KEY_ELEMENT_MARQUEE] | defaultInfo.IsMarqueeEnabled()
     );
 }
 

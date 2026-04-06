@@ -38,6 +38,7 @@ public:
         VBlankTextureLoader* vblankTextureLoader) const = 0;
 
     virtual Point GetTopCoverPosition() const = 0;
+    virtual bool IsTopCoverVisible() const { return true; }
 };
 
 inline IRomBrowserViewFactory::~IRomBrowserViewFactory() { }

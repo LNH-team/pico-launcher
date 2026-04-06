@@ -37,11 +37,11 @@ CustomBannerListItemView::CustomBannerListItemView(const CustomThemeInfo* custom
     VBlankTextureLoader* vblankTextureLoader)
     : BannerListItemView(
         std::make_unique<Label3DView>(LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
-            fontRepository->GetFont(FontType::Medium10), vblankTextureLoader),
+            fontRepository->GetFont(customThemeInfo->bannerListTextLine0Info.GetFontType()), vblankTextureLoader),
         std::make_unique<Label3DView>(LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
-            fontRepository->GetFont(FontType::Regular10), vblankTextureLoader),
+            fontRepository->GetFont(customThemeInfo->bannerListTextLine1Info.GetFontType()), vblankTextureLoader),
         std::make_unique<Label3DView>(LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
-            fontRepository->GetFont(FontType::Regular10), vblankTextureLoader))
+            fontRepository->GetFont(customThemeInfo->bannerListTextLine2Info.GetFontType()), vblankTextureLoader))
     , _customThemeInfo(customThemeInfo)
     , _materialColorScheme(materialColorScheme)
     , _texVramOffset(texVramOffset)
@@ -103,20 +103,20 @@ void CustomBannerListItemView::Draw(GraphicsContext& graphicsContext)
         _thirdLine->SetPosition(_position.x + 6 + 32 + 6, _position.y + 26);
     }
 
-    if (_lines >= 1)
+    if (_lines >= 1 && _customThemeInfo->bannerListTextLine0Info.IsVisible())
     {
         _firstLine->Draw(graphicsContext);
     }
-    if (_lines >= 2)
+    if (_lines >= 2 && _customThemeInfo->bannerListTextLine1Info.IsVisible())
     {
         _secondLine->Draw(graphicsContext);
     }
-    if (_lines >= 3)
+    if (_lines >= 3 && _customThemeInfo->bannerListTextLine2Info.IsVisible())
     {
         _thirdLine->Draw(graphicsContext);
     }
 
-    if (_icon)
+    if (_icon && _customThemeInfo->bannerListIconInfo.IsVisible())
     {
         _icon->SetPosition(6 + _position.x, 6 + _position.y);
         _icon->Draw(graphicsContext, _customThemeInfo->bannerListIconInfo.GetBlendColor());

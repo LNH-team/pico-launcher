@@ -6,16 +6,19 @@
 #include "CustomFileInfoView.h"
 
 CustomFileInfoView::CustomFileInfoView(const CustomThemeInfo* customThemeInfo, const IFontRepository* fontRepository)
-    : _firstLine(customThemeInfo->topBannerTextLine0Info.GetWidth(), 16, 50, fontRepository->GetFont(FontType::Medium11))
-    , _secondLine(customThemeInfo->topBannerTextLine1Info.GetWidth(), 16, 50, fontRepository->GetFont(FontType::Regular10))
-    , _thirdLine(customThemeInfo->topBannerTextLine2Info.GetWidth(), 16, 50, fontRepository->GetFont(FontType::Regular10))
-    , _filenameLabelView(customThemeInfo->topFileNameTextInfo.GetWidth(), 16, 256, fontRepository->GetFont(FontType::Medium7_5))
+    : _firstLine(customThemeInfo->topBannerTextLine0Info.GetWidth(), 16, 50, fontRepository->GetFont(customThemeInfo->topBannerTextLine0Info.GetFontType()))
+    , _secondLine(customThemeInfo->topBannerTextLine1Info.GetWidth(), 16, 50, fontRepository->GetFont(customThemeInfo->topBannerTextLine1Info.GetFontType()))
+    , _thirdLine(customThemeInfo->topBannerTextLine2Info.GetWidth(), 16, 50, fontRepository->GetFont(customThemeInfo->topBannerTextLine2Info.GetFontType()))
+    , _filenameLabelView(customThemeInfo->topFileNameTextInfo.GetWidth(), 16, 256, fontRepository->GetFont(customThemeInfo->topFileNameTextInfo.GetFontType()))
     , _customThemeInfo(customThemeInfo)
 {
     AddChildTail(&_firstLine);
     AddChildTail(&_secondLine);
     AddChildTail(&_thirdLine);
-    _filenameLabelView.SetEllipsisStyle(LabelView::EllipsisStyle::Marquee);
+    _filenameLabelView.SetEllipsisStyle(
+        customThemeInfo->topFileNameTextInfo.IsMarqueeEnabled()
+            ? LabelView::EllipsisStyle::Marquee
+            : LabelView::EllipsisStyle::Ellipsis);
     AddChildTail(&_filenameLabelView);
 }
 
@@ -35,18 +38,32 @@ void CustomFileInfoView::Update()
 
 void CustomFileInfoView::Draw(GraphicsContext& graphicsContext)
 {
-    _firstLine.SetBackgroundColor(_customThemeInfo->topBannerTextLine0Info.GetBlendColor());
-    _firstLine.SetForegroundColor(_customThemeInfo->topBannerTextLine0Info.GetTextColor());
-    _secondLine.SetBackgroundColor(_customThemeInfo->topBannerTextLine1Info.GetBlendColor());
-    _secondLine.SetForegroundColor(_customThemeInfo->topBannerTextLine1Info.GetTextColor());
-    _thirdLine.SetBackgroundColor(_customThemeInfo->topBannerTextLine2Info.GetBlendColor());
-    _thirdLine.SetForegroundColor(_customThemeInfo->topBannerTextLine2Info.GetTextColor());
-    _filenameLabelView.SetBackgroundColor(_customThemeInfo->topFileNameTextInfo.GetBlendColor());
-    _filenameLabelView.SetForegroundColor(_customThemeInfo->topFileNameTextInfo.GetTextColor());
+    if (_customThemeInfo->topBannerTextLine0Info.IsVisible())
+    {
+        _firstLine.SetBackgroundColor(_customThemeInfo->topBannerTextLine0Info.GetBlendColor());
+        _firstLine.SetForegroundColor(_customThemeInfo->topBannerTextLine0Info.GetTextColor());
+        _firstLine.Draw(graphicsContext);
+    }
+    if (_customThemeInfo->topBannerTextLine1Info.IsVisible())
+    {
+        _secondLine.SetBackgroundColor(_customThemeInfo->topBannerTextLine1Info.GetBlendColor());
+        _secondLine.SetForegroundColor(_customThemeInfo->topBannerTextLine1Info.GetTextColor());
+        _secondLine.Draw(graphicsContext);
+    }
+    if (_customThemeInfo->topBannerTextLine2Info.IsVisible())
+    {
+        _thirdLine.SetBackgroundColor(_customThemeInfo->topBannerTextLine2Info.GetBlendColor());
+        _thirdLine.SetForegroundColor(_customThemeInfo->topBannerTextLine2Info.GetTextColor());
+        _thirdLine.Draw(graphicsContext);
+    }
+    if (_customThemeInfo->topFileNameTextInfo.IsVisible())
+    {
+        _filenameLabelView.SetBackgroundColor(_customThemeInfo->topFileNameTextInfo.GetBlendColor());
+        _filenameLabelView.SetForegroundColor(_customThemeInfo->topFileNameTextInfo.GetTextColor());
+        _filenameLabelView.Draw(graphicsContext);
+    }
 
-    BannerView::Draw(graphicsContext);
-
-    if (_icon)
+    if (_icon && _customThemeInfo->topIconInfo.IsVisible())
     {
         _icon->Draw(graphicsContext, _customThemeInfo->topIconInfo.GetBlendColor());
     }

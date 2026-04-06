@@ -46,7 +46,7 @@ void CustomIconGridItemView::Draw(GraphicsContext& graphicsContext)
     REG_GX_VTX_16 = Z_OFFSET << 6;
     Gx::End();
 
-    if (_icon)
+    if (_icon && _customThemeInfo->gridIconInfo.IsVisible())
     {
         _icon->SetPosition(6 + _position.x, 6 + _position.y);
         _icon->Draw(graphicsContext, _customThemeInfo->gridIconInfo.GetBlendColor());

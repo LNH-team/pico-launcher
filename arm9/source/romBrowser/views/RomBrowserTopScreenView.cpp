@@ -19,7 +19,7 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
     : _viewModel(std::move(viewModel))
     , _themeFileIconFactory(themeFileIconFactory)
     , _fileInfoView(romBrowserViewFactory->CreateFileInfoView())
-    , _showCover(displayMode->ShowCoverOnTopScreen())
+    , _showCover(displayMode->ShowCoverOnTopScreen() && romBrowserViewFactory->IsTopCoverVisible())
     , _coverPosition(romBrowserViewFactory->GetTopCoverPosition())
 {
     AddChildTail(_fileInfoView.get());

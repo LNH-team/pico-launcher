@@ -18,7 +18,8 @@
             "r": 200,
             "g": 200,
             "b": 200
-        }
+        },
+        "visible": true
     },
     "topBannerTextLine0": {
         "position": {
@@ -35,7 +36,9 @@
             "r": 200,
             "g": 200,
             "b": 200
-        }
+        },
+        "font": "medium11",
+        "visible": true
     },
     "topBannerTextLine1": {
         "position": {
@@ -52,7 +55,9 @@
             "r": 200,
             "g": 200,
             "b": 200
-        }
+        },
+        "font": "regular10",
+        "visible": true
     },
     "topBannerTextLine2": {
         "position": {
@@ -69,7 +74,9 @@
             "r": 200,
             "g": 200,
             "b": 200
-        }
+        },
+        "font": "regular10",
+        "visible": true
     },
     "topFileNameText": {
         "position": {
@@ -77,6 +84,7 @@
             "y": 170
         },
         "width": 220,
+        "marquee": true,
         "textColor": {
             "r": 30,
             "g": 30,
@@ -86,47 +94,58 @@
             "r": 200,
             "g": 200,
             "b": 200
-        }
+        },
+        "font": "medium7_5",
+        "visible": true
     },
     "topCover": {
         "position": {
             "x": 75,
             "y": 18
-        }
+        },
+        "visible": true
     },
     "gridIcon": {
         "blendColor": {
             "r": 200,
             "g": 200,
             "b": 200
-        }
+        },
+        "visible": true
     },
     "bannerListIcon": {
         "blendColor": {
             "r": 200,
             "g": 200,
             "b": 200
-        }
+        },
+        "visible": true
     },
     "bannerListTextLine0": {
         "textColor": {
             "r": 30,
             "g": 30,
             "b": 30
-        }
+        },
+        "font": "medium10",
+        "visible": true
     },
     "bannerListTextLine1": {
         "textColor": {
             "r": 30,
             "g": 30,
             "b": 30
-        }
+        },
+        "font": "regular10",
+        "visible": true
     },
     "bannerListTextLine2": {
         "textColor": {
             "r": 30,
             "g": 30,
             "b": 30
-        }
+        },
+        "font": "regular10",
+        "visible": true
     }
 }

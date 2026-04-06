@@ -70,6 +70,11 @@ public:
         return _customThemeInfo->topCoverInfo.GetPosition();
     }
 
+    bool IsTopCoverVisible() const override
+    {
+        return _customThemeInfo->topCoverInfo.IsVisible();
+    }
+
     void LoadResources(const ITheme& theme, const VramContext& mainVramContext);
 
 private:
