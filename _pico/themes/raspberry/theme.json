@@ -18,7 +18,8 @@
             "r": 200,
             "g": 200,
             "b": 200
-        }
+        },
+        "visible": true
     },
     "topBannerTextLine0": {
         "position": {
@@ -36,7 +37,8 @@
             "g": 200,
             "b": 200
         },
-        "font": "medium11"
+        "font": "medium11",
+        "visible": true
     },
     "topBannerTextLine1": {
         "position": {
@@ -54,7 +56,8 @@
             "g": 200,
             "b": 200
         },
-        "font": "regular10"
+        "font": "regular10",
+        "visible": true
     },
     "topBannerTextLine2": {
         "position": {
@@ -72,7 +75,8 @@
             "g": 200,
             "b": 200
         },
-        "font": "regular10"
+        "font": "regular10",
+        "visible": true
     },
     "topFileNameText": {
         "position": {
@@ -90,27 +94,31 @@
             "g": 200,
             "b": 200
         },
-        "font": "medium7_5"
+        "font": "medium7_5",
+        "visible": true
     },
     "topCover": {
         "position": {
             "x": 75,
             "y": 18
-        }
+        },
+        "visible": true
     },
     "gridIcon": {
         "blendColor": {
             "r": 200,
             "g": 200,
             "b": 200
-        }
+        },
+        "visible": true
     },
     "bannerListIcon": {
         "blendColor": {
             "r": 200,
             "g": 200,
             "b": 200
-        }
+        },
+        "visible": true
     },
     "bannerListTextLine0": {
         "textColor": {
@@ -118,7 +126,8 @@
             "g": 30,
             "b": 30
         },
-        "font": "medium10"
+        "font": "medium10",
+        "visible": true
     },
     "bannerListTextLine1": {
         "textColor": {
@@ -126,7 +135,8 @@
             "g": 30,
             "b": 30
         },
-        "font": "regular10"
+        "font": "regular10",
+        "visible": true
     },
     "bannerListTextLine2": {
         "textColor": {
@@ -134,6 +144,7 @@
             "g": 30,
             "b": 30
         },
-        "font": "regular10"
+        "font": "regular10",
+        "visible": true
     }
 }

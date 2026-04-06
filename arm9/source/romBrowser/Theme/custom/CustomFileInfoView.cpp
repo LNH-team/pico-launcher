@@ -35,18 +35,32 @@ void CustomFileInfoView::Update()
 
 void CustomFileInfoView::Draw(GraphicsContext& graphicsContext)
 {
-    _firstLine.SetBackgroundColor(_customThemeInfo->topBannerTextLine0Info.GetBlendColor());
-    _firstLine.SetForegroundColor(_customThemeInfo->topBannerTextLine0Info.GetTextColor());
-    _secondLine.SetBackgroundColor(_customThemeInfo->topBannerTextLine1Info.GetBlendColor());
-    _secondLine.SetForegroundColor(_customThemeInfo->topBannerTextLine1Info.GetTextColor());
-    _thirdLine.SetBackgroundColor(_customThemeInfo->topBannerTextLine2Info.GetBlendColor());
-    _thirdLine.SetForegroundColor(_customThemeInfo->topBannerTextLine2Info.GetTextColor());
-    _filenameLabelView.SetBackgroundColor(_customThemeInfo->topFileNameTextInfo.GetBlendColor());
-    _filenameLabelView.SetForegroundColor(_customThemeInfo->topFileNameTextInfo.GetTextColor());
+    if (_customThemeInfo->topBannerTextLine0Info.IsVisible())
+    {
+        _firstLine.SetBackgroundColor(_customThemeInfo->topBannerTextLine0Info.GetBlendColor());
+        _firstLine.SetForegroundColor(_customThemeInfo->topBannerTextLine0Info.GetTextColor());
+        _firstLine.Draw(graphicsContext);
+    }
+    if (_customThemeInfo->topBannerTextLine1Info.IsVisible())
+    {
+        _secondLine.SetBackgroundColor(_customThemeInfo->topBannerTextLine1Info.GetBlendColor());
+        _secondLine.SetForegroundColor(_customThemeInfo->topBannerTextLine1Info.GetTextColor());
+        _secondLine.Draw(graphicsContext);
+    }
+    if (_customThemeInfo->topBannerTextLine2Info.IsVisible())
+    {
+        _thirdLine.SetBackgroundColor(_customThemeInfo->topBannerTextLine2Info.GetBlendColor());
+        _thirdLine.SetForegroundColor(_customThemeInfo->topBannerTextLine2Info.GetTextColor());
+        _thirdLine.Draw(graphicsContext);
+    }
+    if (_customThemeInfo->topFileNameTextInfo.IsVisible())
+    {
+        _filenameLabelView.SetBackgroundColor(_customThemeInfo->topFileNameTextInfo.GetBlendColor());
+        _filenameLabelView.SetForegroundColor(_customThemeInfo->topFileNameTextInfo.GetTextColor());
+        _filenameLabelView.Draw(graphicsContext);
+    }
 
-    BannerView::Draw(graphicsContext);
-
-    if (_icon)
+    if (_icon && _customThemeInfo->topIconInfo.IsVisible())
     {
         _icon->Draw(graphicsContext, _customThemeInfo->topIconInfo.GetBlendColor());
     }

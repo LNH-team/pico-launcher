@@ -5,11 +5,13 @@
 class CustomBottomIconInfo
 {
 public:
-    CustomBottomIconInfo(const Rgb8& blendColor)
-        : _blendColor(blendColor) { }
+    CustomBottomIconInfo(const Rgb8& blendColor, bool visible = true)
+        : _blendColor(blendColor), _visible(visible) { }
 
     const Rgb8& GetBlendColor() const { return _blendColor; }
+    bool IsVisible() const { return _visible; }
 
 private:
     Rgb8 _blendColor;
+    bool _visible;
 };

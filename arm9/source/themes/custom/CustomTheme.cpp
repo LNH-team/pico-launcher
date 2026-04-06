@@ -38,6 +38,7 @@
 #define KEY_ELEMENT_TEXT_COLOR      "textColor"
 #define KEY_ELEMENT_BLEND_COLOR     "blendColor"
 #define KEY_ELEMENT_FONT            "font"
+#define KEY_ELEMENT_VISIBLE         "visible"
 
 static const CustomThemeInfo sDefaultCustomThemeInfo
 {
@@ -115,7 +116,8 @@ static CustomBannerListTextElementInfo parseCustomBannerListTextElementInfo(
 
     return CustomBannerListTextElementInfo(
         parseColor(json[KEY_ELEMENT_TEXT_COLOR], defaultInfo.GetTextColor()),
-        parseFontType(json[KEY_ELEMENT_FONT], defaultInfo.GetFontType())
+        parseFontType(json[KEY_ELEMENT_FONT], defaultInfo.GetFontType()),
+        json[KEY_ELEMENT_VISIBLE] | defaultInfo.IsVisible()
     );
 }
 
@@ -127,7 +129,8 @@ static CustomBottomIconInfo parseCustomBottomIconInfo(const JsonObjectConst& jso
     }
 
     return CustomBottomIconInfo(
-        parseColor(json[KEY_ELEMENT_BLEND_COLOR], defaultInfo.GetBlendColor())
+        parseColor(json[KEY_ELEMENT_BLEND_COLOR], defaultInfo.GetBlendColor()),
+        json[KEY_ELEMENT_VISIBLE] | defaultInfo.IsVisible()
     );
 }
 
@@ -140,7 +143,8 @@ static CustomTopIconInfo parseCustomTopIconInfo(const JsonObjectConst& json, con
 
     return CustomTopIconInfo(
         parsePoint(json[KEY_ELEMENT_POSITION], defaultInfo.GetPosition()),
-        parseColor(json[KEY_ELEMENT_BLEND_COLOR], defaultInfo.GetBlendColor())
+        parseColor(json[KEY_ELEMENT_BLEND_COLOR], defaultInfo.GetBlendColor()),
+        json[KEY_ELEMENT_VISIBLE] | defaultInfo.IsVisible()
     );
 }
 
@@ -152,7 +156,8 @@ static CustomTopCoverInfo parseCustomTopCoverInfo(const JsonObjectConst& json, c
     }
 
     return CustomTopCoverInfo(
-        parsePoint(json[KEY_ELEMENT_POSITION], defaultInfo.GetPosition())
+        parsePoint(json[KEY_ELEMENT_POSITION], defaultInfo.GetPosition()),
+        json[KEY_ELEMENT_VISIBLE] | defaultInfo.IsVisible()
     );
 }
 
@@ -169,7 +174,8 @@ static CustomTopTextElementInfo parseCustomTextElementInfo(
         json[KEY_ELEMENT_WIDTH] | defaultInfo.GetWidth(),
         parseColor(json[KEY_ELEMENT_TEXT_COLOR], defaultInfo.GetTextColor()),
         parseColor(json[KEY_ELEMENT_BLEND_COLOR], defaultInfo.GetBlendColor()),
-        parseFontType(json[KEY_ELEMENT_FONT], defaultInfo.GetFontType())
+        parseFontType(json[KEY_ELEMENT_FONT], defaultInfo.GetFontType()),
+        json[KEY_ELEMENT_VISIBLE] | defaultInfo.IsVisible()
     );
 }
 
