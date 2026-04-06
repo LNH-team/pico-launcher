@@ -15,7 +15,10 @@ CustomFileInfoView::CustomFileInfoView(const CustomThemeInfo* customThemeInfo, c
     AddChildTail(&_firstLine);
     AddChildTail(&_secondLine);
     AddChildTail(&_thirdLine);
-    _filenameLabelView.SetEllipsisStyle(LabelView::EllipsisStyle::Marquee);
+    _filenameLabelView.SetEllipsisStyle(
+        customThemeInfo->topFileNameTextInfo.IsMarqueeEnabled()
+            ? LabelView::EllipsisStyle::Marquee
+            : LabelView::EllipsisStyle::Ellipsis);
     AddChildTail(&_filenameLabelView);
 }
 

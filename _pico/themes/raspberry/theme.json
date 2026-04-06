@@ -84,6 +84,7 @@
             "y": 170
         },
         "width": 220,
+        "marquee": true,
         "textColor": {
             "r": 30,
             "g": 30,

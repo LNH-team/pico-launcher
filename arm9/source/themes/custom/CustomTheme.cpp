@@ -39,6 +39,7 @@
 #define KEY_ELEMENT_BLEND_COLOR     "blendColor"
 #define KEY_ELEMENT_FONT            "font"
 #define KEY_ELEMENT_VISIBLE         "visible"
+#define KEY_ELEMENT_MARQUEE         "marquee"
 
 static const CustomThemeInfo sDefaultCustomThemeInfo
 {
@@ -175,7 +176,8 @@ static CustomTopTextElementInfo parseCustomTextElementInfo(
         parseColor(json[KEY_ELEMENT_TEXT_COLOR], defaultInfo.GetTextColor()),
         parseColor(json[KEY_ELEMENT_BLEND_COLOR], defaultInfo.GetBlendColor()),
         parseFontType(json[KEY_ELEMENT_FONT], defaultInfo.GetFontType()),
-        json[KEY_ELEMENT_VISIBLE] | defaultInfo.IsVisible()
+        json[KEY_ELEMENT_VISIBLE] | defaultInfo.IsVisible(),
+        json[KEY_ELEMENT_MARQUEE] | defaultInfo.IsMarqueeEnabled()
     );
 }
 
