@@ -37,11 +37,11 @@ CustomBannerListItemView::CustomBannerListItemView(const CustomThemeInfo* custom
     VBlankTextureLoader* vblankTextureLoader)
     : BannerListItemView(
         std::make_unique<Label3DView>(LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
-            fontRepository->GetFont(FontType::Medium10), vblankTextureLoader),
+            fontRepository->GetFont(customThemeInfo->bannerListTextLine0Info.GetFontType()), vblankTextureLoader),
         std::make_unique<Label3DView>(LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
-            fontRepository->GetFont(FontType::Regular10), vblankTextureLoader),
+            fontRepository->GetFont(customThemeInfo->bannerListTextLine1Info.GetFontType()), vblankTextureLoader),
         std::make_unique<Label3DView>(LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
-            fontRepository->GetFont(FontType::Regular10), vblankTextureLoader))
+            fontRepository->GetFont(customThemeInfo->bannerListTextLine2Info.GetFontType()), vblankTextureLoader))
     , _customThemeInfo(customThemeInfo)
     , _materialColorScheme(materialColorScheme)
     , _texVramOffset(texVramOffset)

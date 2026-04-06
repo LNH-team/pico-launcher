@@ -35,7 +35,8 @@
             "r": 200,
             "g": 200,
             "b": 200
-        }
+        },
+        "font": "medium11"
     },
     "topBannerTextLine1": {
         "position": {
@@ -52,7 +53,8 @@
             "r": 200,
             "g": 200,
             "b": 200
-        }
+        },
+        "font": "regular10"
     },
     "topBannerTextLine2": {
         "position": {
@@ -69,7 +71,8 @@
             "r": 200,
             "g": 200,
             "b": 200
-        }
+        },
+        "font": "regular10"
     },
     "topFileNameText": {
         "position": {
@@ -86,7 +89,8 @@
             "r": 200,
             "g": 200,
             "b": 200
-        }
+        },
+        "font": "medium7_5"
     },
     "topCover": {
         "position": {
@@ -113,20 +117,23 @@
             "r": 30,
             "g": 30,
             "b": 30
-        }
+        },
+        "font": "medium10"
     },
     "bannerListTextLine1": {
         "textColor": {
             "r": 30,
             "g": 30,
             "b": 30
-        }
+        },
+        "font": "regular10"
     },
     "bannerListTextLine2": {
         "textColor": {
             "r": 30,
             "g": 30,
             "b": 30
-        }
+        },
+        "font": "regular10"
     }
 }
