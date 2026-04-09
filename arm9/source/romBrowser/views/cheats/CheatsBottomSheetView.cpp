@@ -13,6 +13,19 @@
 #include "gui/DescendingStackVramManager.h"
 #include "CheatsBottomSheetView.h"
 
+namespace
+{
+RecyclerView::State ToRecyclerViewState(const CheatsViewModel::ListState& listState)
+{
+    return { listState.selectedItem, listState.scrollOffset };
+}
+
+CheatsViewModel::ListState ToCheatsListState(const RecyclerView::State& state)
+{
+    return { state.selectedItem, state.scrollOffset };
+}
+}
+
 #define TITLE_LABEL_X               20
 #define TITLE_LABEL_Y               16
 
@@ -100,7 +113,8 @@ void CheatsBottomSheetView::Update()
         {
             _cheatsAdapter = SharedPtr<CheatsAdapter>::MakeShared(
                 _viewModel->GetCurrentCheatCategory(), _materialColorScheme, _fontRepository, _vramOffsets);
-            _cheatListRecycler->SetAdapter(_cheatsAdapter);
+            _cheatListRecycler->SetAdapter(_cheatsAdapter, _viewModel->GetSelectedItem());
+            _cheatListRecycler->RestoreState(ToRecyclerViewState(_viewModel->GetCurrentListState()));
 
             // Ugly hack
             _savedVramState = ((DescendingStackVramManager*)_objVramManager)->GetState();
@@ -110,10 +124,10 @@ void CheatsBottomSheetView::Update()
         }
     }
     BottomSheetView::Update();
-    int selectedItem = _cheatListRecycler->GetSelectedItem();
-    if (selectedItem != _viewModel->GetSelectedItem())
+    int previousSelectedItem = _viewModel->GetSelectedItem();
+    SyncViewModelListState();
+    if (_viewModel->GetSelectedItem() != previousSelectedItem)
     {
-        _viewModel->SetSelectedItem(selectedItem);
         UpdateDescriptionText();
     }
 }
@@ -201,6 +215,7 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
     {
         if (focusManager.IsFocusInside(_cheatListRecycler.GetPointer()))
         {
+            SyncViewModelListState();
             auto oldCategory = _viewModel->GetCurrentCheatCategory();
             _viewModel->ActivateSelectedItem();
             if (oldCategory != _viewModel->GetCurrentCheatCategory())
@@ -214,6 +229,7 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
     }
     else if (inputProvider.Triggered(InputKey::B))
     {
+        SyncViewModelListState();
         auto oldCategory = _viewModel->GetCurrentCheatCategory();
         if (_viewModel->NavigateUp() &&
             oldCategory != _viewModel->GetCurrentCheatCategory())
@@ -235,6 +251,11 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
     return false;
 }
 
+void CheatsBottomSheetView::SyncViewModelListState()
+{
+    _viewModel->SetCurrentListState(ToCheatsListState(_cheatListRecycler->GetState()));
+}
+
 void CheatsBottomSheetView::UpdateCheatList()
 {
     // Need to unfocus first, otherwise the focus manager still contains a pointer to a view that is going to be destroyed
@@ -243,6 +264,7 @@ void CheatsBottomSheetView::UpdateCheatList()
     _cheatsAdapter = SharedPtr<CheatsAdapter>::MakeShared(
         _viewModel->GetCurrentCheatCategory(), _materialColorScheme, _fontRepository, _vramOffsets);
     _cheatListRecycler->SetAdapter(_cheatsAdapter, _viewModel->GetSelectedItem());
+    _cheatListRecycler->RestoreState(ToRecyclerViewState(_viewModel->GetCurrentListState()));
 
     // Ugly hack
     ((DescendingStackVramManager*)_objVramManager)->SetState(_savedVramState);

@@ -10,6 +10,12 @@
 class CheatsViewModel
 {
 public:
+    struct ListState
+    {
+        int selectedItem = -1;
+        int scrollOffset = 0;
+    };
+
     /// @brief Enum representing the state of the cheats panel.
     enum class State
     {
@@ -46,13 +52,23 @@ public:
     /// @return The current cheat category.
     const CheatEntry* GetCurrentCheatCategory() const { return _categoryStack[_categoryStackLevel].cheatCategory; }
 
+    /// @brief Gets the current list state for the visible cheat category.
+    /// @return The current list state.
+    const ListState& GetCurrentListState() const { return _categoryStack[_categoryStackLevel].listState; }
+
+    /// @brief Stores the current list state for the visible cheat category.
+    /// @param listState The list state to store.
+    void SetCurrentListState(const ListState& listState)
+    {
+        if (_categoryStack[_categoryStackLevel].cheatCategory != nullptr)
+        {
+            _categoryStack[_categoryStackLevel].listState = listState;
+        }
+    }
+
     /// @brief Gets the index of the selected item.
     /// @return The index of the selected item.
-    constexpr int GetSelectedItem() const { return _selectedItem; }
-
-    /// @brief Sets the index of the selected item.
-    /// @param selectedItem The index of the selected item to set.
-    void SetSelectedItem(int selectedItem) { _selectedItem = selectedItem; }
+    int GetSelectedItem() const { return GetCurrentListState().selectedItem; }
 
     /// @brief Returns whether the category name should be displayed.
     /// @return \c true when the category name should be displayed, or \c false otherwise.
@@ -64,8 +80,8 @@ public:
 private:
     struct CategoryStackEntry
     {
-        const CheatEntry* cheatCategory;
-        u32 index;
+        const CheatEntry* cheatCategory = nullptr;
+        ListState listState;
     };
 
     FileInfo _romFileInfo;
@@ -73,7 +89,6 @@ private:
     QueueTask<void> _loadCheatsTask;
     std::unique_ptr<GameCheats> _cheats;
     State _state = State::Loading;
-    int _selectedItem = -1;
     bool _changed = false;
     u32 _categoryStackLevel = 0;
     std::array<CategoryStackEntry, 8> _categoryStack;

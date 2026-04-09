@@ -44,6 +44,7 @@ private:
     CheatListItemView::VramOffsets _vramOffsets;
     u32 _savedVramState = 0;
 
+    void SyncViewModelListState();
     void UpdateCheatList();
     void UpdateDescriptionText();
 };
