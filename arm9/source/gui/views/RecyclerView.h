@@ -12,6 +12,12 @@ class RecyclerView : public RecyclerViewBase, public EnableSharedFromThis<Recycl
     struct Private { explicit Private() = default; };
 
 public:
+    struct State
+    {
+        int selectedItem = -1;
+        int scrollOffset = 0;
+    };
+
     enum class Mode
     {
         /// @brief A single row that grows horizontally.
@@ -63,6 +69,31 @@ public:
     int GetSelectedItem() const override
     {
         return _selectedItem ? _selectedItem->itemIdx : -1;
+    }
+
+    // Returns the current selection and scroll position
+    State GetState() const
+    {
+        return { GetSelectedItem(), _scrollOffsetAnimator.GetValue() };
+    }
+
+    // Restores the selection and scroll position
+    void RestoreState(const State& state)
+    {
+        if (_itemCount == 0)
+        {
+            _scrollOffsetAnimator = Animator<int>(0);
+            return;
+        }
+
+        int selectedItem = state.selectedItem;
+        if (selectedItem < 0 || selectedItem >= (int)_itemCount)
+        {
+            selectedItem = 0;
+        }
+
+        SetSelectedItem(selectedItem);
+        SetScrollOffset(state.scrollOffset, false);
     }
 
     constexpr Mode GetMode() const { return _mode; }

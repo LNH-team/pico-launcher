@@ -84,6 +84,7 @@ void RecyclerView::SetAdapter(SharedPtr<const RecyclerAdapter> adapter, int init
         _viewPool[i].itemIdx = -1;
     }
     _viewPoolFreeCount = _viewPoolTotalCount;
+    _scrollOffsetAnimator = Animator<int>(0);
 
     if (initialSelectedIndex < 0 || initialSelectedIndex >= (int)_itemCount)
     {
