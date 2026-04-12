@@ -30,7 +30,7 @@
 #include "ExitMode.h"
 #include "Arm7State.h"
 #include "mmc/tmio.h"
-#include "ipcServices/BackLightIpcService.h"
+#include "ipcServices/BacklightIpcService.h"
 
 static NocashOutputStream sNocashOutputStream;
 static PlainLogger sPlainLogger = PlainLogger(LogLevel::All, std::unique_ptr<IOutputStream>(&sNocashOutputStream));
@@ -113,9 +113,10 @@ static void clearSoundRegisters()
         REG_SOUNDxLEN(i) = 0;
     }
 }
-
+#define NOCASHDEBUG *(vu32*)(0x04FFFA10)
 static void initializeArm7()
 {
+
     rtos_initIrq();
     rtos_startMainThread();
     ipc_initFifoSystem();
@@ -125,6 +126,8 @@ static void initializeArm7()
     pmic_setAmplifierEnable(true);
     sys_setSoundPower(true);
 
+
+
     readUserSettings();
     pmic_setPowerLedBlink(PMIC_CONTROL_POWER_LED_BLINK_NONE);
 
@@ -133,11 +136,15 @@ static void initializeArm7()
 
     rtc_init();
 
+    NOCASHDEBUG = (u32)("Hello? arm7 A\n\n");
+
     if (isDSiMode())
     {
         TMIO_init();
         sDsiSdIpcService.Start();
     }
+
+    NOCASHDEBUG = (u32)("Hello? arm7 B\n\n");
 
     sDldiIpcService.Start();
     pload_init();
