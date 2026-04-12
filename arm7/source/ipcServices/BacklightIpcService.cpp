@@ -1,4 +1,4 @@
-#include <nds/ndstypes.h>
+#include "common.h"
 #include <nds/system.h>
 #include <libtwl/spi/spiPmic.h>
 #include <libtwl/i2c/i2cMcu.h>
@@ -47,17 +47,25 @@ void BackLightIpcService::setBacklightLevel(const u8 level) const
     }
     else
     {
+        rtos_lockMutex(&gPMIC_Mutex);
         pmic_setBacklightLevel(level);
+        rtos_unlockMutex(&gPMIC_Mutex);
     }
 }
 u8 BackLightIpcService::getBacklightLevel() const
 {
     if (isDSiMode())
     {
-        return mcu_readLightLevel()+1;
+        rtos_lockMutex(&gMCU_Mutex);
+        u8 retval = mcu_readLightLevel()+1;
+        rtos_unlockMutex(&gMCU_Mutex);
+        return retval;
     }
     else
     {
-        return pmic_readRegister(PMIC_REG_BACKLIGHT)&PMIC_BACKLIGHT_MASK;
+        rtos_lockMutex(&gPMIC_Mutex);
+        u8 retval = pmic_readRegister(PMIC_REG_BACKLIGHT)&PMIC_BACKLIGHT_MASK;
+        rtos_unlockMutex(&gPMIC_Mutex);
+        return retval;
     }
 }

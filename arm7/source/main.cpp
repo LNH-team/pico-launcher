@@ -42,6 +42,8 @@ static SoundIpcService sSoundIpcService;
 static RtcIpcService sRtcIpcService;
 static BackLightIpcService sBackLightIpcService;
 
+rtos_mutex_t gMCU_Mutex;
+rtos_mutex_t gPMIC_Mutex;
 ILogger* gLogger = &sThreadSafeLogger;
 
 static rtos_event_t sVBlankEvent;
@@ -73,7 +75,9 @@ static void checkMcuIrq(void)
         if (mem_swapByte(false, &sMcuIrqFlag))
         {
             // check the irq mask
+            rtos_lockMutex(&gMCU_Mutex);
             u32 irqMask = mcu_getIrqMask();
+            rtos_unlockMutex(&gMCU_Mutex);
             if (irqMask & MCU_IRQ_RESET)
             {
                 // power button was released
@@ -113,38 +117,37 @@ static void clearSoundRegisters()
         REG_SOUNDxLEN(i) = 0;
     }
 }
-#define NOCASHDEBUG *(vu32*)(0x04FFFA10)
 static void initializeArm7()
 {
-
     rtos_initIrq();
     rtos_startMainThread();
     ipc_initFifoSystem();
 
     clearSoundRegisters();
 
+    rtos_createMutex(&gMCU_Mutex);
+    rtos_createMutex(&gPMIC_Mutex);
+
+    rtos_lockMutex(&gPMIC_Mutex);
+
     pmic_setAmplifierEnable(true);
     sys_setSoundPower(true);
 
-
-
     readUserSettings();
     pmic_setPowerLedBlink(PMIC_CONTROL_POWER_LED_BLINK_NONE);
+
+    rtos_unlockMutex(&gPMIC_Mutex);
 
     sio_setGpioSiIrq(false);
     sio_setGpioMode(RCNT0_L_MODE_GPIO);
 
     rtc_init();
 
-    NOCASHDEBUG = (u32)("Hello? arm7 A\n\n");
-
     if (isDSiMode())
     {
         TMIO_init();
         sDsiSdIpcService.Start();
     }
-
-    NOCASHDEBUG = (u32)("Hello? arm7 B\n\n");
 
     sDldiIpcService.Start();
     pload_init();
@@ -195,13 +198,17 @@ static bool performExit(ExitMode exitMode)
     {
         case ExitMode::Reset:
         {
+            rtos_lockMutex(&gMCU_Mutex);
             mcu_setWarmBootFlag(true);
             mcu_hardReset();
+            rtos_unlockMutex(&gMCU_Mutex);
             break;
         }
         case ExitMode::PowerOff:
         {
+            rtos_lockMutex(&gPMIC_Mutex);
             pmic_shutdown();
+            rtos_unlockMutex(&gPMIC_Mutex);
             break;
         }
         case ExitMode::PicoLoader:
