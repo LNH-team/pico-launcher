@@ -7,10 +7,9 @@ class IFontRepository;
 
 class MaterialBannerListItemView : public BannerListItemView
 {
-public:
-    MaterialBannerListItemView(const MaterialColorScheme* materialColorScheme,
-        const IFontRepository* fontRepository);
+    SHARED_ONLY(MaterialBannerListItemView)
 
+public:
     void Draw(GraphicsContext& graphicsContext) override;
 
     Rectangle GetBounds() const override
@@ -28,4 +27,7 @@ public:
 private:
     const MaterialColorScheme* _materialColorScheme;
     u32 _bgVramOffset;
+
+    MaterialBannerListItemView(std::unique_ptr<RomBrowserItemViewModel> viewModel,
+        const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository);
 };

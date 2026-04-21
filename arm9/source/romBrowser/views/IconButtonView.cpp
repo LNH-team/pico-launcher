@@ -7,10 +7,44 @@ bool IconButtonView::HandleInput(const InputProvider& inputProvider, FocusManage
     if (inputProvider.Triggered(InputKey::A))
     {
         if (_action)
+        {
             _action(this, _actionArg);
+        }
+
         return true;
     }
     return View::HandleInput(inputProvider, focusManager);
+}
+
+void IconButtonView::HandlePenDown(const Point& touchPoint, FocusManager& focusManager)
+{
+    if (GetBounds().Contains(touchPoint))
+    {
+        _penDown = true;
+    }
+}
+
+void IconButtonView::HandlePenMove(const Point& touchPoint, FocusManager& focusManager)
+{
+    if (!GetBounds().Contains(touchPoint))
+    {
+        _penDown = false;
+    }
+}
+
+void IconButtonView::HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager)
+{
+    if (_penDown && GetBounds().Contains(lastTouchPoint))
+    {
+        focusManager.Focus(SharedFromThis());
+
+        if (_action)
+        {
+            _action(this, _actionArg);
+        }
+    }
+
+    _penDown = false;
 }
 
 bool IconButtonView::IsCircleBackgroundVisible() const

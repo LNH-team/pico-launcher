@@ -4,6 +4,7 @@
 #include <libtwl/rtos/rtosEvent.h>
 #include <libtwl/rtos/rtosThread.h>
 #include "core/BitVector.h"
+#include "core/LinkedList.h"
 #include "Task.h"
 
 class TaskQueueBase;
@@ -11,25 +12,13 @@ class TaskQueueBase;
 class QueueTaskBase
 {
 public:
-    // forbid copies
-    QueueTaskBase(const QueueTaskBase&) = delete;
-    QueueTaskBase& operator=(const QueueTaskBase&) = delete;
-
-    // move assignment
-    QueueTaskBase& operator=(QueueTaskBase&& other)
-    {
-        _taskQueue = other._taskQueue;
-        _task = other._task;
-        other._taskQueue = nullptr;
-        other._task = nullptr;
-        return *this;
-    }
-
     ~QueueTaskBase()
     {
         // extra check here for optimizing out the dispose call after move assignment
         if (_task)
+        {
             Dispose();
+        }
     }
 
     void Dispose();
@@ -47,12 +36,10 @@ public:
 
 protected:
     TaskBase* _task;
+    TaskQueueBase* _taskQueue;
 
     QueueTaskBase(TaskBase* task, TaskQueueBase* taskQueue)
         : _task(task), _taskQueue(taskQueue) { }
-
-private:
-    TaskQueueBase* _taskQueue;
 };
 
 template <typename T>
@@ -61,6 +48,26 @@ class QueueTask : public QueueTaskBase
 public:
     QueueTask()
         : QueueTaskBase(nullptr, nullptr) { }
+
+    QueueTask(const QueueTask&) = delete;
+    QueueTask& operator=(const QueueTask&) = delete;
+
+    QueueTask(QueueTask&& other)
+        : QueueTaskBase(other._task, other._taskQueue)
+    {
+        other._task = nullptr;
+        other._taskQueue = nullptr;
+    }
+
+    QueueTask& operator=(QueueTask&& other)
+    {
+        Dispose();
+        _taskQueue = other._taskQueue;
+        _task = other._task;
+        other._taskQueue = nullptr;
+        other._task = nullptr;
+        return *this;
+    }
 
     QueueTask(Task<T>* task, TaskQueueBase* taskQueue)
         : QueueTaskBase(task, taskQueue) { }
@@ -91,12 +98,11 @@ public:
 
 protected:
     rtos_event_t _event;
-    vu32 _queueReadPtr = 0;
-    vu32 _queueWritePtr = 0;
+    LinkedList<TaskBase, &TaskBase::link> _taskList;
     volatile bool _endThreadWhenDone = false;
     volatile bool _idle = true;
 
-    void ThreadMain(TaskBase** queue, u32 queueLength);
+    void ThreadMain();
 
     TaskQueueBase()
     {
@@ -124,6 +130,10 @@ public:
         u32 irqs = rtos_disableIrqs();
         if (task->IsCompleted())
         {
+            if (task->link.prev != nullptr || task->link.next != nullptr)
+            {
+                _taskList.Remove(task);
+            }
             task->~TaskBase();
             u32 slot = ((u32)task - (u32)_taskPool) / ((MaxTaskSize + 3) & ~3);
             _poolOccupation.Set(slot, 0);
@@ -159,13 +169,12 @@ public:
 
     bool IsIdle() const
     {
-        return _queueReadPtr == _queueWritePtr && _idle;
+        return _taskList.GetHead() == nullptr && _idle;
     }
 
 private:
     u32 _taskPool[QueueLength][(MaxTaskSize + 3) / 4];
     BitVector<QueueLength> _poolOccupation;
-    TaskBase* _queue[QueueLength];
     rtos_thread_t _thread;
     bool _threadStarted = false;
 
@@ -191,12 +200,11 @@ private:
     [[gnu::noinline]]
     void Enqueue(TaskBase* task) override
     {
-        u32 writePtr = _queueWritePtr;
-        _queue[writePtr] = task;
-        if (writePtr == QueueLength - 1)
-            _queueWritePtr = 0;
-        else
-            _queueWritePtr = writePtr + 1;
+        u32 irqs = rtos_disableIrqs();
+        {
+            _taskList.InsertTail(task);
+        }
+        rtos_restoreIrqs(irqs);
         rtos_signalEvent(&_event);
     }
 
@@ -207,6 +215,6 @@ private:
 
     void ThreadMain()
     {
-        TaskQueueBase::ThreadMain(&_queue[0], QueueLength);
+        TaskQueueBase::ThreadMain();
     }
 };

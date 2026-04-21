@@ -20,19 +20,15 @@ public:
 
     /// @brief Creates and returns a view for this adapter.
     /// @return The created view.
-    virtual View* CreateView() const = 0;
-
-    /// @brief Destroys a \p view for this adapter that was previously created with CreateView.
-    /// @param view The view to destroy.
-    virtual void DestroyView(View* view) const = 0;
+    virtual SharedPtr<View> CreateView() const = 0;
 
     /// @brief Binds the given \p view to the item at the given \p index.
     /// @param view The view to bind.
     /// @param index The item index to bind to.
-    virtual void BindView(View* view, int index) const = 0;
+    virtual void BindView(SharedPtr<View> view, int index) const = 0;
 
     /// @brief Releases a \p view that was previously bound with BindView, such that it can be reused.
     /// @param view The view to release.
     /// @param index The item index that was bound to the view.
-    virtual void ReleaseView(View* view, int index) const = 0;
+    virtual void ReleaseView(SharedPtr<View> view, int index) const = 0;
 };

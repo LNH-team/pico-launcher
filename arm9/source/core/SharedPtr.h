@@ -1,163 +1,216 @@
 #pragma once
+#include <type_traits>
+#include "RefCount.h"
 
-static inline u32 arm_getCpsr()
-{
-    u32 cpsr;
-    asm volatile("mrs %0, cpsr" : "=r" (cpsr));
-    return cpsr;
-}
-
-static inline void arm_setCpsrControl(u32 cpsrControl)
-{
-    asm volatile("msr cpsr_c, %0" :: "r" (cpsrControl) : "cc");
-}
-
-static inline u32 arm_disableIrqs(void)
-{
-    u32 oldCpsr = arm_getCpsr();
-    arm_setCpsrControl(oldCpsr | 0x80);
-    return oldCpsr;
-}
-
-static inline void arm_restoreIrqs(u32 oldCpsr)
-{
-    arm_setCpsrControl(oldCpsr);
-}
+class EnableSharedFromThisBase;
 
 template <class T>
-class SharedPtr
+class EnableSharedFromThis;
+
+class SharedPtrBase
 {
-    T* _pointer;
-    vu32* _refCount;
-
 public:
-    SharedPtr()
-        : _pointer(nullptr), _refCount(nullptr) { (void)sizeof(T); }
-
-    explicit SharedPtr(T* pointer)
-        : _pointer(pointer), _refCount(pointer ? new u32(1) : nullptr) { (void)sizeof(T); }
-
-    SharedPtr(const SharedPtr& other)
+    void Reset()
     {
-        u32 irq = arm_disableIrqs();
-        _pointer = other._pointer;
-        _refCount = other._refCount;
-        if (_pointer)
+        if (_refCount != nullptr)
         {
-            (*_refCount)++;
+            ResetIntern();
         }
-        arm_restoreIrqs(irq);
     }
 
-    SharedPtr(SharedPtr&& other)
-        : _pointer(other._pointer), _refCount(other._refCount)
-    {
-        other._pointer = nullptr;
-        other._refCount = nullptr;
-    }
+protected:
+    void* _object;
+    RefCount* _refCount;
 
-    ~SharedPtr()
+    SharedPtrBase()
+        : _object(nullptr), _refCount(nullptr) { }
+
+    SharedPtrBase(void* object, RefCount* refCount)
+        : _object(object), _refCount(refCount) { }
+
+    SharedPtrBase(const void* object, RefCount* refCount)
+        : _object((void*)object), _refCount(refCount) { }
+
+    ~SharedPtrBase()
     {
         Reset();
     }
 
-    [[gnu::noinline]]
+    void ResetIntern();
+};
+
+template <class T>
+class SharedPtr : public SharedPtrBase
+{
+    template <class Y> friend class WeakPtr;
+    template <class Y> friend class SharedPtr;
+    template <class Y> friend class AtomicSharedPtr;
+    template <class Y> friend class EnableSharedFromThis;
+
+public:
+    SharedPtr() { }
+
+    SharedPtr(std::nullptr_t) { }
+
+    explicit SharedPtr(T* object)
+        : SharedPtrBase(object, object == nullptr ? nullptr : new StandaloneRefCount<T>(object))
+    {
+        if (_object != nullptr)
+        {
+            if constexpr (std::is_convertible<T*, EnableSharedFromThisBase*>::value)
+            {
+                _refCount->weakRefCount = 1;
+                GetPointer()->__SetSharedFromThisWeakPtr(*this);
+            }
+        }
+    }
+
+    template <class Y> requires std::assignable_from<T*&, Y*>
+    explicit SharedPtr(Y* object)
+        : SharedPtrBase(static_cast<T*>(object), object == nullptr ? nullptr : new StandaloneRefCount<Y>(object))
+    {
+        if (object != nullptr)
+        {
+            if constexpr (std::is_convertible<Y*, EnableSharedFromThisBase*>::value)
+            {
+                _refCount->weakRefCount = 1;
+                GetPointer()->__SetSharedFromThisWeakPtr(*this);
+            }
+        }
+    }
+
+    SharedPtr(const SharedPtr& other)
+        : SharedPtrBase(other._object, other._refCount)
+    {
+        if (_refCount)
+        {
+            shared_ptr_increase_ref_count(_refCount->refCount);
+        }
+    }
+
+    template <class Y> requires std::assignable_from<T*&, Y*>
+    SharedPtr(const SharedPtr<Y>& other)
+        : SharedPtrBase(static_cast<T*>(other.GetPointer()), other._refCount)
+    {
+        if (_refCount)
+        {
+            shared_ptr_increase_ref_count(_refCount->refCount);
+        }
+    }
+
+    template <class Y>
+    explicit SharedPtr(const SharedPtr<Y>& other)
+        : SharedPtrBase(static_cast<T*>(other.GetPointer()), other._refCount)
+    {
+        if (_refCount)
+        {
+            shared_ptr_increase_ref_count(_refCount->refCount);
+        }
+    }
+
+    SharedPtr(SharedPtr&& other)
+        : SharedPtrBase(other._object, other._refCount)
+    {
+        other._object = nullptr;
+        other._refCount = nullptr;
+    }
+
+    template <class Y> requires std::assignable_from<T*&, Y*>
+    SharedPtr(SharedPtr<Y>&& other)
+        : SharedPtrBase(static_cast<T*>(other.GetPointer()), other._refCount)
+    {
+        other._object = nullptr;
+        other._refCount = nullptr;
+    }
+
+    template <class Y>
+    explicit SharedPtr(SharedPtr<Y>&& other)
+        : SharedPtrBase(static_cast<T*>(other.GetPointer()), other._refCount)
+    {
+        other._object = nullptr;
+        other._refCount = nullptr;
+    }
+
+    static SharedPtr<T> MakeShared(auto&&... args)
+    {
+        auto refCount = new MakeSharedRefCount<T>(std::forward<decltype(args)>(args)...);
+        return SharedPtr<T>(refCount->GetObject(), refCount, true);
+    }
+
     SharedPtr& operator=(const SharedPtr& other)
     {
-        u32 irq = arm_disableIrqs();
-        T* pointer = _pointer;
-        if (pointer)
+        Reset();
+        _object = other._object;
+        _refCount = other._refCount;
+        if (_refCount)
         {
-            vu32* refCount = _refCount;
-            u32 newValue = *refCount - 1;
-            *refCount = newValue;
-            _pointer = other._pointer;
-            _refCount = other._refCount;
-            if (_pointer)
-            {
-                (*_refCount)++;
-            }
-            arm_restoreIrqs(irq);
-            if (newValue == 0)
-            {
-                delete pointer;
-                delete refCount;
-            }
-        }
-        else
-        {
-            _pointer = other._pointer;
-            _refCount = other._refCount;
-            if (_pointer)
-            {
-                (*_refCount)++;
-            }
-            arm_restoreIrqs(irq);
+            shared_ptr_increase_ref_count(_refCount->refCount);
         }
         return *this;
     }
 
-    [[gnu::noinline]]
+    template <class Y> requires std::assignable_from<T*&, Y*>
+    SharedPtr<T>& operator=(const SharedPtr<Y>& other)
+    {
+        Reset();
+        _object = static_cast<T*>(other.GetPointer());
+        _refCount = other._refCount;
+        if (_refCount)
+        {
+            shared_ptr_increase_ref_count(_refCount->refCount);
+        }
+        return *this;
+    }
+
     SharedPtr& operator=(SharedPtr&& other)
     {
-        u32 irq = arm_disableIrqs();
-        T* pointer = _pointer;
-        if (pointer)
-        {
-            vu32* refCount = _refCount;
-            u32 newValue = *refCount - 1;
-            *refCount = newValue;
-            _pointer = other._pointer;
-            _refCount = other._refCount;
-            other._pointer = nullptr;
-            other._refCount = nullptr;
-            arm_restoreIrqs(irq);
-            if (newValue == 0)
-            {
-                delete pointer;
-                delete refCount;
-            }
-        }
-        else
-        {
-            _pointer = other._pointer;
-            _refCount = other._refCount;
-            other._pointer = nullptr;
-            other._refCount = nullptr;
-            arm_restoreIrqs(irq);
-        }
+        Reset();
+        _object = other._object;
+        _refCount = other._refCount;
+        other._object = nullptr;
+        other._refCount = nullptr;
         return *this;
     }
 
-    [[gnu::noinline]]
-    void Reset()
+    template <class Y> requires std::assignable_from<T*&, Y*>
+    SharedPtr<T>& operator=(SharedPtr<Y>&& other)
     {
-        u32 irq = arm_disableIrqs();
-        T* pointer = _pointer;
-        if (pointer)
-        {
-            vu32* refCount = _refCount;
-            u32 newValue = *refCount - 1;
-            *refCount = newValue;
-            _pointer = nullptr;
-            _refCount = nullptr;
-            arm_restoreIrqs(irq);
-            if (newValue == 0)
-            {
-                delete pointer;
-                delete refCount;
-            }
-        }
-        else
-        {
-            arm_restoreIrqs(irq);
-        }
+        Reset();
+        _object = static_cast<T*>(other.GetPointer());
+        _refCount = other._refCount;
+        other._object = nullptr;
+        other._refCount = nullptr;
+        return *this;
     }
 
-    constexpr T& operator*() const { return *_pointer; }
-    constexpr T* operator->() const { return _pointer; }
+    T& operator*() const { return *static_cast<T*>(_object); }
+    T* operator->() const { return static_cast<T*>(_object); }
+    T* GetPointer() const { return static_cast<T*>(_object); }
 
-    constexpr T* GetPointer() const { return _pointer; }
-    constexpr u32 GetRefCount() const { return _refCount ? *_refCount : 0; }
-    constexpr bool IsValid() const { return _pointer; }
+    bool IsValid() const { return _object != nullptr; }
+    operator bool() const { return _object != nullptr; }
+
+private:
+    SharedPtr(T* object, RefCount* refCount)
+        : SharedPtrBase(object, refCount) { }
+
+    SharedPtr(T* object, RefCount* refCount, bool doSharedFromThis)
+        : SharedPtrBase(object, refCount)
+    {
+        if (doSharedFromThis)
+        {
+            if constexpr (std::is_convertible<T*, EnableSharedFromThisBase*>::value)
+            {
+                _refCount->weakRefCount = 1;
+                GetPointer()->__SetSharedFromThisWeakPtr(*this);
+            }
+        }
+    }
 };
+
+#define SHARED_ONLY(className) \
+    friend class MakeSharedRefCount<className>; \
+public: \
+    static SharedPtr<className> CreateShared(auto&&... args) \
+    { return SharedPtr<className>::MakeShared(std::forward<decltype(args)>(args)...); } \
+private:

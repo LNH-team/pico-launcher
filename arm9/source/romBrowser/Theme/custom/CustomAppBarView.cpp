@@ -4,8 +4,6 @@
 #include "romBrowser/views/IconButton3DView.h"
 #include "CustomAppBarView.h"
 
-#define BLOCK_VTX_PACK(x, y, z) (((x)&0x3FF) | ((((y) >> 3) & 0x3FF) << 10) | ((z) << 20))
-
 CustomAppBarView::CustomAppBarView(int x, int y, Orientation orientation,
     int startButtonCount, int endButtonCount, const MaterialColorScheme* materialColorScheme,
     u32 scrimTexVramOffset, u32 scrimPlttVramOffset)
@@ -14,12 +12,12 @@ CustomAppBarView::CustomAppBarView(int x, int y, Orientation orientation,
 {
     for (int i = 0; i < _startButtonCount + _endButtonCount; i++)
     {
-        _buttons[i] = new IconButton3DView(
+        _buttons[i] = IconButton3DView::CreateShared(
             IconButtonView::Type::Tonal,
             IconButtonView::State::NoToggle,
             md::sys::color::inverseOnSurface,
             materialColorScheme);
-        AddChildTail(_buttons[i]);
+        AddChildTail(_buttons[i].GetPointer());
     }
 }
 

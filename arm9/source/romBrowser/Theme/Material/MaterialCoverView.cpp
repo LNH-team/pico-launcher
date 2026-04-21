@@ -4,6 +4,7 @@
 #include "gui/Gx.h"
 #include "gui/materialDesign.h"
 #include "gui/GraphicsContext.h"
+#include "gui/input/InputProvider.h"
 #include "MaterialCoverView.h"
 
 void MaterialCoverView::InitVram(const VramContext& vramContext)
@@ -17,9 +18,14 @@ void MaterialCoverView::InitVram(const VramContext& vramContext)
     }
 }
 
+void MaterialCoverView::Update()
+{
+    _viewModel->DisposeQueueTaskWhenComplete();
+}
+
 void MaterialCoverView::Draw(GraphicsContext& graphicsContext)
 {
-    if (_cover.IsValid() && _textureLoadRequest.GetState() == VBlankTextureLoadRequestState::LoadComplete)
+    if (_cover.Lock() && _textureLoadRequest.GetState() == VBlankTextureLoadRequestState::LoadComplete)
     {
         Gx::TexImageParam(_texVramOffset >> 3, false, true, false, true, GX_TEXSIZE_128,
             GX_TEXSIZE_128, GX_TEXFMT_PLTT256, false, GX_TEXGEN_NONE);
@@ -44,13 +50,34 @@ void MaterialCoverView::Draw(GraphicsContext& graphicsContext)
     }
 }
 
+bool MaterialCoverView::HandleInput(const InputProvider& inputProvider, FocusManager& focusManager)
+{
+    return _inputHandler.HandleInput(inputProvider, focusManager)
+        || View::HandleInput(inputProvider, focusManager);
+}
+
+void MaterialCoverView::HandlePenDown(const Point& touchPoint, FocusManager& focusManager)
+{
+    _inputHandler.HandlePenDown(touchPoint, focusManager);
+}
+
+void MaterialCoverView::HandlePenMove(const Point& touchPoint, FocusManager& focusManager)
+{
+    _inputHandler.HandlePenMove(touchPoint, focusManager);
+}
+
+void MaterialCoverView::HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager)
+{
+    _inputHandler.HandlePenUp(lastTouchPoint, focusManager);
+}
+
 void MaterialCoverView::UploadCoverGraphics()
 {
-    if (_cover.IsValid())
+    if (auto cover = _cover.Lock())
     {
-        _cover->SetTexVramOffset(_texVramOffset, _plttVramOffset);
+        cover->SetTexVramOffset(_texVramOffset, _plttVramOffset);
         _vblankTextureLoader->CancelLoad(_textureLoadRequest);
-        _textureLoadRequest = _cover->CreateTextureLoadRequest();
+        _textureLoadRequest = cover->CreateTextureLoadRequest();
         _vblankTextureLoader->RequestLoad(_textureLoadRequest);
     }
 }

@@ -46,7 +46,7 @@ public:
 
     constexpr fixed(long double value)
         : _value(std::round(value * (1 << FractionBits))) { }
-        
+
     constexpr T Int() const
     {
         return _value >> FractionBits;
@@ -161,9 +161,25 @@ public:
         return FromRawValue(this->_value >> rhs);
     }
 
-    constexpr fix16 abs() const
+    constexpr fix16 Abs() const
     {
         return FromRawValue(std::abs(this->_value));
+    }
+
+    constexpr fix16 Clamp(fix16 min, fix16 max) const
+    {
+        if (this->_value < min._value)
+        {
+            return min;
+        }
+        else if (this->_value > max._value)
+        {
+            return max;
+        }
+        else
+        {
+            return *this;
+        }
     }
 
     template <u32 OtherFractionBits>
@@ -265,9 +281,21 @@ public:
         return this->_value < other._value;
     }
 
+    template <typename TLhs>
+    constexpr friend bool operator<(TLhs lhs, const fix32& rhs)
+    {
+        return fix32(lhs)._value < rhs._value;
+    }
+
     constexpr bool operator<=(const fix32& other) const
     {
         return this->_value <= other._value;
+    }
+
+    template <typename TLhs>
+    constexpr friend bool operator<=(TLhs lhs, const fix32& rhs)
+    {
+        return fix32(lhs)._value <= rhs._value;
     }
 
     constexpr bool operator>(const fix32& other) const
@@ -275,9 +303,21 @@ public:
         return this->_value > other._value;
     }
 
+    template <typename TLhs>
+    constexpr friend bool operator>(TLhs lhs, const fix32& rhs)
+    {
+        return fix32(lhs)._value > rhs._value;
+    }
+
     constexpr bool operator>=(const fix32& other) const
     {
         return this->_value >= other._value;
+    }
+
+    template <typename TLhs>
+    constexpr friend bool operator>=(TLhs lhs, const fix32& rhs)
+    {
+        return fix32(lhs)._value >= rhs._value;
     }
 
     constexpr fix32 operator-() const
@@ -337,6 +377,22 @@ public:
         return FromRawValue(std::abs(this->_value));
     }
 
+    constexpr fix32 Clamp(fix32 min, fix32 max) const
+    {
+        if (this->_value < min._value)
+        {
+            return min;
+        }
+        else if (this->_value > max._value)
+        {
+            return max;
+        }
+        else
+        {
+            return *this;
+        }
+    }
+
     template <u32 OtherFractionBits>
     constexpr fix64<FractionBits + OtherFractionBits> LongMul(const fix16<OtherFractionBits>& other) const
     {
@@ -354,6 +410,11 @@ public:
         return fix64<FractionBits>::FromRawValue((s64)this->_value * other);
     }
 
+    constexpr fix64<FractionBits> LongMul(double other) const
+    {
+        return LongMul(fix32(other));
+    }
+
     template <u32 OtherFractionBits>
     constexpr fix32 operator*(const fix16<OtherFractionBits>& other) const
     {
@@ -369,6 +430,11 @@ public:
     constexpr fix32 operator*(int other) const
     {
         return FromRawValue(this->_value * other);
+    }
+
+    constexpr fix32 operator*(double other) const
+    {
+        return fix32(LongMul(fix32(other)));
     }
 
     constexpr friend fix32 operator*(int lhs, const fix32& rhs)

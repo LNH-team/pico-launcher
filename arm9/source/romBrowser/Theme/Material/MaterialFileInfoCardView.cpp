@@ -13,17 +13,17 @@
 
 MaterialFileInfoCardView::MaterialFileInfoCardView(const MaterialColorScheme* materialColorScheme,
     const IFontRepository* fontRepository)
-    : _firstLine(176, 16, 50, fontRepository->GetFont(FontType::Medium11))
-    , _secondLine(176, 16, 50, fontRepository->GetFont(FontType::Regular10))
-    , _thirdLine(176, 16, 50, fontRepository->GetFont(FontType::Regular10))
-    , _filenameLabelView(220, 16, 200, fontRepository->GetFont(FontType::Medium7_5))
+    : _firstLine(Label2DView::CreateShared(176, 16, 50, fontRepository->GetFont(FontType::Medium11)))
+    , _secondLine(Label2DView::CreateShared(176, 16, 50, fontRepository->GetFont(FontType::Regular10)))
+    , _thirdLine(Label2DView::CreateShared(176, 16, 50, fontRepository->GetFont(FontType::Regular10)))
+    , _filenameLabelView(Label2DView::CreateShared(220, 16, 200, fontRepository->GetFont(FontType::Medium7_5)))
     , _materialColorScheme(materialColorScheme)
 {
-    AddChildTail(&_firstLine);
-    AddChildTail(&_secondLine);
-    AddChildTail(&_thirdLine);
-    _filenameLabelView.SetEllipsisStyle(LabelView::EllipsisStyle::Marquee);
-    AddChildTail(&_filenameLabelView);
+    AddChildTail(_firstLine.GetPointer());
+    AddChildTail(_secondLine.GetPointer());
+    AddChildTail(_thirdLine.GetPointer());
+    _filenameLabelView->SetEllipsisStyle(LabelView::EllipsisStyle::Marquee);
+    AddChildTail(_filenameLabelView.GetPointer());
 }
 
 void MaterialFileInfoCardView::InitVram(const VramContext& vramContext)
@@ -41,10 +41,10 @@ void MaterialFileInfoCardView::InitVram(const VramContext& vramContext)
 void MaterialFileInfoCardView::Update()
 {
     BannerView::Update();
-    _firstLine.SetPosition(_position.x + 70, _position.y + 130 - 8);
-    _secondLine.SetPosition(_position.x + 70, _position.y + 145 - 8);
-    _thirdLine.SetPosition(_position.x + 70, _position.y + 159 - 8);
-    _filenameLabelView.SetPosition(_position.x + 18, _position.y + 168);
+    _firstLine->SetPosition(_position.x + 70, _position.y + 130 - 8);
+    _secondLine->SetPosition(_position.x + 70, _position.y + 145 - 8);
+    _thirdLine->SetPosition(_position.x + 70, _position.y + 159 - 8);
+    _filenameLabelView->SetPosition(_position.x + 18, _position.y + 168);
     if (_icon)
     {
         _icon->SetPosition(_position.x + 24, _position.y + 136 - 8);
@@ -54,14 +54,14 @@ void MaterialFileInfoCardView::Update()
 
 void MaterialFileInfoCardView::Draw(GraphicsContext& graphicsContext)
 {
-    _firstLine.SetBackgroundColor(_materialColorScheme->secondaryContainer);
-    _firstLine.SetForegroundColor(_materialColorScheme->onSecondaryContainer);
-    _secondLine.SetBackgroundColor(_materialColorScheme->secondaryContainer);
-    _secondLine.SetForegroundColor(_materialColorScheme->onSecondaryContainer);
-    _thirdLine.SetBackgroundColor(_materialColorScheme->secondaryContainer);
-    _thirdLine.SetForegroundColor(_materialColorScheme->onSecondaryContainer);
-    _filenameLabelView.SetBackgroundColor(_materialColorScheme->secondaryContainer);
-    _filenameLabelView.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+    _firstLine->SetBackgroundColor(_materialColorScheme->secondaryContainer);
+    _firstLine->SetForegroundColor(_materialColorScheme->onSecondaryContainer);
+    _secondLine->SetBackgroundColor(_materialColorScheme->secondaryContainer);
+    _secondLine->SetForegroundColor(_materialColorScheme->onSecondaryContainer);
+    _thirdLine->SetBackgroundColor(_materialColorScheme->secondaryContainer);
+    _thirdLine->SetForegroundColor(_materialColorScheme->onSecondaryContainer);
+    _filenameLabelView->SetBackgroundColor(_materialColorScheme->secondaryContainer);
+    _filenameLabelView->SetForegroundColor(_materialColorScheme->onSurfaceVariant);
 
     BannerView::Draw(graphicsContext);
 

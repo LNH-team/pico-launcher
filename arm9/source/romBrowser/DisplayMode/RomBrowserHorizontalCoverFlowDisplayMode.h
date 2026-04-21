@@ -9,19 +9,19 @@ public:
     bool IsVertical() const override { return false; }
     bool ShowCoverOnTopScreen() const override { return false; }
 
-    std::unique_ptr<AppBarView> CreateAppBarView(const IRomBrowserViewFactory* romBrowserViewFactory,
+    SharedPtr<AppBarView> CreateAppBarView(const IRomBrowserViewFactory* romBrowserViewFactory,
         int startButtonCount, int endButtonCount) const override
     {
         return romBrowserViewFactory->CreateAppBarView(0, 0,
             AppBarView::Orientation::Horizontal, startButtonCount, endButtonCount);
     }
 
-    std::unique_ptr<RecyclerViewBase> CreateRecyclerView(const IRomBrowserViewFactory* romBrowserViewFactory) const override
+    SharedPtr<RecyclerViewBase> CreateRecyclerView(const IRomBrowserViewFactory* romBrowserViewFactory) const override
     {
         return romBrowserViewFactory->CreateCoverFlowRecyclerView();
     }
 
-    FileRecyclerAdapter* CreateRecyclerAdapter(
+    SharedPtr<FileRecyclerAdapter> CreateRecyclerAdapter(
         RomBrowserViewModel* viewModel, const IThemeFileIconFactory* themeFileIconFactory,
         const IRomBrowserViewFactory* romBrowserViewFactory, VBlankTextureLoader* vblankTextureLoader) const override
     {

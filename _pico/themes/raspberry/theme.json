@@ -88,6 +88,12 @@
             "b": 200
         }
     },
+    "topCover": {
+        "position": {
+            "x": 75,
+            "y": 18
+        }
+    },
     "gridIcon": {
         "blendColor": {
             "r": 200,

@@ -23,7 +23,7 @@ General usage documentation can be found here: [Usage](docs/Usage.md).
 We recommend using WSL (Windows Subsystem for Linux), or MSYS2 to compile this repository.
 The steps provided will assume you already have one of those environments set up.
 
-1. Install [BlocksDS](https://blocksds.skylyrac.net/docs/setup/options/)
+1. Install [BlocksDS](https://blocksds.skylyrac.net/docs/setup/)
 
 ## Compiling
 

@@ -15,6 +15,34 @@ FileInfoManager::~FileInfoManager()
     }
 }
 
+void FileInfoManager::LoadFileInfo(int index)
+{
+    auto internalFileInfo = _extraFileInfo[index].internalFileInfo;
+    if (!internalFileInfo)
+    {
+        internalFileInfo = _items[index]->CreateInternalFileInfo();
+    }
+
+    if (!_extraFileInfo[index].fileCover.Lock())
+    {
+        _extraFileInfo[index].fileCover = SharedPtr(_coverRepository.GetCoverForFile(*_items[index], internalFileInfo));
+    }
+
+    _extraFileInfo[index].internalFileInfo = internalFileInfo;
+}
+
+void FileInfoManager::ReleaseFileInfo(int index)
+{
+    auto internalFileInfo = _extraFileInfo[index].internalFileInfo;
+    if (internalFileInfo)
+    {
+        _extraFileInfo[index].internalFileInfo = nullptr;
+        delete internalFileInfo;
+    }
+
+    _extraFileInfo[index].fileCover.Reset();
+}
+
 int FileInfoManager::GetItemIndex(const char* fileName)
 {
     if (fileName == nullptr)
@@ -23,10 +51,10 @@ int FileInfoManager::GetItemIndex(const char* fileName)
     }
     for (u32 i = 0; i < _itemCount; i++)
     {
-        if (strcmp(fileName, _items[i]->GetFileName()) == 0)  
-        {  
-            return i;  
-        }  
+        if (strcmp(fileName, _items[i]->GetFileName()) == 0)
+        {
+            return i;
+        }
     }
     return -1;
 }

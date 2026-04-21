@@ -10,6 +10,8 @@
 #include "romBrowser/FileType/FileCover.h"
 #include "core/math/SinTable.h"
 #include "carouselMask.h"
+#include "animation/Interpolator.h"
+#include "gui/input/InputProvider.h"
 #include "CarouselRecyclerView.h"
 
 #define COVER_SPACING           4
@@ -41,8 +43,10 @@ void CarouselRecyclerView::Update()
         return;
     }
 
-    int rangeStartIndex = GetSelectedItem() - 4;
-    int rangeEndIndex = GetSelectedItem() + 1 + 4;
+    _scrollAnimator.Update();
+
+    int rangeStartIndex = _scrollAnimator.GetValue().Int() - 4;
+    int rangeEndIndex = _scrollAnimator.GetValue().Int() + 1 + 4;
     rangeStartIndex = std::clamp(rangeStartIndex, 0, (int)_itemCount - 1);
     rangeEndIndex = std::clamp(rangeEndIndex, 0, (int)_itemCount);
 
@@ -66,8 +70,7 @@ void CarouselRecyclerView::Update()
 
     for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
     {
-        _viewPoolEx[i].xPositionAnimator.Update();
-        _viewPoolEx[i].widthAnimator.Update();
+        UpdateItemPosition(i);
         _viewPool[i].view->Update();
     }
 }
@@ -76,8 +79,8 @@ void CarouselRecyclerView::Draw(GraphicsContext& graphicsContext)
 {
     for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
     {
-        fix32<12> x = (_viewPoolEx[i].xPositionAnimator.GetValue() + 0.5).Int();
-        fix32<12> width = (_viewPoolEx[i].widthAnimator.GetValue() + 0.5).Int();
+        fix32<12> x = (_viewPoolEx[i].xPosition + 0.5).Int();
+        fix32<12> width = (_viewPoolEx[i].width + 0.5).Int();
         fix32<12> left = x;
         if (left < HORIZONTAL_PADDING)
         {
@@ -180,48 +183,179 @@ void CarouselRecyclerView::RenderRoundedCorners(GraphicsContext& graphicsContext
     Gx::End();
 }
 
-void CarouselRecyclerView::UpdateItemPosition(int viewPoolIndex, bool initial)
+bool CarouselRecyclerView::HandleInput(const InputProvider& inputProvider, FocusManager& focusManager)
 {
-    ViewPoolEntry* item = &_viewPool[viewPoolIndex];
-    ViewPoolEntryEx* itemEx = &_viewPoolEx[viewPoolIndex];
-    int selectedIndex = GetSelectedItem();
-    if (selectedIndex == -1)
+    if (_itemCount != 0 && inputProvider.Triggered(InputKey::L | InputKey::R))
     {
-        selectedIndex = 0;
+        int direction = inputProvider.Triggered(InputKey::L) ? -1 : 1;
+        int selected = std::clamp(_selectedItem->itemIdx + 10 * direction, 0, (int)_itemCount - 1);
+
+        focusManager.Unfocus();
+        SetSelectedItem(selected, false);
+        focusManager.Focus(_selectedItem->view);
+        return true;
     }
-    int itemIndex = item->itemIdx;
-    fix32<12> x;
-    fix32<12> width;
-    if (itemIndex < selectedIndex)
+
+    return View::HandleInput(inputProvider, focusManager);
+}
+
+void CarouselRecyclerView::HandlePenDown(const Point& touchPoint, FocusManager& focusManager)
+{
+    if (GetBounds().Contains(touchPoint))
     {
-        x = SELECTED_COVER_X + (SMALL_COVER_WIDTH + COVER_SPACING) * (itemIndex - selectedIndex);
-        width = SMALL_COVER_WIDTH;
+        _penDown = true;
+        _penDownPosition = touchPoint;
+        _hasScrollStarted = false;
+        _penDownScrollOffset = _scrollAnimator.GetValue();
+
+        if (_itemCount > 0)
+        {
+            _selectedItem->view->HandlePenDown(touchPoint, focusManager);
+        }
+        for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
+        {
+            auto bounds = _viewPool[i].view->GetBounds();
+            bounds = Rectangle(_viewPoolEx[i].xPosition.Int(), bounds.GetTop(), _viewPoolEx[i].width.Int(), bounds.GetHeight());
+            if (bounds.Contains(touchPoint))
+            {
+                _viewPool[i].view->HandlePenDown(touchPoint, focusManager);
+            }
+        }
     }
-    else if (itemIndex == selectedIndex + 1)
+}
+
+void CarouselRecyclerView::HandlePenMove(const Point& touchPoint, FocusManager& focusManager)
+{
+    if (!_penDown)
     {
-        x = NEXT_COVER_X;
-        width = NEXT_COVER_WIDTH;
+        return;
     }
-    else if (itemIndex > selectedIndex + 1)
+
+    if (!_hasScrollStarted)
     {
-        x = NEXT_COVER_X + NEXT_COVER_WIDTH + COVER_SPACING
-            + (SMALL_COVER_WIDTH + COVER_SPACING) * (itemIndex - selectedIndex - 2);
-        width = SMALL_COVER_WIDTH;
+        for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
+        {
+            _viewPool[i].view->HandlePenMove(touchPoint, focusManager);
+            if (focusManager.GetCurrentFocus().GetPointer() == _viewPool[i].view.GetPointer())
+            {
+                SetSelectedItem(_viewPool[i].itemIdx, false);
+            }
+        }
+
+        int dx = touchPoint.x - _penDownPosition.x;
+        int dy = touchPoint.y - _penDownPosition.y;
+        if (dx * dx + dy * dy > 7 * 7)
+        {
+            bool shouldScrollStart = std::abs(touchPoint.x - _penDownPosition.x) > std::abs(touchPoint.y - _penDownPosition.y);
+            if (shouldScrollStart)
+            {
+                _hasScrollStarted = true;
+            }
+            else
+            {
+                _penDown = false; //wrong direction drag, so cancel it
+            }
+
+            for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
+            {
+                _viewPool[i].view->HandlePenUp(Point(-1, -1), focusManager);
+            }
+        }
     }
     else
     {
-        x = SELECTED_COVER_X;
-        width = SELECTED_COVER_WIDTH;
+        fix32<12> newScrollOffset = _penDownScrollOffset + fix32<12>(_penDownPosition.x - touchPoint.x) * (2.5 / COVER_WIDTH);
+        if (newScrollOffset < 0)
+        {
+            newScrollOffset = 0;
+            _penDownScrollOffset = 0;
+            _penDownPosition.x = touchPoint.x;
+        }
+        else if (newScrollOffset > (int)_itemCount - 1)
+        {
+            newScrollOffset = (int)_itemCount - 1;
+            _penDownScrollOffset = newScrollOffset;
+            _penDownPosition.x = touchPoint.x;
+        }
+
+        _scrollAnimator = Animator<fix32<12>>(newScrollOffset);
+    }
+}
+
+void CarouselRecyclerView::HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager)
+{
+    if (_hasScrollStarted)
+    {
+        SetSelectedItem((_scrollAnimator.GetValue() + 0.5).Int(), false);
+        focusManager.Focus(_selectedItem->view);
+    }
+
+    for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
+    {
+        _viewPool[i].view->HandlePenUp(lastTouchPoint, focusManager);
+        if (focusManager.GetCurrentFocus().GetPointer() == _viewPool[i].view.GetPointer())
+        {
+            SetSelectedItem(_viewPool[i].itemIdx, false);
+        }
+    }
+
+    _penDown = false;
+}
+
+void CarouselRecyclerView::SetSelectedItem(int itemIdx, bool initial)
+{
+    CoverFlowRecyclerViewBase::SetSelectedItem(itemIdx, initial);
+
+    if (itemIdx < 0 || itemIdx >= (int)_itemCount)
+    {
+        return;
     }
 
     if (initial)
     {
-        itemEx->xPositionAnimator = Animator(x);
-        itemEx->widthAnimator = Animator(width);
+        _scrollAnimator = Animator<fix32<12>>(itemIdx);
     }
     else
     {
-        itemEx->xPositionAnimator.Goto(x, md::sys::motion::duration::medium4, &md::sys::motion::easing::standard);
-        itemEx->widthAnimator.Goto(width, md::sys::motion::duration::medium4, &md::sys::motion::easing::standard);
+        _scrollAnimator.Goto(itemIdx, md::sys::motion::duration::medium4, &md::sys::motion::easing::standard);
     }
+}
+
+void CarouselRecyclerView::UpdateItemPosition(int viewPoolIndex)
+{
+    auto& item = _viewPool[viewPoolIndex];
+    auto& itemEx = _viewPoolEx[viewPoolIndex];
+    int itemIndex = item.itemIdx;
+    fix32<12> absOffsetFromCenter = (itemIndex - _scrollAnimator.GetValue()).Abs();
+    fix32<12> initialOffsetFromCenter = absOffsetFromCenter.Clamp(0, 1);
+    fix32<12> initialOffsetFromNext = (absOffsetFromCenter - 1).Clamp(0, 1);
+
+    fix32<12> x;
+    fix32<12> width;
+    if (itemIndex < _scrollAnimator.GetValue())
+    {
+        // everything before selected
+        x = SELECTED_COVER_X - (SMALL_COVER_WIDTH + COVER_SPACING) * absOffsetFromCenter;
+        width = Interpolator::InterpolateLinear<fix32<12>>(SELECTED_COVER_WIDTH, SMALL_COVER_WIDTH, initialOffsetFromCenter);
+    }
+    else if (initialOffsetFromCenter < 1)
+    {
+        // from selected to next
+        x = Interpolator::InterpolateLinear<fix32<12>>(SELECTED_COVER_X, NEXT_COVER_X, initialOffsetFromCenter);
+        width = Interpolator::InterpolateLinear<fix32<12>>(SELECTED_COVER_WIDTH, NEXT_COVER_WIDTH, initialOffsetFromCenter);
+    }
+    else
+    {
+        // everything after next
+        x = NEXT_COVER_X
+            + Interpolator::InterpolateLinear<fix32<12>>(0, NEXT_COVER_WIDTH + COVER_SPACING, initialOffsetFromNext);
+        if (absOffsetFromCenter - 2 > 0)
+        {
+            x = x + (SMALL_COVER_WIDTH + COVER_SPACING) * (absOffsetFromCenter - 2);
+        }
+        width = Interpolator::InterpolateLinear<fix32<12>>(NEXT_COVER_WIDTH, SMALL_COVER_WIDTH, initialOffsetFromNext);
+    }
+
+    itemEx.xPosition = x;
+    itemEx.width = width;
 }

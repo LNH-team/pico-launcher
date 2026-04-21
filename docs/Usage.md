@@ -16,7 +16,7 @@ From here you can browse your SD card to launch homebrew and games.
 
 The back arrow on the top left of the bottom screen can also be used to go up to the parent folder.
 
-Please note that touch functionality is not supported yet.
+Touch input is also supported.
 
 ## Settings menu
 The settings menu can be accessed by using the DPAD to move the selector to the cogwheel icon and pressing A. When in the settings menu, press the B button will to return to the file browser.

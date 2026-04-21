@@ -8,6 +8,8 @@
 
 class RecyclerView : public RecyclerViewBase
 {
+    SHARED_ONLY(RecyclerView)
+
 public:
     enum class Mode
     {
@@ -21,10 +23,9 @@ public:
         VerticalGrid
     };
 
-    RecyclerView(int x, int y, int width, int height, Mode mode);
     ~RecyclerView();
 
-    void SetAdapter(const RecyclerAdapter* adapter, int initialSelectedIndex = 0) override;
+    void SetAdapter(SharedPtr<const RecyclerAdapter> adapter, int initialSelectedIndex = 0) override;
     void InitVram(const VramContext& vramContext) override;
     void Update() override;
     void Draw(GraphicsContext& graphicsContext) override;
@@ -35,16 +36,23 @@ public:
         return Rectangle(_position, _width, _height);
     }
 
-    View* MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source) override;
+    SharedPtr<View> MoveFocus(const SharedPtr<View>& currentFocus, FocusMoveDirection direction, View* source) override;
 
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
+    void HandlePenDown(const Point& touchPoint, FocusManager& focusManager) override;
+    void HandlePenMove(const Point& touchPoint, FocusManager& focusManager) override;
+    void HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager) override;
 
     void Focus(FocusManager& focusManager) override
     {
         if (_selectedItem)
+        {
             focusManager.Focus(_selectedItem->view);
+        }
         else
-            focusManager.Focus(this);
+        {
+            focusManager.Focus(SharedFromThis());
+        }
     }
 
     int GetSelectedItem() const override
@@ -69,7 +77,7 @@ public:
 private:
     struct ViewPoolEntry
     {
-        View* view;
+        SharedPtr<View> view;
         int itemIdx;
     };
 
@@ -94,6 +102,12 @@ private:
     int _curRangeStart;
     int _curRangeLength;
     Animator<int> _scrollOffsetAnimator;
+    bool _penDown = false;
+    Point _penDownPosition = Point(0, 0);
+    bool _hasScrollStarted = false;
+    int _penDownScrollOffset = 0;
+
+    RecyclerView(int x, int y, int width, int height, Mode mode);
 
     void UpdatePosition(ViewPoolEntry& viewPoolEntry);
     ViewPoolEntry* GetViewPoolEntryByItemIndex(int itemIdx);
@@ -107,6 +121,6 @@ private:
     void EnsureVisible(int itemIdx, bool animate);
     Point GetItemPosition(int itemIdx);
 
-    View* MoveFocusHorizontal(View* currentFocus, FocusMoveDirection direction, View* source);
-    View* MoveFocusVertical(View* currentFocus, FocusMoveDirection direction, View* source);
+    SharedPtr<View> MoveFocusHorizontal(const SharedPtr<View>& currentFocus, FocusMoveDirection direction, View* source);
+    SharedPtr<View> MoveFocusVertical(const SharedPtr<View>& currentFocus, FocusMoveDirection direction, View* source);
 };

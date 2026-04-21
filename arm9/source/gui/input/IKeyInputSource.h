@@ -2,10 +2,10 @@
 #include "InputKey.h"
 
 /// @brief Interface for a source of key input.
-class IInputSource
+class IKeyInputSource
 {
 public:
-    virtual ~IInputSource() { }
+    virtual ~IKeyInputSource() { }
 
     virtual InputKey Sample() const = 0;
 };

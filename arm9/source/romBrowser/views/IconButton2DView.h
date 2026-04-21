@@ -3,6 +3,8 @@
 
 class IconButton2DView : public IconButtonView
 {
+    SHARED_ONLY(IconButton2DView)
+
 public:
     class VramToken
     {
@@ -17,12 +19,6 @@ public:
         constexpr u32 GetVramOffset() const { return _vramOffset; }
     };
 
-    IconButton2DView() : IconButtonView() { }
-
-    IconButton2DView(Type type, State state,
-        md::sys::color backgroundColor, const MaterialColorScheme* materialColorScheme)
-        : IconButtonView(type, state, backgroundColor, materialColorScheme) { }
-
     void Draw(GraphicsContext& graphicsContext) override;
 
     void SetGraphics(const VramToken& vramToken)
@@ -34,4 +30,8 @@ public:
 
 private:
     u32 _selectorVramOffset;
+
+    IconButton2DView(Type type, State state,
+        md::sys::color backgroundColor, const MaterialColorScheme* materialColorScheme)
+        : IconButtonView(type, state, backgroundColor, materialColorScheme) { }
 };

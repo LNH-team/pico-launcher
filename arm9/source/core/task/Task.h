@@ -3,14 +3,17 @@
 #include <memory>
 #include <libtwl/rtos/rtosIrq.h>
 #include <libtwl/rtos/rtosThread.h>
+#include "core/LinkedListLink.h"
 #include "TaskResult.h"
 
 class TaskBase
 {
 public:
+    LinkedListLink link;
+
     virtual ~TaskBase() { }
 
-    void Execute();
+    void Execute(u32 irqs);
 
     TaskState GetState() const { return _state; }
 
@@ -24,7 +27,7 @@ public:
     bool GetDestroyWhenComplete() const { return _destroyWhenComplete; }
     void SetDestroyWhenComplete() { _destroyWhenComplete = true; }
 
-    void RequestCancel() { _cancelRequested = true; }
+    void RequestCancel();
     bool IsCancelRequested() const { return _cancelRequested; }
 
 protected:

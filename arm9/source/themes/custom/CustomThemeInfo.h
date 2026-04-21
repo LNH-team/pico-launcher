@@ -1,6 +1,7 @@
 #pragma once
 #include "CustomBannerListTextElementInfo.h"
 #include "CustomBottomIconInfo.h"
+#include "CustomTopCoverInfo.h"
 #include "CustomTopIconInfo.h"
 #include "CustomTextElementInfo.h"
 
@@ -11,6 +12,7 @@ struct CustomThemeInfo
     CustomTopTextElementInfo topBannerTextLine1Info;
     CustomTopTextElementInfo topBannerTextLine2Info;
     CustomTopTextElementInfo topFileNameTextInfo;
+    CustomTopCoverInfo topCoverInfo;
 
     CustomBottomIconInfo gridIconInfo;
 

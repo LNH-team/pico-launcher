@@ -31,16 +31,17 @@
 #define LINE_HEIGHT             16
 #define MAX_LINE_STRING_LENGTH  50
 
-CustomBannerListItemView::CustomBannerListItemView(const CustomThemeInfo* customThemeInfo,
-    const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository,
-    u32 texVramOffset, u32 plttVramOffset, u32 selectedTexVramOffset, u32 selectedPlttVramOffset,
+CustomBannerListItemView::CustomBannerListItemView(std::unique_ptr<RomBrowserItemViewModel> viewModel,
+    const CustomThemeInfo* customThemeInfo, const MaterialColorScheme* materialColorScheme,
+    const IFontRepository* fontRepository, u32 texVramOffset, u32 plttVramOffset,
+    u32 selectedTexVramOffset, u32 selectedPlttVramOffset,
     VBlankTextureLoader* vblankTextureLoader)
-    : BannerListItemView(
-        std::make_unique<Label3DView>(LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
+    : BannerListItemView(std::move(viewModel),
+        Label3DView::CreateShared(LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
             fontRepository->GetFont(FontType::Medium10), vblankTextureLoader),
-        std::make_unique<Label3DView>(LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
+        Label3DView::CreateShared(LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
             fontRepository->GetFont(FontType::Regular10), vblankTextureLoader),
-        std::make_unique<Label3DView>(LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
+        Label3DView::CreateShared(LINE_WIDTH, LINE_HEIGHT, MAX_LINE_STRING_LENGTH,
             fontRepository->GetFont(FontType::Regular10), vblankTextureLoader))
     , _customThemeInfo(customThemeInfo)
     , _materialColorScheme(materialColorScheme)

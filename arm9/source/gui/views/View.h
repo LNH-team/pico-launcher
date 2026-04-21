@@ -2,6 +2,8 @@
 #include "core/LinkedListLink.h"
 #include "core/math/Point.h"
 #include "core/math/Rectangle.h"
+#include "core/SharedPtr.h"
+#include "core/EnableSharedFromThis.h"
 #include "../FocusManager.h"
 #include "../FocusMoveDirection.h"
 
@@ -10,7 +12,7 @@ class VramContext;
 class InputProvider;
 
 /// @brief Base class for views.
-class View
+class View : public EnableSharedFromThis<View>
 {
 public:
     /// @brief Link used for views that contain other views.
@@ -37,7 +39,7 @@ public:
     /// @param direction The direction to move the focus in.
     /// @param source The view that requested this view to move focus.
     /// @return The newly focused view, or null if the focus didn't change.
-    virtual View* MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source)
+    virtual SharedPtr<View> MoveFocus(const SharedPtr<View>& currentFocus, FocusMoveDirection direction, View* source)
     {
         if (_parent && _parent != source)
             return _parent->MoveFocus(currentFocus, direction, this);
@@ -56,6 +58,21 @@ public:
 
         return false;
     }
+
+    /// @brief Handles a pen down event.
+    /// @param touchPoint The touch point.
+    /// @param focusManager The focus manager.
+    virtual void HandlePenDown(const Point& touchPoint, FocusManager& focusManager) { }
+
+    /// @brief Handles a pen move event.
+    /// @param touchPoint The touch point.
+    /// @param focusManager The focus manager.
+    virtual void HandlePenMove(const Point& touchPoint, FocusManager& focusManager) { }
+
+    /// @brief Handles a pen up event.
+    /// @param lastTouchPoint The last touch point.
+    /// @param focusManager The focus manager.
+    virtual void HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager) { }
 
     /// @brief Gets the bounds of the view.
     /// @return The bounds of the view.

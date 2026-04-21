@@ -16,10 +16,12 @@ DialogPresenter::DialogPresenter(FocusManager* focusManager, StackVramManager* v
     _baseVramState = _vramManager->GetState();
 }
 
-void DialogPresenter::ShowDialog(std::unique_ptr<DialogView> dialog)
+void DialogPresenter::ShowDialog(SharedPtr<DialogView> dialog)
 {
     if (!_nextDialog)
+    {
         _nextDialog = std::move(dialog);
+    }
 }
 
 void DialogPresenter::CloseDialog()
@@ -93,7 +95,7 @@ void DialogPresenter::Update()
             else
             {
                 _newState = State::Idle;
-                _currentDialog.reset();
+                _currentDialog.Reset();
             }
             break;
         }
@@ -152,4 +154,28 @@ void DialogPresenter::InitVram()
 
     REG_BLDCNT = 0x3944;
     REG_BLDALPHA = (16 << 8) | 0;
+}
+
+void DialogPresenter::HandlePenDown(const Point& touchPoint, FocusManager& focusManager)
+{
+    if (_curState == State::BottomSheetVisible && _currentDialog)
+    {
+        _currentDialog->HandlePenDown(touchPoint, focusManager);
+    }
+}
+
+void DialogPresenter::HandlePenMove(const Point& touchPoint, FocusManager& focusManager)
+{
+    if (_curState == State::BottomSheetVisible && _currentDialog)
+    {
+        _currentDialog->HandlePenMove(touchPoint, focusManager);
+    }
+}
+
+void DialogPresenter::HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager)
+{
+    if (_curState == State::BottomSheetVisible && _currentDialog)
+    {
+        _currentDialog->HandlePenUp(lastTouchPoint, focusManager);
+    }
 }

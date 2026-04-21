@@ -4,7 +4,7 @@
 #include "FileInfo.h"
 #include "FileType/FileCover.h"
 #include "ICoverRepository.h"
-#include "core/SharedPtr.h"
+#include "core/AtomicSharedPtr.h"
 #include "FileType/InternalFileInfo.h"
 
 class FileInfoManager
@@ -20,36 +20,12 @@ public:
 
     SharedPtr<FileCover> GetFileCover(int index)
     {
-        return _extraFileInfo[index].fileCover;
+        return _extraFileInfo[index].fileCover.Lock();
     }
 
-    void LoadFileInfo(int index)
-    {
-        auto internalFileInfo = GetInternalFileInfo(index);
-        if (!internalFileInfo)
-        {
-            internalFileInfo = _items[index]->CreateInternalFileInfo();
-        }
+    void LoadFileInfo(int index);
 
-        if (!_extraFileInfo[index].fileCover.IsValid())
-        {
-            _extraFileInfo[index].fileCover = SharedPtr(_coverRepository.GetCoverForFile(*_items[index], internalFileInfo));
-        }
-
-        _extraFileInfo[index].internalFileInfo = internalFileInfo;
-    }
-
-    void ReleaseFileInfo(int index)
-    {
-        auto internalFileInfo = GetInternalFileInfo(index);
-        if (internalFileInfo)
-        {
-            delete internalFileInfo;
-            _extraFileInfo[index].internalFileInfo = nullptr;
-        }
-
-        _extraFileInfo[index].fileCover.Reset();
-    }
+    void ReleaseFileInfo(int index);
 
     int GetItemIndex(const char* fileName);
 
@@ -60,7 +36,7 @@ private:
     struct ExtraFileInfo
     {
         const InternalFileInfo* internalFileInfo;
-        SharedPtr<FileCover> fileCover;
+        AtomicSharedPtr<FileCover> fileCover;
     };
 
     std::unique_ptr<const FileInfo*[]> _items;

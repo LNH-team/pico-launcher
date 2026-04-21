@@ -2,6 +2,7 @@
 #include "gui/views/ViewContainer.h"
 #include "gui/views/Label2DView.h"
 #include "cheats/CheatEntry.h"
+#include "romBrowser/viewModels/CheatsViewModel.h"
 
 class MaterialColorScheme;
 class IFontRepository;
@@ -9,6 +10,8 @@ class IFontRepository;
 /// @brief List item view for the cheats panel, representing a single cheat or cheat category.
 class CheatListItemView : public ViewContainer
 {
+    SHARED_ONLY(CheatListItemView)
+
 public:
     struct VramOffsets
     {
@@ -18,10 +21,12 @@ public:
         u32 cheatSelectorVramOffset = 0;
     };
 
-    CheatListItemView(const VramOffsets& vramOffsets, const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository);
-
     void Update() override;
     void Draw(GraphicsContext& graphicsContext) override;
+    bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
+    void HandlePenDown(const Point& touchPoint, FocusManager& focusManager) override;
+    void HandlePenMove(const Point& touchPoint, FocusManager& focusManager) override;
+    void HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager) override;
 
     Rectangle GetBounds() const override
     {
@@ -30,13 +35,14 @@ public:
 
     void SetName(const char* name)
     {
-        _nameLabel.SetText(name);
+        _nameLabel->SetText(name);
     }
 
-    void SetEntry(const CheatEntry* cheatEntry)
+    void SetEntry(const CheatEntry* cheatEntry, int index)
     {
         _cheatEntry = cheatEntry;
-        _nameLabel.SetText(cheatEntry->GetName());
+        _index = index;
+        _nameLabel->SetText(cheatEntry->GetName());
         if (cheatEntry->IsCheatCategory())
         {
             _iconVramOffset = _vramOffsets.folderIconVramOffset;
@@ -44,9 +50,15 @@ public:
     }
 
 private:
-    Label2DView _nameLabel;
+    SharedPtr<CheatsViewModel> _viewModel;
+    SharedPtr<Label2DView> _nameLabel;
     VramOffsets _vramOffsets;
     const MaterialColorScheme* _materialColorScheme;
     u32 _iconVramOffset = 0;
     const CheatEntry* _cheatEntry = nullptr;
+    int _index = -1;
+    bool _penDown = false;
+
+    CheatListItemView(SharedPtr<CheatsViewModel> viewModel, const VramOffsets& vramOffsets,
+        const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository);
 };

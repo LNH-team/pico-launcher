@@ -6,37 +6,13 @@
 class ViewContainer : public View
 {
 public:
-    void InitVram(const VramContext& vramContext) override
-    {
-        for (auto& view : _children)
-        {
-            view.InitVram(vramContext);
-        }
-    }
-
-    void Update() override
-    {
-        for (auto& view : _children)
-        {
-            view.Update();
-        }
-    }
-
-    void Draw(GraphicsContext& graphicsContext) override
-    {
-        for (auto& view : _children)
-        {
-            view.Draw(graphicsContext);
-        }
-    }
-
-    void VBlank() override
-    {
-        for (auto& view : _children)
-        {
-            view.VBlank();
-        }
-    }
+    void InitVram(const VramContext& vramContext) override;
+    void Update() override;
+    void Draw(GraphicsContext& graphicsContext) override;
+    void VBlank() override;
+    void HandlePenDown(const Point& touchPoint, FocusManager& focusManager) override;
+    void HandlePenMove(const Point& touchPoint, FocusManager& focusManager) override;
+    void HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager) override;
 
 protected:
     /// @brief Adds a child to the head of the list.
@@ -53,6 +29,14 @@ protected:
     {
         _children.InsertTail(view);
         view->SetParent(this);
+    }
+
+    /// @brief Removes a child from the list.
+    /// @param view The child to remove.
+    void RemoveChild(View* view)
+    {
+        _children.Remove(view);
+        view->SetParent(nullptr);
     }
 
 private:

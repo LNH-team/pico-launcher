@@ -5,10 +5,9 @@ class MaterialColorScheme;
 
 class MaterialIconGridItemView : public IconGridItemView
 {
-public:
-    explicit MaterialIconGridItemView(const MaterialColorScheme* materialColorScheme)
-        : _materialColorScheme(materialColorScheme) { }
+    SHARED_ONLY(MaterialIconGridItemView)
 
+public:
     void Draw(GraphicsContext& graphicsContext) override;
 
     Rectangle GetBounds() const override
@@ -26,4 +25,7 @@ public:
 private:
     const MaterialColorScheme* _materialColorScheme;
     u32 _bgVramOffset;
+
+    MaterialIconGridItemView(std::unique_ptr<RomBrowserItemViewModel> viewModel, const MaterialColorScheme* materialColorScheme)
+        : IconGridItemView(std::move(viewModel)), _materialColorScheme(materialColorScheme) { }
 };

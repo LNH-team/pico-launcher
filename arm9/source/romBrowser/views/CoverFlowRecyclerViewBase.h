@@ -5,9 +5,11 @@
 class CoverFlowRecyclerViewBase : public RecyclerViewBase
 {
 public:
+    ~CoverFlowRecyclerViewBase() override;
+
     void InitVram(const VramContext& vramContext) override;
-    void SetAdapter(const RecyclerAdapter* adapter, int initialSelectedIndex = 0) override;
-    View* MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source) override;
+    void SetAdapter(SharedPtr<const RecyclerAdapter> adapter, int initialSelectedIndex = 0) override;
+    SharedPtr<View> MoveFocus(const SharedPtr<View>& currentFocus, FocusMoveDirection direction, View* source) override;
 
     Rectangle GetBounds() const override
     {
@@ -16,7 +18,14 @@ public:
 
     void Focus(FocusManager& focusManager) override
     {
-        focusManager.Focus(_selectedItem ? _selectedItem->view : this);
+        if (_selectedItem == nullptr)
+        {
+            focusManager.Focus(SharedFromThis());
+        }
+        else
+        {
+            focusManager.Focus(_selectedItem->view);
+        }
     }
 
     int GetSelectedItem() const override
@@ -27,7 +36,7 @@ public:
 protected:
     struct ViewPoolEntry
     {
-        View* view;
+        SharedPtr<View> view;
         int itemIdx = -1;
     };
 
@@ -43,8 +52,7 @@ protected:
     void BindRange(int start, int end);
     void ReleaseViewPoolEntry(int itemIdx);
     void ReleaseRange(int start, int end);
-    void SetSelectedItem(int itemIdx, bool initial);
-    virtual void UpdateItemPosition(int viewPoolIndex, bool initial) = 0;
+    virtual void SetSelectedItem(int itemIdx, bool initial);
 
     virtual void SwapViewPoolEntry(int indexA, int indexB)
     {

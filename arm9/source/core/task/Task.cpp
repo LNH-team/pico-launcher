@@ -1,9 +1,20 @@
 #include "common.h"
 #include "Task.h"
 
-void TaskBase::Execute()
+void TaskBase::RequestCancel()
 {
     u32 irqs = rtos_disableIrqs();
+    _cancelRequested = true;
+    if (_state == TaskState::NotStarted)
+    {
+        _state = TaskState::Canceled;
+        rtos_wakeupQueue(&_threadQueue);
+    }
+    rtos_restoreIrqs(irqs);
+}
+
+void TaskBase::Execute(u32 irqs)
+{
     if (_state == TaskState::NotStarted)
     {
         _state = TaskState::Running;
@@ -12,7 +23,9 @@ void TaskBase::Execute()
         SetFinalState(finalState);
     }
     else
+    {
         rtos_restoreIrqs(irqs);
+    }
 }
 
 void TaskBase::SetFinalState(TaskState finalState)

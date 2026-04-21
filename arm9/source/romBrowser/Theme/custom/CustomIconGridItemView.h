@@ -5,12 +5,9 @@ class CustomThemeInfo;
 
 class CustomIconGridItemView : public IconGridItemView
 {
-public:
-    CustomIconGridItemView(const CustomThemeInfo* customThemeInfo, u32 texVramOffset, u32 plttVramOffset,
-        u32 selectedTexVramOffset, u32 selectedPlttVramOffset)
-        : _customThemeInfo(customThemeInfo), _texVramOffset(texVramOffset), _plttVramOffset(plttVramOffset)
-        , _selectedTexVramOffset(selectedTexVramOffset), _selectedPlttVramOffset(selectedPlttVramOffset) { }
+    SHARED_ONLY(CustomIconGridItemView)
 
+public:
     void Draw(GraphicsContext& graphicsContext) override;
 
     Rectangle GetBounds() const override
@@ -24,4 +21,9 @@ private:
     u32 _plttVramOffset;
     u32 _selectedTexVramOffset;
     u32 _selectedPlttVramOffset;
+
+    CustomIconGridItemView(std::unique_ptr<RomBrowserItemViewModel> viewModel, const CustomThemeInfo* customThemeInfo,
+        u32 texVramOffset, u32 plttVramOffset, u32 selectedTexVramOffset, u32 selectedPlttVramOffset)
+        : IconGridItemView(std::move(viewModel)), _customThemeInfo(customThemeInfo), _texVramOffset(texVramOffset), _plttVramOffset(plttVramOffset)
+        , _selectedTexVramOffset(selectedTexVramOffset), _selectedPlttVramOffset(selectedPlttVramOffset) { }
 };

@@ -24,7 +24,7 @@ CheatsViewModel::CheatsViewModel(const FileInfo& romFileInfo, IRomBrowserControl
     });
 }
 
-void CheatsViewModel::ActivateSelectedItem()
+void CheatsViewModel::ActivateItem(int index)
 {
     if (_state != State::DisplayCheats)
     {
@@ -36,19 +36,19 @@ void CheatsViewModel::ActivateSelectedItem()
     u32 numberOfSubEntries = 0;
     auto subEntries = cheatCategory->GetSubEntries(numberOfSubEntries);
 
-    if (numberOfSubEntries == 0)
+    if (numberOfSubEntries == 0 || index < 0 || index >= (int)numberOfSubEntries)
     {
         // There is nothing to activate
         return;
     }
 
-    auto& entry = subEntries[_selectedItem];
+    auto& entry = subEntries[index];
     if (entry.IsCheatCategory())
     {
         // Category activated
         if (_categoryStackLevel + 1 != _categoryStack.size())
         {
-            _categoryStack[++_categoryStackLevel] = { &entry, (u32)_selectedItem };
+            _categoryStack[++_categoryStackLevel] = { &entry, (u32)index };
             _selectedItem = 0;
         }
     }

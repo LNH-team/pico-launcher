@@ -6,19 +6,10 @@
 AppBarView::AppBarView(int x, int y, Orientation orientation,
     int startButtonCount, int endButtonCount, const MaterialColorScheme* materialColorScheme)
     : _orientation(orientation)
-    , _buttons(std::make_unique<IconButtonView*[]>(startButtonCount + endButtonCount))
+    , _buttons(std::make_unique<SharedPtr<IconButtonView>[]>(startButtonCount + endButtonCount))
     , _startButtonCount(startButtonCount), _endButtonCount(endButtonCount)
 {
     SetPosition(x, y);
-}
-
-AppBarView::~AppBarView()
-{
-    for (int i = 0; i < _startButtonCount + _endButtonCount; i++)
-    {
-        delete _buttons[i];
-        _buttons[i] = nullptr;
-    }
 }
 
 Rectangle AppBarView::GetBounds() const
@@ -39,9 +30,9 @@ void AppBarView::Update()
     ViewContainer::Update();
 }
 
-View* AppBarView::MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source)
+SharedPtr<View> AppBarView::MoveFocus(const SharedPtr<View>& currentFocus, FocusMoveDirection direction, View* source)
 {
-    int idx = FindButtonIndex(currentFocus);
+    int idx = FindButtonIndex(currentFocus.GetPointer());
     if (idx >= 0)
     {
         if (_orientation == Orientation::Horizontal)
@@ -71,21 +62,28 @@ View* AppBarView::MoveFocus(View* currentFocus, FocusMoveDirection direction, Vi
     else if ((_orientation == Orientation::Horizontal && (direction == FocusMoveDirection::Up || direction == FocusMoveDirection::Down)) ||
              (_orientation == Orientation::Vertical && (direction == FocusMoveDirection::Left || direction == FocusMoveDirection::Right)))
     {
-        if (currentFocus == nullptr)
+        if (!currentFocus)
             return _buttons[0];
         Point curFocusPoint = currentFocus->GetBounds().GetCenter();
         s64 bestDistance = std::numeric_limits<s64>::max();
-        View* nearestButton = nullptr;
+        int nearestButton = -1;
         for (int i = 0; i < _startButtonCount + _endButtonCount; i++)
         {
             s64 distance = curFocusPoint.DistanceSquaredTo(_buttons[i]->GetBounds().GetCenter());
             if (distance < bestDistance)
             {
                 bestDistance = distance;
-                nearestButton = _buttons[i];
+                nearestButton = i;
             }
         }
-        return nearestButton;
+        if (nearestButton >= 0)
+        {
+            return _buttons[nearestButton];
+        }
+        else
+        {
+            return nullptr;
+        }
     }
     else
         return View::MoveFocus(currentFocus, direction, this);
@@ -126,7 +124,7 @@ int AppBarView::FindButtonIndex(const View* view)
 {
     for (int i = 0; i < _startButtonCount + _endButtonCount; i++)
     {
-        if (_buttons[i] == view)
+        if (_buttons[i].GetPointer() == view)
         {
             return i;
         }

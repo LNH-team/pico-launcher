@@ -7,9 +7,10 @@
 class CheatsAdapter : public RecyclerAdapter
 {
 public:
-    CheatsAdapter(const CheatEntry* cheatCategory, const MaterialColorScheme* materialColorScheme,
-        const IFontRepository* fontRepository, const CheatListItemView::VramOffsets& vramOffsets)
-        : _cheatCategory(cheatCategory), _materialColorScheme(materialColorScheme)
+    CheatsAdapter(const CheatEntry* cheatCategory, SharedPtr<CheatsViewModel> cheatsViewModel,
+        const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository,
+        const CheatListItemView::VramOffsets& vramOffsets)
+        : _cheatCategory(cheatCategory), _cheatsViewModel(std::move(cheatsViewModel)), _materialColorScheme(materialColorScheme)
         , _fontRepository(fontRepository), _vramOffsets(vramOffsets) { }
 
     u32 GetItemCount() const override
@@ -25,31 +26,27 @@ public:
         height = 24;
     }
 
-    View* CreateView() const override
+    SharedPtr<View> CreateView() const override
     {
-        return new CheatListItemView(_vramOffsets, _materialColorScheme, _fontRepository);
+        return CheatListItemView::CreateShared(_cheatsViewModel, _vramOffsets, _materialColorScheme, _fontRepository);
     }
 
-    void DestroyView(View* view) const override
+    void BindView(SharedPtr<View> view, int index) const override
     {
-        delete (CheatListItemView*)view;
-    }
-
-    void BindView(View* view, int index) const override
-    {
-        auto listItemView = static_cast<CheatListItemView*>(view);
+        auto listItemView = static_cast<CheatListItemView*>(view.GetPointer());
         u32 numberOfSubEntries = 0;
         auto subEntries = _cheatCategory->GetSubEntries(numberOfSubEntries);
-        listItemView->SetEntry(&subEntries[index]);
+        listItemView->SetEntry(&subEntries[index], index);
     }
 
-    void ReleaseView(View* view, int index) const override
+    void ReleaseView(SharedPtr<View> view, int index) const override
     {
         // Nothing to do
     }
 
 private:
     const CheatEntry* _cheatCategory;
+    SharedPtr<CheatsViewModel> _cheatsViewModel;
     const MaterialColorScheme* _materialColorScheme;
     const IFontRepository* _fontRepository;
     CheatListItemView::VramOffsets _vramOffsets;

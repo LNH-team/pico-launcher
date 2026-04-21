@@ -61,6 +61,7 @@ Custom themes support additional properties in the `theme.json` file to allow fo
 - **topBannerTextLine1** - Properties of the second banner text line displayed on the top screen.
 - **topBannerTextLine2** - Properties of the third banner text line displayed on the top screen.
 - **topFileNameText** - Properties of the file name text displayed on the top screen.
+- **topCover** - Properties of the cover image displayed on the top screen.
 - **gridIcon** - Properties of the icons displayed on the bottom screen in grid display modes.
 - **bannerListIcon** - Properties of the icons displayed on the bottom screen in banner list display mode.
 - **bannerListTextLine0** - Properties of the first banner text line displayed on the bottom screen in banner list display mode.
@@ -104,6 +105,9 @@ Blend colors are used to fake translucency. They should be set to an approximati
         "width": 220,
         "textColor": { "r": 30, "g": 30, "b": 30 },
         "blendColor": { "r": 200, "g": 200, "b": 200 }
+    },
+    "topCover": {
+        "position": { "x": 75, "y": 18 }
     },
     "gridIcon": {
         "blendColor": { "r": 200, "g": 200, "b": 200 }

@@ -31,6 +31,7 @@
 #include "Arm7State.h"
 #include "mmc/tmio.h"
 #include "ipcServices/BacklightIpcService.h"
+#include "touchScreen.h"
 
 static NocashOutputStream sNocashOutputStream;
 static PlainLogger sPlainLogger = PlainLogger(LogLevel::All, std::unique_ptr<IOutputStream>(&sNocashOutputStream));
@@ -46,19 +47,14 @@ rtos_mutex_t gMCU_Mutex;
 rtos_mutex_t gPMIC_Mutex;
 ILogger* gLogger = &sThreadSafeLogger;
 
-static rtos_event_t sVBlankEvent;
+static rtos_event_t sVCountEvent;
 static ExitMode sExitMode;
 static Arm7State sState;
 static volatile u8 sMcuIrqFlag = false;
 
-static void vblankIrq(u32 irqMask)
-{
-    rtos_signalEvent(&sVBlankEvent);
-}
-
 static void vcountIrq(u32 irqMask)
 {
-    SHARED_KEY_XY = REG_RCNT0_H;
+    rtos_signalEvent(&sVCountEvent);
 }
 
 static void mcuIrq(u32 irq2Mask)
@@ -94,12 +90,13 @@ static void checkMcuIrq(void)
     }
 }
 
-static void initializeVBlankIrq()
+static void initializeVCountIrq()
 {
-    rtos_createEvent(&sVBlankEvent);
-    rtos_setIrqFunc(RTOS_IRQ_VBLANK, vblankIrq);
-    rtos_enableIrqMask(RTOS_IRQ_VBLANK);
-    gfx_setVBlankIrqEnabled(true);
+    rtos_createEvent(&sVCountEvent);
+    gfx_setVCountMatchLine(96);
+    rtos_setIrqFunc(RTOS_IRQ_VCOUNT, vcountIrq);
+    rtos_enableIrqMask(RTOS_IRQ_VCOUNT);
+    gfx_setVCountMatchIrqEnabled(true);
 }
 
 static void clearSoundRegisters()
@@ -158,18 +155,15 @@ static void initializeArm7()
     sRtcIpcService.Start();
     sBackLightIpcService.Start();
 
-    gfx_setVCountMatchLine(96);
-    rtos_setIrqFunc(RTOS_IRQ_VCOUNT, vcountIrq);
-    rtos_enableIrqMask(RTOS_IRQ_VCOUNT);
-    gfx_setVCountMatchIrqEnabled(true);
-
-    initializeVBlankIrq();
+    initializeVCountIrq();
 
     if (isDSiMode())
     {
         rtos_setIrq2Func(RTOS_IRQ2_MCU, mcuIrq);
         rtos_enableIrq2Mask(RTOS_IRQ2_MCU);
     }
+
+    touch_init();
 
     ipc_setArm7SyncBits(7);
 }
@@ -250,7 +244,16 @@ int main()
 
     while (true)
     {
-        rtos_waitEvent(&sVBlankEvent, true, true);
+        rtos_waitEvent(&sVCountEvent, true, true);
+        u16 keys = REG_RCNT0_H | RCNT0_H_DATA_PEN;
+        touchPosition touchPos;
+        if (touch_update(touchPos))
+        {
+            keys &= ~RCNT0_H_DATA_PEN; // pen down
+            SHARED_TOUCH_X = touchPos.px;
+            SHARED_TOUCH_Y = touchPos.py;
+        }
+        SHARED_KEY_XY = keys;
         updateArm7();
     }
 

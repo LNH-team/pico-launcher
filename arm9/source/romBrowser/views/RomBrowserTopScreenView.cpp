@@ -12,16 +12,17 @@
 #include "RomBrowserTopScreenView.h"
 
 RomBrowserTopScreenView::RomBrowserTopScreenView(
-    const SharedPtr<RomBrowserViewModel>& viewModel,
+    SharedPtr<RomBrowserViewModel> viewModel,
     const RomBrowserDisplayMode* displayMode,
     const IThemeFileIconFactory* themeFileIconFactory,
     const IRomBrowserViewFactory* romBrowserViewFactory)
-    : _viewModel(viewModel)
+    : _viewModel(std::move(viewModel))
     , _themeFileIconFactory(themeFileIconFactory)
     , _fileInfoView(romBrowserViewFactory->CreateFileInfoView())
     , _showCover(displayMode->ShowCoverOnTopScreen())
+    , _coverPosition(romBrowserViewFactory->GetTopCoverPosition())
 {
-    AddChildTail(_fileInfoView.get());
+    AddChildTail(_fileInfoView.GetPointer());
 }
 
 void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
@@ -135,11 +136,11 @@ void RomBrowserTopScreenView::VBlank()
         REG_BG3PB_SUB = 0;
         REG_BG3PC_SUB = 0;
         REG_BG3PD_SUB = -0x100;
-        REG_BG3X_SUB = -75 << 8;
-        REG_BG3Y_SUB = 113 << 8;
+        REG_BG3X_SUB = (-_coverPosition.x) << 8;
+        REG_BG3Y_SUB = (96 + _coverPosition.y - 1) << 8;
         REG_BG3CNT_SUB = 0x0705;
         REG_DISPCNT_SUB |= ((1 << 3) | (1 << 5)) << 8;
-        gfx_setSubWindow0(75, 18, 75 + 106, 18 + 96);
+        gfx_setSubWindow0(_coverPosition.x, _coverPosition.y, _coverPosition.x + 106, _coverPosition.y + 96);
         REG_WININ_SUB = 0x002A;
         REG_WINOUT_SUB = ~(1 << 3);
     }

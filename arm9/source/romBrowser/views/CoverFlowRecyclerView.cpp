@@ -5,6 +5,7 @@
 #include "gui/Gx.h"
 #include "gui/GraphicsContext.h"
 #include "gui/materialDesign.h"
+#include "gui/input/InputProvider.h"
 #include "core/math/SinTable.h"
 #include "romBrowser/FileType/FileCover.h"
 #include "CoverFlowRecyclerView.h"
@@ -18,8 +19,10 @@ void CoverFlowRecyclerView::Update()
         return;
     }
 
-    int rangeStartIndex = GetSelectedItem() - 4;
-    int rangeEndIndex = GetSelectedItem() + 1 + 4;
+    _scrollAnimator.Update();
+
+    int rangeStartIndex = _scrollAnimator.GetValue().Int() - 4;
+    int rangeEndIndex = _scrollAnimator.GetValue().Int() + 1 + 4;
     rangeStartIndex = std::clamp(rangeStartIndex, 0, (int)_itemCount - 1);
     rangeEndIndex = std::clamp(rangeEndIndex, 0, (int)_itemCount);
 
@@ -43,10 +46,8 @@ void CoverFlowRecyclerView::Update()
 
     for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
     {
-        _viewPoolEx[i].yAngleAnimator.Update();
-        _viewPoolEx[i].xPositionAnimator.Update();
-        _viewPoolEx[i].zPositionAnimator.Update();
-        _viewPool[i].view->SetPosition(_viewPoolEx[i].xPositionAnimator.GetValue().Int(), 32 + 80);
+        UpdateItemPosition(i);
+        _viewPool[i].view->SetPosition(_viewPoolEx[i].xPosition.Int(), 32 + 80);
         _viewPool[i].view->Update();
     }
 }
@@ -86,9 +87,9 @@ void CoverFlowRecyclerView::Draw(GraphicsContext& graphicsContext)
         graphicsContext.SetPolygonId(i);
         Gx::MtxPush();
         {
-            fix32<12> x = _viewPoolEx[i].xPositionAnimator.GetValue();
-            u32 angle = _viewPoolEx[i].yAngleAnimator.GetValue();
-            fix32<12> z = _viewPoolEx[i].zPositionAnimator.GetValue();
+            fix32<12> x = _viewPoolEx[i].xPosition;
+            u32 angle = _viewPoolEx[i].yAngle;
+            fix32<12> z = _viewPoolEx[i].zPosition;
             auto sinCos = gSinTable.SinCos(angle);
             mtx43_t rotMtx =
             {
@@ -110,47 +111,144 @@ void CoverFlowRecyclerView::Draw(GraphicsContext& graphicsContext)
     Gx::MtxMode(GX_MTX_MODE_POSITION_VECTOR);
 }
 
-void CoverFlowRecyclerView::UpdateItemPosition(int viewPoolIndex, bool initial)
+bool CoverFlowRecyclerView::HandleInput(const InputProvider& inputProvider, FocusManager& focusManager)
 {
-    ViewPoolEntry* item = &_viewPool[viewPoolIndex];
-    ViewPoolEntryEx* itemEx = &_viewPoolEx[viewPoolIndex];
-    int selectedIndex = GetSelectedItem();
-    if (selectedIndex == -1)
+    if (_itemCount != 0 && inputProvider.Triggered(InputKey::L | InputKey::R))
     {
-        selectedIndex = 0;
+        int direction = inputProvider.Triggered(InputKey::L) ? -1 : 1;
+        int selected = std::clamp(_selectedItem->itemIdx + 10 * direction, 0, (int)_itemCount - 1);
+
+        focusManager.Unfocus();
+        SetSelectedItem(selected, false);
+        focusManager.Focus(_selectedItem->view);
+        return true;
     }
-    int itemIndex = item->itemIdx;
-    fix32<12> x;
-    fix32<12> z = 0;
-    u32 angle;
-    if (itemIndex < selectedIndex)
+
+    return View::HandleInput(inputProvider, focusManager);
+}
+
+void CoverFlowRecyclerView::HandlePenDown(const Point& touchPoint, FocusManager& focusManager)
+{
+    if (GetBounds().Contains(touchPoint))
     {
-        x = 256 / 2 - (COVER_HEIGHT / 4) + COVER_SPACING * (itemIndex - selectedIndex);
-        angle = std::clamp((selectedIndex - itemIndex) * 10 + 45, -90, 90) * (1 << 16) / 360;
-        z = -(selectedIndex - itemIndex) * 30 - 20;
+        _penDown = true;
+        _penDownPosition = touchPoint;
+        _hasScrollStarted = false;
+        _penDownScrollOffset = _scrollAnimator.GetValue();
+
+        if (_itemCount > 0)
+        {
+            _selectedItem->view->HandlePenDown(touchPoint, focusManager);
+        }
     }
-    else if (itemIndex > selectedIndex)
+}
+
+void CoverFlowRecyclerView::HandlePenMove(const Point& touchPoint, FocusManager& focusManager)
+{
+    if (!_penDown)
     {
-        x = 256 / 2 + (COVER_HEIGHT / 4) + COVER_SPACING * (itemIndex - selectedIndex);
-        angle = std::clamp((selectedIndex - itemIndex) * 10 - 45, -90, 90) * (1 << 16) / 360;
-        z = (selectedIndex - itemIndex) * 30 - 20;
+        return;
+    }
+
+    if (!_hasScrollStarted)
+    {
+        if (_itemCount > 0)
+        {
+            _selectedItem->view->HandlePenMove(touchPoint, focusManager);
+        }
+
+        int dx = touchPoint.x - _penDownPosition.x;
+        int dy = touchPoint.y - _penDownPosition.y;
+        if (dx * dx + dy * dy > 7 * 7)
+        {
+            bool shouldScrollStart = std::abs(touchPoint.x - _penDownPosition.x) > std::abs(touchPoint.y - _penDownPosition.y);
+            if (shouldScrollStart)
+            {
+                _hasScrollStarted = true;
+            }
+            else
+            {
+                _penDown = false; //wrong direction drag, so cancel it
+            }
+
+            if (_itemCount > 0)
+            {
+                _selectedItem->view->HandlePenUp(Point(-1, -1), focusManager);
+            }
+        }
     }
     else
     {
-        x = 256 / 2;
-        angle = 0;
+        fix32<12> newScrollOffset = _penDownScrollOffset + fix32<12>(_penDownPosition.x - touchPoint.x) * (2.5 / COVER_WIDTH);
+        if (newScrollOffset < 0)
+        {
+            newScrollOffset = 0;
+            _penDownScrollOffset = 0;
+            _penDownPosition.x = touchPoint.x;
+        }
+        else if (newScrollOffset > (int)_itemCount - 1)
+        {
+            newScrollOffset = (int)_itemCount - 1;
+            _penDownScrollOffset = newScrollOffset;
+            _penDownPosition.x = touchPoint.x;
+        }
+
+        _scrollAnimator = Animator<fix32<12>>(newScrollOffset);
+    }
+}
+
+void CoverFlowRecyclerView::HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager)
+{
+    if (_hasScrollStarted)
+    {
+        SetSelectedItem((_scrollAnimator.GetValue() + 0.5).Int(), false);
+    }
+
+    if (_itemCount > 0)
+    {
+        _selectedItem->view->HandlePenUp(lastTouchPoint, focusManager);
+        focusManager.Focus(_selectedItem->view);
+    }
+
+    _penDown = false;
+}
+
+void CoverFlowRecyclerView::SetSelectedItem(int itemIdx, bool initial)
+{
+    CoverFlowRecyclerViewBase::SetSelectedItem(itemIdx, initial);
+
+    if (itemIdx < 0 || itemIdx >= (int)_itemCount)
+    {
+        return;
     }
 
     if (initial)
     {
-        itemEx->yAngleAnimator = Animator<int>(angle);
-        itemEx->xPositionAnimator = Animator(x);
-        itemEx->zPositionAnimator = Animator(z);
+        _scrollAnimator = Animator<fix32<12>>(itemIdx);
     }
     else
     {
-        itemEx->yAngleAnimator.Goto(angle, md::sys::motion::duration::medium4, &md::sys::motion::easing::standard);
-        itemEx->xPositionAnimator.Goto(x, md::sys::motion::duration::medium4, &md::sys::motion::easing::standard);
-        itemEx->zPositionAnimator.Goto(z, md::sys::motion::duration::medium4, &md::sys::motion::easing::standard);
+        _scrollAnimator.Goto(itemIdx, md::sys::motion::duration::medium4, &md::sys::motion::easing::standard);
     }
+}
+
+void CoverFlowRecyclerView::UpdateItemPosition(int viewPoolIndex)
+{
+    auto& item = _viewPool[viewPoolIndex];
+    auto& itemEx = _viewPoolEx[viewPoolIndex];
+    int itemIndex = item.itemIdx;
+    fix32<12> absOffsetFromCenter = (itemIndex - _scrollAnimator.GetValue()).Abs();
+    fix32<12> initialOffsetFromCenter = absOffsetFromCenter.Clamp(0, 1);
+    fix32<12> x = (COVER_HEIGHT / 4) * initialOffsetFromCenter + COVER_SPACING * absOffsetFromCenter;
+    int angle = -(fix32<16>((absOffsetFromCenter * 10 + 45 * initialOffsetFromCenter).Clamp(-90, 90)) / 360).GetRawValue();
+    fix32<12> z = -absOffsetFromCenter * 30 - 20 * initialOffsetFromCenter;
+    if (itemIndex <= _scrollAnimator.GetValue().Int())
+    {
+        x = -x;
+        angle = -angle;
+    }
+
+    itemEx.yAngle = angle;
+    itemEx.xPosition = x + 256 / 2;
+    itemEx.zPosition = z;
 }

@@ -22,7 +22,7 @@ RomBrowserAppBarView::RomBrowserAppBarView(
     : _viewModel(viewModel)
 {
     _appBarView = displayMode.CreateAppBarView(romBrowserViewFactory, 1, 2);
-    _appBarView->SetParent(this);
+    AddChildTail(_appBarView.GetPointer());
 
     _appBarView->SetButtonAction(APP_BAR_BUTTON_BACK, [] (IconButtonView* sender, void* arg)
     {
@@ -40,7 +40,7 @@ RomBrowserAppBarView::RomBrowserAppBarView(
 
 void RomBrowserAppBarView::InitVram(const VramContext& vramContext)
 {
-    _appBarView->InitVram(vramContext);
+    ViewContainer::InitVram(vramContext);
 
     const auto objVramManager = vramContext.GetObjVramManager();
     if (objVramManager)
@@ -108,28 +108,13 @@ void RomBrowserAppBarView::InitVram(const VramContext& vramContext)
     }
 }
 
-void RomBrowserAppBarView::Update()
+SharedPtr<View> RomBrowserAppBarView::MoveFocus(const SharedPtr<View>& currentFocus, FocusMoveDirection direction, View* source)
 {
-    _appBarView->Update();
-}
-
-void RomBrowserAppBarView::Draw(GraphicsContext& graphicsContext)
-{
-    _appBarView->Draw(graphicsContext);
-}
-
-void RomBrowserAppBarView::VBlank()
-{
-    _appBarView->VBlank();
-}
-
-View* RomBrowserAppBarView::MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source)
-{
-    if (currentFocus == nullptr)
+    if (!currentFocus)
     {
         return nullptr;
     }
-    if (source == _appBarView.get())
+    if (source == _appBarView.GetPointer())
     {
         return View::MoveFocus(currentFocus, direction, source);
     }
@@ -139,4 +124,3 @@ View* RomBrowserAppBarView::MoveFocus(View* currentFocus, FocusMoveDirection dir
     }
     return nullptr;
 }
-

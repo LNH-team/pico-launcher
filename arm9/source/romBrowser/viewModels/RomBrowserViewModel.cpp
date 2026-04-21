@@ -40,29 +40,7 @@ RomBrowserViewModel::RomBrowserViewModel(IRomBrowserController* romBrowserContro
     _selectedItem = _fileInfoManager->GetItemIndex(initialSelectedFileName);
 }
 
-void RomBrowserViewModel::ItemActivated()
-{
-    const auto& item = _fileInfoManager->GetItem(_selectedItem);
-    if (item.GetFileType()->GetClassification() == FileTypeClassification::Folder)
-    {
-        _romBrowserController->NavigateToPath(item.GetFileName());
-    }
-    else
-    {
-        _romBrowserController->LaunchFile(item);
-    }
-}
-
 void RomBrowserViewModel::NavigateUp()
 {
     _romBrowserController->NavigateUp();
-}
-
-void RomBrowserViewModel::ShowGameInfo()
-{
-    const auto& item = _fileInfoManager->GetItem(_selectedItem);
-    if (item.GetFileType() == &NdsFileType::sInstance)
-    {
-        _romBrowserController->ShowGameInfo(item);
-    }
 }

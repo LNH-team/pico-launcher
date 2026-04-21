@@ -24,16 +24,6 @@ public:
         ToggleSelected
     };
 
-    IconButtonView()
-        : _iconVramOffset(0), _action(nullptr), _actionArg(nullptr)
-        , _type(Type::Standard), _state(State::NoToggle) { }
-
-    IconButtonView(Type type, State state,
-        md::sys::color backgroundColor, const MaterialColorScheme* materialColorScheme)
-        : _iconVramOffset(0), _backgroundColor(backgroundColor)
-        , _action(nullptr), _actionArg(nullptr), _type(type), _state(state)
-        , _materialColorScheme(materialColorScheme) { }
-
     void SetIconVramOffset(u32 vramOffset) { _iconVramOffset = vramOffset; }
 
     Rectangle GetBounds() const override
@@ -53,6 +43,9 @@ public:
     }
 
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
+    void HandlePenDown(const Point& touchPoint, FocusManager& focusManager) override;
+    void HandlePenMove(const Point& touchPoint, FocusManager& focusManager) override;
+    void HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager) override;
 
 protected:
     u32 _iconVramOffset;
@@ -62,6 +55,13 @@ protected:
     Type _type;
     State _state;
     const MaterialColorScheme* _materialColorScheme;
+    bool _penDown = false;
+
+    IconButtonView(Type type, State state,
+        md::sys::color backgroundColor, const MaterialColorScheme* materialColorScheme)
+        : _iconVramOffset(0), _backgroundColor(backgroundColor)
+        , _action(nullptr), _actionArg(nullptr), _type(type), _state(state)
+        , _materialColorScheme(materialColorScheme) { }
 
     bool IsCircleBackgroundVisible() const;
     md::sys::color GetCircleBackgroundColor() const;

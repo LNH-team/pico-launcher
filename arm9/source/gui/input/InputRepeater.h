@@ -7,7 +7,7 @@ class InputRepeater : public InputProvider
 public:
     InputRepeater(InputProvider* inputProvider, InputKey repeatMask, u16 firstRepeatDelay, u16 nextRepeatDelay)
         : _inputProvider(inputProvider), _state(State::Idle)
-        , _frameCounter(0), _repeatMask(repeatMask)
+        , _frameCounter(0), _repeatMask(repeatMask & ~InputKey::Touch)
         , _firstRepeatDelayFrames(firstRepeatDelay)
         , _nextRepeatDelayFrames(nextRepeatDelay) { }
 

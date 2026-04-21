@@ -8,19 +8,18 @@ class IRomBrowserViewFactory;
 class BannerListFileRecyclerAdapter : public FileRecyclerAdapter
 {
 public:
-    BannerListFileRecyclerAdapter(FileInfoManager* fileInfoManager,
+    BannerListFileRecyclerAdapter(IRomBrowserController* romBrowserController, FileInfoManager* fileInfoManager,
         TaskQueueBase* taskQueue, const IThemeFileIconFactory* themeFileIconFactory,
         const IRomBrowserViewFactory* romBrowserViewFactory,
         VBlankTextureLoader* vblankTextureLoader)
-        : FileRecyclerAdapter(fileInfoManager, taskQueue, themeFileIconFactory)
+        : FileRecyclerAdapter(romBrowserController, fileInfoManager, taskQueue, themeFileIconFactory)
         , _romBrowserViewFactory(romBrowserViewFactory)
         , _vblankTextureLoader(vblankTextureLoader) { }
 
     void GetViewSize(int& width, int& height) const override;
-    View* CreateView() const override;
-    void DestroyView(View* view) const override;
-    void BindView(View* view, int index) const override;
-    void ReleaseView(View* view, int index) const override;
+    SharedPtr<View> CreateView() const override;
+    void BindView(SharedPtr<View> view, int index) const override;
+    void ReleaseView(SharedPtr<View> view, int index) const override;
 
     void InitVram(const VramContext& vramContext) override;
 
@@ -29,6 +28,7 @@ private:
     BannerListItemView::VramToken _bannerListItemViewGraphics;
     VBlankTextureLoader* _vblankTextureLoader;
 
-    TaskResult<void> BindView(View* view, int index,
+    TaskResult<void> BindView(SharedPtr<View> view, int index,
         const InternalFileInfo* internalFileInfo, const vu8& cancelRequested) const override;
+    void SetQueueTask(const SharedPtr<View>& view, QueueTask<void> queueTask) const override;
 };

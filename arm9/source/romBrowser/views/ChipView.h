@@ -13,6 +13,8 @@ class IVramManager;
 
 class ChipView : public View
 {
+    SHARED_ONLY(ChipView)
+
 public:
     class VramToken
     {
@@ -27,22 +29,16 @@ public:
         constexpr u32 GetVramOffset() const { return _vramOffset; }
     };
 
-    explicit ChipView(md::sys::color backgroundColor, const MaterialColorScheme* materialColorScheme,
-        const IFontRepository* fontRepository)
-        : _vramOffset(0), _isSelected(false), _backgroundColor(backgroundColor)
-        , _label(CHIP_VIEW_MAX_WIDTH - 20, 16, 30, fontRepository->GetFont(FontType::Medium10))
-        , _iconVramOffset(0xFFFFFFFF), _materialColorScheme(materialColorScheme) { }
+    void InitVram(const VramContext& vramContext) override { _label->InitVram(vramContext); }
 
-    void InitVram(const VramContext& vramContext) override { _label.InitVram(vramContext); }
-
-    void SetText(const char16_t* text) { _label.SetText(text); }
-    void SetText(const char16_t* text, u32 length) { _label.SetText(text, length); }
-    QueueTask<void> SetTextAsync(TaskQueueBase* taskQueue, const char16_t* text) { return _label.SetTextAsync(taskQueue, text); }
-    QueueTask<void> SetTextAsync(TaskQueueBase* taskQueue, const char16_t* text, u32 length) { return _label.SetTextAsync(taskQueue, text, length); }
+    void SetText(const char16_t* text) { _label->SetText(text); }
+    void SetText(const char16_t* text, u32 length) { _label->SetText(text, length); }
+    QueueTask<void> SetTextAsync(TaskQueueBase* taskQueue, const char16_t* text) { return _label->SetTextAsync(taskQueue, text); }
+    QueueTask<void> SetTextAsync(TaskQueueBase* taskQueue, const char16_t* text, u32 length) { return _label->SetTextAsync(taskQueue, text, length); }
 
     void Draw(GraphicsContext& graphicsContext) override;
 
-    void VBlank() override { _label.VBlank(); }
+    void VBlank() override { _label->VBlank(); }
 
     void SetGraphics(const VramToken& vramToken)
     {
@@ -63,9 +59,13 @@ public:
     {
         int width;
         if (_iconVramOffset == 0xFFFFFFFF)
-            width = 10 + _label.GetStringWidth() + 10;
+        {
+            width = 10 + _label->GetStringWidth() + 10;
+        }
         else
-            width = 22 + _label.GetStringWidth() + 10;
+        {
+            width = 22 + _label->GetStringWidth() + 10;
+        }
         width = std::clamp(width, CHIP_VIEW_MIN_WIDTH, CHIP_VIEW_MAX_WIDTH);
         return width;
     }
@@ -83,9 +83,15 @@ private:
     u32 _vramOffset;
     bool _isSelected;
     md::sys::color _backgroundColor;
-    Label2DView _label;
+    SharedPtr<Label2DView> _label;
     u32 _iconVramOffset;
     const MaterialColorScheme* _materialColorScheme;
+
+    ChipView(md::sys::color backgroundColor, const MaterialColorScheme* materialColorScheme,
+        const IFontRepository* fontRepository)
+        : _vramOffset(0), _isSelected(false), _backgroundColor(backgroundColor)
+        , _label(Label2DView::CreateShared(CHIP_VIEW_MAX_WIDTH - 20, 16, 30, fontRepository->GetFont(FontType::Medium10)))
+        , _iconVramOffset(0xFFFFFFFF), _materialColorScheme(materialColorScheme) { }
 
     void DrawIcon(GraphicsContext& graphicsContext, const Rgb<8, 8, 8>& fgColor);
 };

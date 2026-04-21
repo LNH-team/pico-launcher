@@ -17,7 +17,7 @@ void IconButton2DView::Draw(GraphicsContext& graphicsContext)
         return;
 
     u32 iconPaletteRow;
-    if (_isFocused)
+    if (_isFocused || _penDown)
     {
         const auto& bgColor = _materialColorScheme->GetColor(_backgroundColor);
         const auto& selectorBaseColor = _materialColorScheme->GetColor(GetCircleBackgroundColor());

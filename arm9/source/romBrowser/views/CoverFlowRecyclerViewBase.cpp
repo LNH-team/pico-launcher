@@ -1,6 +1,14 @@
 #include "common.h"
 #include "CoverFlowRecyclerViewBase.h"
 
+CoverFlowRecyclerViewBase::~CoverFlowRecyclerViewBase()
+{
+    for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
+    {
+        _adapter->ReleaseView(_viewPool[i].view, _viewPool[i].itemIdx);
+    }
+}
+
 void CoverFlowRecyclerViewBase::InitVram(const VramContext& vramContext)
 {
     for (u32 i = 0; i < _viewPool.size(); i++)
@@ -9,17 +17,18 @@ void CoverFlowRecyclerViewBase::InitVram(const VramContext& vramContext)
     }
 }
 
-void CoverFlowRecyclerViewBase::SetAdapter(const RecyclerAdapter* adapter, int initialSelectedIndex)
+void CoverFlowRecyclerViewBase::SetAdapter(SharedPtr<const RecyclerAdapter> adapter, int initialSelectedIndex)
 {
     if (_adapter)
     {
         _selectedItem = nullptr;
-        for (u32 i = 0; i < _viewPool.size(); i++)
+        for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
         {
-            _adapter->DestroyView(_viewPool[i].view);
+            _adapter->ReleaseView(_viewPool[i].view, _viewPool[i].itemIdx);
+            _viewPool[i].view.Reset();
         }
     }
-    _adapter = adapter;
+    _adapter = std::move(adapter);
     // _adapter->GetViewSize(_itemWidth, _itemHeight);
     _itemCount = _adapter->GetItemCount();
 
@@ -41,14 +50,14 @@ void CoverFlowRecyclerViewBase::SetAdapter(const RecyclerAdapter* adapter, int i
     }
 }
 
-View* CoverFlowRecyclerViewBase::MoveFocus(View* currentFocus, FocusMoveDirection direction, View* source)
+SharedPtr<View> CoverFlowRecyclerViewBase::MoveFocus(const SharedPtr<View>& currentFocus, FocusMoveDirection direction, View* source)
 {
-    if (!_selectedItem || currentFocus != _selectedItem->view)
+    if (!_selectedItem || currentFocus.GetPointer() != _selectedItem->view.GetPointer())
     {
         // incoming focus
         if (direction == FocusMoveDirection::Down)
         {
-            return _selectedItem ? _selectedItem->view : this;
+            return _selectedItem ? _selectedItem->view : SharedFromThis();
         }
         else
         {
@@ -78,7 +87,7 @@ View* CoverFlowRecyclerViewBase::MoveFocus(View* currentFocus, FocusMoveDirectio
         return View::MoveFocus(currentFocus, direction, this);
     }
 
-    return _selectedItem ? _selectedItem->view : this;
+    return _selectedItem ? _selectedItem->view : SharedFromThis();
 }
 
 CoverFlowRecyclerViewBase::ViewPoolEntry* CoverFlowRecyclerViewBase::GetViewPoolEntryByItemIndex(int itemIdx)
@@ -106,7 +115,6 @@ CoverFlowRecyclerViewBase::ViewPoolEntry* CoverFlowRecyclerViewBase::BindViewPoo
     _viewPoolFreeCount--;
     entry.itemIdx = itemIdx;
     _adapter->BindView(entry.view, itemIdx);
-    UpdateItemPosition(viewPoolIndex, true);
     return &entry;
 }
 
@@ -175,10 +183,5 @@ void CoverFlowRecyclerViewBase::SetSelectedItem(int itemIdx, bool initial)
     else
     {
         _selectedItem = BindViewPoolEntry(itemIdx);
-    }
-
-    for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
-    {
-        UpdateItemPosition(i, initial);
     }
 }

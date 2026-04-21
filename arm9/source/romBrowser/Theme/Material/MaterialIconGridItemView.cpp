@@ -20,7 +20,7 @@ void MaterialIconGridItemView::Draw(GraphicsContext& graphicsContext)
         return;
 
     auto backColor = _materialColorScheme->inverseOnSurface;
-    auto frontColor = _isFocused
+    auto frontColor = (_isFocused || _inputHandler.IsPenDown())
         ? _materialColorScheme->mainIconBg
         : _materialColorScheme->surfaceBright;
     u16 selectedIconCellPltt[16];

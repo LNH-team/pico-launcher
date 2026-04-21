@@ -10,26 +10,26 @@ public:
 
     bool IsVertical() const override { return false; }
 
-    std::unique_ptr<AppBarView> CreateAppBarView(const IRomBrowserViewFactory* romBrowserViewFactory,
+    SharedPtr<AppBarView> CreateAppBarView(const IRomBrowserViewFactory* romBrowserViewFactory,
         int startButtonCount, int endButtonCount) const override
     {
         return romBrowserViewFactory->CreateAppBarView(0, 0,
             AppBarView::Orientation::Horizontal, startButtonCount, endButtonCount);
     }
 
-    std::unique_ptr<RecyclerViewBase> CreateRecyclerView(const IRomBrowserViewFactory* romBrowserViewFactory) const override
+    SharedPtr<RecyclerViewBase> CreateRecyclerView(const IRomBrowserViewFactory* romBrowserViewFactory) const override
     {
-        auto recyclerView = std::make_unique<RecyclerView>(0, 42, 256, 192 - 42, RecyclerView::Mode::HorizontalGrid);
+        auto recyclerView = RecyclerView::CreateShared(0, 42, 256, 192 - 42, RecyclerView::Mode::HorizontalGrid);
         recyclerView->SetPadding(10, 0);
         recyclerView->SetItemSpacing(4, 4);
         return recyclerView;
     }
 
-    FileRecyclerAdapter* CreateRecyclerAdapter(
+    SharedPtr<FileRecyclerAdapter> CreateRecyclerAdapter(
         RomBrowserViewModel* viewModel, const IThemeFileIconFactory* themeFileIconFactory,
         const IRomBrowserViewFactory* romBrowserViewFactory, VBlankTextureLoader* vblankTextureLoader) const override
     {
-        return new IconGridFileRecyclerAdapter(
+        return SharedPtr<IconGridFileRecyclerAdapter>::MakeShared(viewModel->GetRomBrowserController(),
             &viewModel->GetFileInfoManager(), viewModel->GetIoTaskQueue(),
             themeFileIconFactory, romBrowserViewFactory);
     }

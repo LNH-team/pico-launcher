@@ -2,6 +2,8 @@
 #include "BannerView.h"
 #include "gui/views/LabelView.h"
 #include "../FileType/FileIcon.h"
+#include "romBrowser/viewModels/RomBrowserItemViewModel.h"
+#include "RomBrowserItemInputHandler.h"
 
 class BannerListItemView : public BannerView
 {
@@ -19,10 +21,12 @@ public:
         constexpr u32 GetVramOffset() const { return _vramOffset; }
     };
 
-    BannerListItemView(std::unique_ptr<LabelView> firstLine,
-        std::unique_ptr<LabelView> secondLine, std::unique_ptr<LabelView> thirdLine);
-
     void Update() override;
+
+    bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
+    void HandlePenDown(const Point& touchPoint, FocusManager& focusManager) override;
+    void HandlePenMove(const Point& touchPoint, FocusManager& focusManager) override;
+    void HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager) override;
 
     virtual void SetGraphics(const VramToken& vramToken) { }
 
@@ -60,8 +64,18 @@ public:
             _thirdLine->SetText(thirdLine, length);
     }
 
+    RomBrowserItemViewModel& GetViewModel() const
+    {
+        return *_viewModel;
+    }
+
 protected:
-    std::unique_ptr<LabelView> _firstLine;
-    std::unique_ptr<LabelView> _secondLine;
-    std::unique_ptr<LabelView> _thirdLine;
+    std::unique_ptr<RomBrowserItemViewModel> _viewModel;
+    SharedPtr<LabelView> _firstLine;
+    SharedPtr<LabelView> _secondLine;
+    SharedPtr<LabelView> _thirdLine;
+    RomBrowserItemInputHandler _inputHandler;
+
+    BannerListItemView(std::unique_ptr<RomBrowserItemViewModel> viewModel, SharedPtr<LabelView> firstLine,
+        SharedPtr<LabelView> secondLine, SharedPtr<LabelView> thirdLine);
 };

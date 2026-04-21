@@ -25,6 +25,7 @@
 #define KEY_TOP_BANNER_TEXT_LINE_1      "topBannerTextLine1"
 #define KEY_TOP_BANNER_TEXT_LINE_2      "topBannerTextLine2"
 #define KEY_TOP_FILE_NAME_TEXT          "topFileNameText"
+#define KEY_TOP_COVER                   "topCover"
 #define KEY_GRID_ICON                   "gridIcon"
 #define KEY_BANNER_LIST_ICON            "bannerListIcon"
 #define KEY_BANNER_LIST_TEXT_LINE_0     "bannerListTextLine0"
@@ -43,6 +44,7 @@ static const CustomThemeInfo sDefaultCustomThemeInfo
     .topBannerTextLine1Info = CustomTopTextElementInfo(Point(70, 141), 176, Rgb8(30, 30, 30), Rgb8(200, 200, 200)),
     .topBannerTextLine2Info = CustomTopTextElementInfo(Point(70, 155), 176, Rgb8(30, 30, 30), Rgb8(200, 200, 200)),
     .topFileNameTextInfo = CustomTopTextElementInfo(Point(18, 170), 220, Rgb8(30, 30, 30), Rgb8(200, 200, 200)),
+    .topCoverInfo = CustomTopCoverInfo(Point(75, 18)),
 
     .gridIconInfo = CustomBottomIconInfo(Rgb8(200, 200, 200)),
 
@@ -122,6 +124,18 @@ static CustomTopIconInfo parseCustomTopIconInfo(const JsonObjectConst& json, con
     );
 }
 
+static CustomTopCoverInfo parseCustomTopCoverInfo(const JsonObjectConst& json, const CustomTopCoverInfo& defaultInfo)
+{
+    if (json.isNull())
+    {
+        return defaultInfo;
+    }
+
+    return CustomTopCoverInfo(
+        parsePoint(json[KEY_ELEMENT_POSITION], defaultInfo.GetPosition())
+    );
+}
+
 static CustomTopTextElementInfo parseCustomTextElementInfo(
     const JsonObjectConst& json, const CustomTopTextElementInfo& defaultInfo)
 {
@@ -151,6 +165,7 @@ static CustomThemeInfo parseCustomThemeInfo(const JsonDocument& json)
             json[KEY_TOP_BANNER_TEXT_LINE_2], sDefaultCustomThemeInfo.topBannerTextLine2Info),
         .topFileNameTextInfo = parseCustomTextElementInfo(
             json[KEY_TOP_FILE_NAME_TEXT], sDefaultCustomThemeInfo.topFileNameTextInfo),
+        .topCoverInfo = parseCustomTopCoverInfo(json[KEY_TOP_COVER], sDefaultCustomThemeInfo.topCoverInfo),
 
         .gridIconInfo = parseCustomBottomIconInfo(json[KEY_GRID_ICON], sDefaultCustomThemeInfo.gridIconInfo),
 

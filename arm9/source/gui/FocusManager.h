@@ -1,4 +1,6 @@
 #pragma once
+#include <core/SharedPtr.h>
+#include <core/WeakPtr.h>
 
 class View;
 class InputProvider;
@@ -9,7 +11,7 @@ class FocusManager
 public:
     /// @brief Focuses the given view.
     /// @param newFocus The view to focus.
-    void Focus(View* newFocus);
+    void Focus(const SharedPtr<View>& newFocus);
 
     /// @brief Clears the current focus.
     void Unfocus();
@@ -20,7 +22,7 @@ public:
 
     /// @brief Gets the currently focused view.
     /// @return A pointer to the view that is currently focused, or null if none.
-    constexpr View* GetCurrentFocus() const { return _currentFocus; }
+    constexpr SharedPtr<View> GetCurrentFocus() const { return _currentFocus.Lock(); }
 
     /// @brief Checks whether the current focus lies inside the given view.
     /// @param view The view to check for.
@@ -28,5 +30,5 @@ public:
     bool IsFocusInside(const View* view) const;
 
 private:
-    View* _currentFocus = nullptr;
+    WeakPtr<View> _currentFocus;
 };

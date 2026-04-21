@@ -26,8 +26,8 @@ void CustomIconGridItemView::Draw(GraphicsContext& graphicsContext)
         false, false, false, GX_DEPTH_FUNC_LESS, false, 31, 0);
     Gx::Color(0x7FFF);
 
-    u32 tex = _isFocused ? _selectedTexVramOffset : _texVramOffset;
-    u32 pltt = _isFocused ? _selectedPlttVramOffset : _plttVramOffset;
+    u32 tex = (_isFocused || _inputHandler.IsPenDown()) ? _selectedTexVramOffset : _texVramOffset;
+    u32 pltt = (_isFocused || _inputHandler.IsPenDown()) ? _selectedPlttVramOffset : _plttVramOffset;
     Gx::TexImageParam(tex >> 3, false, false, false, false, GX_TEXSIZE_64,
         GX_TEXSIZE_64, GX_TEXFMT_A3I5, false, GX_TEXGEN_NONE);
     Gx::TexPlttBase(pltt >> 4);

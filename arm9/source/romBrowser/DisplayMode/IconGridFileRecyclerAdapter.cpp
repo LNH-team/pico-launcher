@@ -3,6 +3,7 @@
 #include "core/task/TaskQueue.h"
 #include "../views/IconGridItemView.h"
 #include "../Theme/IRomBrowserViewFactory.h"
+#include "romBrowser/viewModels/RomBrowserItemViewModel.h"
 #include "IconGridFileRecyclerAdapter.h"
 
 void IconGridFileRecyclerAdapter::GetViewSize(int& width, int& height) const
@@ -11,27 +12,23 @@ void IconGridFileRecyclerAdapter::GetViewSize(int& width, int& height) const
     height = 44;
 }
 
-View* IconGridFileRecyclerAdapter::CreateView() const
+SharedPtr<View> IconGridFileRecyclerAdapter::CreateView() const
 {
-    return _romBrowserViewFactory->CreateIconGridItemView();
+    return _romBrowserViewFactory->CreateIconGridItemView(std::make_unique<RomBrowserItemViewModel>(_romBrowserController));
 }
 
-void IconGridFileRecyclerAdapter::DestroyView(View* view) const
+void IconGridFileRecyclerAdapter::BindView(SharedPtr<View> view, int index) const
 {
-    delete static_cast<IconGridItemView*>(view);
-}
-
-void IconGridFileRecyclerAdapter::BindView(View* view, int index) const
-{
-    auto iconGridItemView = static_cast<IconGridItemView*>(view);
+    auto iconGridItemView = static_cast<IconGridItemView*>(view.GetPointer());
     iconGridItemView->SetGraphics(_iconGridItemViewGraphics);
     FileRecyclerAdapter::BindView(view, index);
 }
 
-TaskResult<void> IconGridFileRecyclerAdapter::BindView(View* view, int index,
+TaskResult<void> IconGridFileRecyclerAdapter::BindView(SharedPtr<View> view, int index,
     const InternalFileInfo* internalFileInfo, const vu8& cancelRequested) const
 {
-    auto iconGridItemView = static_cast<IconGridItemView*>(view);
+    auto iconGridItemView = static_cast<IconGridItemView*>(view.GetPointer());
+    iconGridItemView->GetViewModel().SetIndex(index);
     auto icon = internalFileInfo ? internalFileInfo->CreateGameIcon() : nullptr;
     if (!icon)
     {
@@ -59,11 +56,19 @@ TaskResult<void> IconGridFileRecyclerAdapter::BindView(View* view, int index,
     return TaskResult<void>::Completed();
 }
 
-void IconGridFileRecyclerAdapter::ReleaseView(View* view, int index) const
+void IconGridFileRecyclerAdapter::SetQueueTask(const SharedPtr<View>& view, QueueTask<void> queueTask) const
+{
+    auto iconGridItemView = static_cast<IconGridItemView*>(view.GetPointer());
+    iconGridItemView->GetViewModel().SetQueueTask(std::move(queueTask));
+}
+
+void IconGridFileRecyclerAdapter::ReleaseView(SharedPtr<View> view, int index) const
 {
     LOG_DEBUG("Releasing %d\n", index);
-    auto iconGridItemView = static_cast<IconGridItemView*>(view);
+    auto iconGridItemView = static_cast<IconGridItemView*>(view.GetPointer());
     iconGridItemView->SetIcon(nullptr);
+    iconGridItemView->GetViewModel().SetIndex(-1);
+    iconGridItemView->GetViewModel().CancelQueueTask();
     _fileInfoManager->ReleaseFileInfo(index);
 }
 

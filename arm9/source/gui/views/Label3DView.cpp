@@ -12,6 +12,11 @@ Label3DView::Label3DView(u32 width, u32 height, u32 maxStringLength, const nft2_
     : LabelView(width, height, maxStringLength, font, true)
     , _vblankTextureLoader(vblankTextureLoader) { }
 
+Label3DView::~Label3DView()
+{
+    _vblankTextureLoader->CancelLoad(_textureLoadRequest);
+}
+
 void Label3DView::InitVram(const VramContext& vramContext)
 {
     const auto texVramManager = vramContext.GetTexVramManager();

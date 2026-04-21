@@ -1,6 +1,6 @@
 #pragma once
 #include "gui/views/LabelView.h"
-#include "../../views/BannerListItemView.h"
+#include "romBrowser/views/BannerListItemView.h"
 
 class MaterialColorScheme;
 class IFontRepository;
@@ -8,11 +8,9 @@ class CustomThemeInfo;
 
 class CustomBannerListItemView : public BannerListItemView
 {
-public:
-    CustomBannerListItemView(const CustomThemeInfo* customThemeInfo, const MaterialColorScheme* materialColorScheme,
-        const IFontRepository* fontRepository, u32 texVramOffset, u32 plttVramOffset,
-        u32 selectedTexVramOffset, u32 selectedPlttVramOffset, VBlankTextureLoader* vblankTextureLoader);
+    SHARED_ONLY(CustomBannerListItemView)
 
+public:
     void Draw(GraphicsContext& graphicsContext) override;
 
     Rectangle GetBounds() const override
@@ -27,4 +25,9 @@ private:
     u32 _plttVramOffset = 0;
     u32 _selectedTexVramOffset = 0;
     u32 _selectedPlttVramOffset = 0;
+
+    CustomBannerListItemView(std::unique_ptr<RomBrowserItemViewModel> viewModel, const CustomThemeInfo* customThemeInfo,
+        const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository,
+        u32 texVramOffset, u32 plttVramOffset, u32 selectedTexVramOffset, u32 selectedPlttVramOffset,
+        VBlankTextureLoader* vblankTextureLoader);
 };

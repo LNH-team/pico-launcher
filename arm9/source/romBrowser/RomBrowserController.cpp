@@ -196,7 +196,7 @@ void RomBrowserController::HandleFolderLoadDoneTrigger()
     LOG_DEBUG("RomBrowserStateTrigger::FolderLoadDone\n");
     _romBrowserViewModel.Reset();
     _sdFolder = std::move(_newSdFolder);
-    _romBrowserViewModel = SharedPtr(new RomBrowserViewModel(this, _navigateFileName));
+    _romBrowserViewModel = SharedPtr<RomBrowserViewModel>::MakeShared(this, _navigateFileName);
 }
 
 void RomBrowserController::HandleLaunchTrigger()
@@ -214,7 +214,7 @@ void RomBrowserController::HandleLaunchTrigger()
 void RomBrowserController::HandleChangeDisplayModeTrigger()
 {
     LOG_DEBUG("RomBrowserStateTrigger::ChangeDisplayMode\n");
-    _romBrowserViewModel = SharedPtr(new RomBrowserViewModel(this));
+    _romBrowserViewModel = SharedPtr<RomBrowserViewModel>::MakeShared(this);
 }
 
 void RomBrowserController::UpdateLastUsedFilepath()

@@ -3,7 +3,7 @@
 #include "input/InputProvider.h"
 #include "FocusManager.h"
 
-void FocusManager::Focus(View* newFocus)
+void FocusManager::Focus(const SharedPtr<View>& newFocus)
 {
     if (!newFocus)
     {
@@ -11,48 +11,71 @@ void FocusManager::Focus(View* newFocus)
         return;
     }
 
-    if (_currentFocus)
-        _currentFocus->SetFocused(false);
+    if (auto currentFocus = _currentFocus.Lock())
+    {
+        currentFocus->SetFocused(false);
+    }
     newFocus->SetFocused(true);
     _currentFocus = newFocus;
 }
 
 void FocusManager::Unfocus()
 {
-    if (_currentFocus)
-        _currentFocus->SetFocused(false);
-    _currentFocus = nullptr;
+    if (auto currentFocus = _currentFocus.Lock())
+    {
+        currentFocus->SetFocused(false);
+    }
+    _currentFocus.Reset();
 }
 
 void FocusManager::Update(const InputProvider& inputProvider)
 {
-    if (!_currentFocus || !_currentFocus->GetParent())
+    auto currentFocus = _currentFocus.Lock();
+    if (!currentFocus || !currentFocus->GetParent())
         return; // todo
 
-    View* newFocus = nullptr;
+    SharedPtr<View> newFocus;
     if (inputProvider.Triggered(InputKey::DpadUp))
-        newFocus = _currentFocus->GetParent()->MoveFocus(_currentFocus, FocusMoveDirection::Up, _currentFocus);
+    {
+        newFocus = currentFocus->GetParent()->MoveFocus(currentFocus, FocusMoveDirection::Up, currentFocus.GetPointer());
+    }
     else if (inputProvider.Triggered(InputKey::DpadDown))
-        newFocus = _currentFocus->GetParent()->MoveFocus(_currentFocus, FocusMoveDirection::Down, _currentFocus);
+    {
+        newFocus = currentFocus->GetParent()->MoveFocus(currentFocus, FocusMoveDirection::Down, currentFocus.GetPointer());
+    }
     else if (inputProvider.Triggered(InputKey::DpadLeft))
-        newFocus = _currentFocus->GetParent()->MoveFocus(_currentFocus, FocusMoveDirection::Left, _currentFocus);
+    {
+        newFocus = currentFocus->GetParent()->MoveFocus(currentFocus, FocusMoveDirection::Left, currentFocus.GetPointer());
+    }
     else if (inputProvider.Triggered(InputKey::DpadRight))
-        newFocus = _currentFocus->GetParent()->MoveFocus(_currentFocus, FocusMoveDirection::Right, _currentFocus);
+    {
+        newFocus = currentFocus->GetParent()->MoveFocus(currentFocus, FocusMoveDirection::Right, currentFocus.GetPointer());
+    }
     else
-        _currentFocus->HandleInput(inputProvider, *this);
+    {
+        currentFocus->HandleInput(inputProvider, *this);
+    }
 
     if (newFocus)
+    {
         Focus(newFocus);
+    }
 }
 
 bool FocusManager::IsFocusInside(const View* view) const
 {
-    auto focusView = _currentFocus;
-    while (focusView)
+    if (auto currentFocus = _currentFocus.Lock())
     {
-        if (view == focusView)
-            return true;
-        focusView = focusView->GetParent();
+        auto focusView = currentFocus.GetPointer();
+        while (focusView)
+        {
+            if (view == focusView)
+            {
+                return true;
+            }
+
+            focusView = focusView->GetParent();
+        }
     }
     return false;
 }

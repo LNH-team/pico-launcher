@@ -40,13 +40,13 @@ void ChipView::Draw(GraphicsContext& graphicsContext)
             DirectPalette(chipPltt), _position.y, _position.y + 20);
         if (!_isFocused)
         {
-            _label.SetBackgroundColor(_materialColorScheme->secondaryContainer);
-            _label.SetForegroundColor(_materialColorScheme->onSecondaryContainer);
+            _label->SetBackgroundColor(_materialColorScheme->secondaryContainer);
+            _label->SetForegroundColor(_materialColorScheme->onSecondaryContainer);
         }
         else
         {
-            _label.SetBackgroundColor(fgColor);
-            _label.SetForegroundColor(_materialColorScheme->onSecondaryContainer);
+            _label->SetBackgroundColor(fgColor);
+            _label->SetForegroundColor(_materialColorScheme->onSecondaryContainer);
         }
     }
     else
@@ -70,13 +70,13 @@ void ChipView::Draw(GraphicsContext& graphicsContext)
 
         if (!_isFocused)
         {
-            _label.SetBackgroundColor(_materialColorScheme->GetColor(_backgroundColor));
-            _label.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+            _label->SetBackgroundColor(_materialColorScheme->GetColor(_backgroundColor));
+            _label->SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         }
         else
         {
-            _label.SetBackgroundColor(fgColor);
-            _label.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+            _label->SetBackgroundColor(fgColor);
+            _label->SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         }
     }
 
@@ -88,7 +88,7 @@ void ChipView::Draw(GraphicsContext& graphicsContext)
         .WithPriority(graphicsContext.GetPriority())
         .Build(oams[0]);
     OamBuilder::OamWithSize<64, 32>(
-            _position.x + width - 48 - 16, 
+            _position.x + width - 48 - 16,
             _position.y, _vramOffset >> 7)
         .WithPalette16(paletteRow)
         .WithPriority(graphicsContext.GetPriority())
@@ -97,8 +97,8 @@ void ChipView::Draw(GraphicsContext& graphicsContext)
 
     DrawIcon(graphicsContext, fgColor);
 
-    _label.SetPosition(_position.x + (_iconVramOffset == 0xFFFFFFFF ? 10 : 22), _position.y + 3);
-    _label.Draw(graphicsContext);
+    _label->SetPosition(_position.x + (_iconVramOffset == 0xFFFFFFFF ? 10 : 22), _position.y + 3);
+    _label->Draw(graphicsContext);
 }
 
 void ChipView::DrawIcon(GraphicsContext& graphicsContext, const Rgb<8, 8, 8>& fgColor)

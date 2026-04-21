@@ -15,7 +15,9 @@ enum class InputKey : u16
     L         = 1 << 9,
     X         = 1 << 10,
     Y         = 1 << 11,
-    Debug     = 1 << 13
+    Debug     = 1 << 13,
+    Touch     = 1 << 14,
+    Lid       = 1 << 15
 };
 
 inline InputKey operator&(InputKey lhs, InputKey rhs)
