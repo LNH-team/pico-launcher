@@ -2,7 +2,7 @@
 #include <backlightIpcCommand.h>
 #include <ipcChannels.h>
 
-static u8 sBacklightLevel;
+static volatile u8 sBacklightLevel;
 static rtos_event_t sEvent;
 
 static void ipcMessageHandler(u32 channel, u32 data, void* arg)
