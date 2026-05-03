@@ -1,7 +1,6 @@
 #pragma once
 #include "ipc/ThreadIpcService.h"
 #include "ipcChannels.h"
-//TODO: Make into ThreadIPCService
 class BackLightIpcService : public ThreadIpcService
 {
     u32 _threadStack[128];
