@@ -21,7 +21,7 @@ void initBacklightIpc()
         .cmd_id=BLI_IPC_CMD_GET_CURRENT_LEVEL
     }.as_u32;
 
-    ipc_sendFifoMessage(IPC_CHANNEL_BACKLIGHT,CMD_FETCH_LEVEL);
+    ipc_sendFifoMessage(IPC_CHANNEL_BACKLIGHT, CMD_FETCH_LEVEL);
     rtos_waitEvent(&sEvent, false, true);
 }
 
