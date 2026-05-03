@@ -61,18 +61,19 @@ void BackLightIpcService::setBacklightLevel(const u8 level) const
 }
 u8 BackLightIpcService::getBacklightLevel() const
 {
+    u8 result;
     if (isDSiMode())
     {
         rtos_lockMutex(&gMCU_Mutex);
-        u8 retval = mcu_readLightLevel()+1;
+        result = mcu_readLightLevel() + 1;
         rtos_unlockMutex(&gMCU_Mutex);
-        return retval;
     }
     else
     {
         rtos_lockMutex(&gPMIC_Mutex);
-        u8 retval = pmic_readRegister(PMIC_REG_BACKLIGHT)&PMIC_BACKLIGHT_MASK;
+        result = pmic_readRegister(PMIC_REG_BACKLIGHT) & PMIC_BACKLIGHT_MASK;
         rtos_unlockMutex(&gPMIC_Mutex);
-        return retval;
     }
+
+    return result;
 }
