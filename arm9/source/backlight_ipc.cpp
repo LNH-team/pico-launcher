@@ -8,8 +8,10 @@ static rtos_event_t sEvent;
 static void ipcMessageHandler(u32 channel, u32 data, void* arg)
 {
     const bli_ipc_cmd cmd={.as_u32 = data};
-    if (cmd.cmd_id==BLI_IPC_CMD_CURRENT_LEVEL_UPDATED)
+    if (cmd.cmd_id == BLI_IPC_CMD_CURRENT_LEVEL_UPDATED)
+    {
         sBacklightLevel = cmd.backlightLevel;
+    }
     rtos_signalEvent(&sEvent);
 }
 
