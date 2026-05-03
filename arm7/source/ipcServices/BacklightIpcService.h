@@ -9,7 +9,7 @@ class BackLightIpcService : public ThreadIpcService
 
 public:
     BackLightIpcService()//No clue if this is a good priority / thread stack size
-        : ThreadIpcService(IPC_CHANNEL_BACKLIGHT,4,_threadStack,sizeof(_threadStack)) { }
+        : ThreadIpcService(IPC_CHANNEL_BACKLIGHT, 4 , _threadStack, sizeof(_threadStack)) { }
 
     void HandleMessage(u32 data) override;
 };
