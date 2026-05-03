@@ -27,7 +27,8 @@ void initBacklightIpc()
 
 extern "C" u8 setBacklightlevel(u8 level)
 {
-    const u32 CMD_SET = bli_ipc_cmd{
+    const u32 command = bli_ipc_cmd
+    {
         .cmd_id=BLI_IPC_CMD_SET_CURRENT_LEVEL,
         .backlightLevel = level
     }.as_u32;
