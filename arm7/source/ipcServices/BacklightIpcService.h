@@ -8,7 +8,7 @@ class BackLightIpcService : public ThreadIpcService
     void setBacklightLevel(const u8 level)const;
 
 public:
-    BackLightIpcService()//No clue if this is a good priority / thread stack size
+    BackLightIpcService()
         : ThreadIpcService(IPC_CHANNEL_BACKLIGHT, 4 , _threadStack, sizeof(_threadStack)) { }
 
     void HandleMessage(u32 data) override;
