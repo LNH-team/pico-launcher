@@ -27,7 +27,7 @@ void bli_init()
     rtos_waitEvent(&sEvent, false, true);
 }
 
-extern "C" u8 bli_setBacklightLevel(u8 level)
+u8 bli_setBacklightLevel(u8 level)
 {
     const u32 command = bli_ipc_cmd
     {
@@ -41,7 +41,7 @@ extern "C" u8 bli_setBacklightLevel(u8 level)
     return sBacklightLevel;
 }
 
-extern "C" u8 bli_getBacklightLevel()
+u8 bli_getBacklightLevel()
 {
     return sBacklightLevel;
 }
