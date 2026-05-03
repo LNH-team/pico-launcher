@@ -5,7 +5,6 @@
 #include "backIcon.h"
 #include "settingsIcon.h"
 #include "heartIcon.h"
-#include "lightBulbIcon.h"
 #include "recentIcon.h"
 #include "hGridIcon.h"
 #include "vGridIcon.h"
