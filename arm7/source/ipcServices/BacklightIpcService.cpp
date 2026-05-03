@@ -5,8 +5,6 @@
 #include <backlightIpcCommand.h>
 #include "BacklightIpcService.h"
 
-// #include "core/mini-printf.h"
-// #define NOCASHDEBUG *(vu32*)(0x04FFFA10)
 
 static inline bool mcu_setLightLevel(u8 val)
 {
