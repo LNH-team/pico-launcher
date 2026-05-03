@@ -1,6 +1,8 @@
 #pragma once
 #include "ipc/ThreadIpcService.h"
 #include "ipcChannels.h"
+#include "ThreadIpcServicePriorities.h"
+
 class BackLightIpcService : public ThreadIpcService
 {
     u32 _threadStack[128];
@@ -9,7 +11,7 @@ class BackLightIpcService : public ThreadIpcService
 
 public:
     BackLightIpcService()
-        : ThreadIpcService(IPC_CHANNEL_BACKLIGHT, 4 , _threadStack, sizeof(_threadStack)) { }
+        : ThreadIpcService(IPC_CHANNEL_BACKLIGHT, IPC_PRIORITY_BACKLIGHT, _threadStack, sizeof(_threadStack)) { }
 
     void HandleMessage(u32 data) override;
 };

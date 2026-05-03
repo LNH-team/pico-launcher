@@ -180,7 +180,7 @@ int main(int argc, char* argv[])
         pload_setBootDrive(PLOAD_BOOT_DRIVE_DLDI);
         dldiInitSuccessful = true;
     }
-    initBacklightIpc();
+    bli_init();
 
     LOG_DEBUG("ARM9 Start\n");
     if (Environment::IsDsiMode())

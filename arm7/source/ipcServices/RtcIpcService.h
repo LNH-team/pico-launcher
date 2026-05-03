@@ -1,6 +1,7 @@
 #pragma once
 #include "ipc/ThreadIpcService.h"
 #include "ipcChannels.h"
+#include "ThreadIpcServicePriorities.h"
 
 class RtcIpcService : public ThreadIpcService
 {
@@ -8,7 +9,7 @@ class RtcIpcService : public ThreadIpcService
 
 public:
     RtcIpcService()
-        : ThreadIpcService(IPC_CHANNEL_RTC, 10, _threadStack, sizeof(_threadStack)) { }
+        : ThreadIpcService(IPC_CHANNEL_RTC, IPC_PRIORITY_RTC, _threadStack, sizeof(_threadStack)) { }
 
     void HandleMessage(u32 data) override;
 };

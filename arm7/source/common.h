@@ -2,5 +2,5 @@
 #include <nds/ndstypes.h>
 #include <libtwl/rtos/rtosMutex.h>
 
-extern rtos_mutex_t gMCU_Mutex;
-extern rtos_mutex_t gPMIC_Mutex;
+extern rtos_mutex_t gI2cMutex;
+extern rtos_mutex_t gSpiMutex;

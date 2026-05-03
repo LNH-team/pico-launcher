@@ -2,6 +2,7 @@
 #include "ipc/ThreadIpcService.h"
 #include "dsiSdIpcCommand.h"
 #include "ipcChannels.h"
+#include "ThreadIpcServicePriorities.h"
 
 class DsiSdIpcService : public ThreadIpcService
 {
@@ -12,7 +13,7 @@ class DsiSdIpcService : public ThreadIpcService
 
 public:
     DsiSdIpcService()
-        : ThreadIpcService(IPC_CHANNEL_DSI_SD, 5, _threadStack, sizeof(_threadStack)) { }
+        : ThreadIpcService(IPC_CHANNEL_DSI_SD, IPC_PRIORITY_DSI_SD, _threadStack, sizeof(_threadStack)) { }
 
     void Start() override;
     void HandleMessage(u32 data) override;

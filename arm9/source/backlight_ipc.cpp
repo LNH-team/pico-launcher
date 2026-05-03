@@ -15,19 +15,19 @@ static void ipcMessageHandler(u32 channel, u32 data, void* arg)
     rtos_signalEvent(&sEvent);
 }
 
-void initBacklightIpc()
+void bli_init()
 {
     ipc_setChannelHandler(IPC_CHANNEL_BACKLIGHT,ipcMessageHandler,nullptr);
 
-    const u32 CMD_FETCH_LEVEL = bli_ipc_cmd{
+    const u32 command = bli_ipc_cmd{
         .cmd_id=BLI_IPC_CMD_GET_CURRENT_LEVEL
     }.as_u32;
 
-    ipc_sendFifoMessage(IPC_CHANNEL_BACKLIGHT, CMD_FETCH_LEVEL);
+    ipc_sendFifoMessage(IPC_CHANNEL_BACKLIGHT, command);
     rtos_waitEvent(&sEvent, false, true);
 }
 
-extern "C" u8 setBacklightlevel(u8 level)
+extern "C" u8 bli_setBacklightLevel(u8 level)
 {
     const u32 command = bli_ipc_cmd
     {
@@ -35,13 +35,13 @@ extern "C" u8 setBacklightlevel(u8 level)
         .backlightLevel = level
     }.as_u32;
 
-    ipc_sendFifoMessage(IPC_CHANNEL_BACKLIGHT, CMD_SET);
+    ipc_sendFifoMessage(IPC_CHANNEL_BACKLIGHT, command);
     rtos_waitEvent(&sEvent, false, true);
 
     return sBacklightLevel;
 }
 
-extern "C" u8 getBacklightlevel()
+extern "C" u8 bli_getBacklightLevel()
 {
     return sBacklightLevel;
 }

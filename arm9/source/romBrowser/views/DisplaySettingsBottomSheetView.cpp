@@ -176,7 +176,7 @@ SharedPtr<IconButton2DView> DisplaySettingsBottomSheetView::CreateBacklightOptio
         {
             if (self->_backlightOptions[i].GetPointer() == sender)
             {
-                setBacklightlevel(sBacklightModes[i]);
+                bli_setBacklightLevel(sBacklightModes[i]);
                 break;
             }
         }
@@ -268,7 +268,6 @@ void DisplaySettingsBottomSheetView::Update()
         x += 32;
         idx++;
     }
-    // auto selectedBacklightMode = getBacklightlevel();
     x = 70;
     idx = 0;
 
@@ -276,7 +275,7 @@ void DisplaySettingsBottomSheetView::Update()
     {
         if (idx>=sNumberOfBackLightLevels)break;
         backlightOption->SetPosition(x, _position.y + 102);
-        backlightOption->SetState(sBacklightModes[idx] == getBacklightlevel()
+        backlightOption->SetState(sBacklightModes[idx] == bli_getBacklightLevel()
             ? IconButtonView::State::ToggleSelected
             : IconButtonView::State::ToggleUnselected);
         x += 32;
