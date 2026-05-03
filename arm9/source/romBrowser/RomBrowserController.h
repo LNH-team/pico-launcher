@@ -29,8 +29,6 @@ public:
     void ShowDisplaySettings() override;
     void HideDisplaySettings() override;
 
-    void AdjustBacklightLevel() override;
-
     void Update() override;
 
     const SdFolder& GetSdFolder() const override { return *_sdFolder; }

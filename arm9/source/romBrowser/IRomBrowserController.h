@@ -23,8 +23,6 @@ public:
     virtual void ShowDisplaySettings() = 0;
     virtual void HideDisplaySettings() = 0;
 
-    virtual void AdjustBacklightLevel() = 0;
-
     virtual void Update() = 0;
 
     virtual const SdFolder& GetSdFolder() const = 0;

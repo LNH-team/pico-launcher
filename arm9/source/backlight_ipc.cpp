@@ -2,8 +2,6 @@
 #include <backlightIpcCommand.h>
 #include <ipcChannels.h>
 
-//Do we need a mutex for sBacklightLevel?
-static bool sBacklightFetched = false;
 static u8 sBacklightLevel;
 static rtos_event_t sEvent;
 
@@ -18,7 +16,7 @@ static void ipcMessageHandler(u32 channel, u32 data, void* arg)
 void initBacklightIpc()
 {
     ipc_setChannelHandler(IPC_CHANNEL_BACKLIGHT,ipcMessageHandler,nullptr);
-    
+
     const u32 CMD_FETCH_LEVEL = bli_ipc_cmd{
         .cmd_id=BLI_IPC_CMD_GET_CURRENT_LEVEL
     }.as_u32;

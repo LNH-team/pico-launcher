@@ -37,16 +37,20 @@ private:
     SharedPtr<Label2DView> _titleLabel;
     SharedPtr<Label2DView> _layoutLabel;
     SharedPtr<Label2DView> _sortingLabel;
+    SharedPtr<Label2DView> _backlightLabel;
     // LabelView _filtersLabel;
 
     std::array<SharedPtr<IconButton2DView>, 4> _layoutOptions;
     std::array<SharedPtr<IconButton2DView>, /*3*/2> _sortOptions;
+    std::array<SharedPtr<IconButton2DView>, 5> _backlightOptions;
+
     // std::array<IconButton2DView, 5> _filterOptions;
 
     const MaterialColorScheme* _materialColorScheme;
 
     SharedPtr<IconButton2DView> CreateLayoutOptionIconButton();
     SharedPtr<IconButton2DView> CreateSortOptionIconButton();
+    SharedPtr<IconButton2DView> CreateBacklightOptionIconButton();
     // IconButton2DView CreateFilterOptionIconButton();
 
     DisplaySettingsBottomSheetView(DisplaySettingsViewModel* viewModel,

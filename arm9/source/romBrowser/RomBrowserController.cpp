@@ -12,9 +12,6 @@
 #include "RomBrowserController.h"
 #include "core/Environment.h"
 #include <libtwl/ipc/ipcFifoSystem.h>
-#include <ipcChannels.h>
-#include "backlight_ipc.h"
-#include <nds/system.h>
 
 RomBrowserController::RomBrowserController(
     IAppSettingsService* appSettingsService, TaskQueueBase* ioTaskQueue,
@@ -71,15 +68,6 @@ void RomBrowserController::SetRomBrowserDisplaySettings(
     _appSettingsService->GetAppSettings().romBrowserDisplaySettings = romBrowserDisplaySettings;
     _saveSettingsPending = true;
     _stateMachine.Fire(RomBrowserStateTrigger::ChangeDisplayMode);
-}
-
-void RomBrowserController::AdjustBacklightLevel()
-{
-    u8 _backlightLevel = getBacklightlevel();
-    _backlightLevel+=1;
-    if (_backlightLevel>5) 
-        _backlightLevel = Environment::IsDsiMode() ? 1 : 2; //DSlight only has 4 distinct light levels.
-    setBacklightlevel(_backlightLevel);
 }
 
 void RomBrowserController::Update()

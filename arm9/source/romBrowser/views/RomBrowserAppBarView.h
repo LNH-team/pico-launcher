@@ -30,7 +30,6 @@ private:
     {
         APP_BAR_BUTTON_BACK = 0,
 
-        APP_BAR_BUTTON_BACKLIGHT,
         APP_BAR_BUTTON_DISPLAY_SETTINGS,
         // APP_BAR_BUTTON_RECENT,
         // APP_BAR_BUTTON_FAVORITE,
