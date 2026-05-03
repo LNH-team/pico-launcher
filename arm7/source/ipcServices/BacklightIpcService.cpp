@@ -27,7 +27,8 @@ void BackLightIpcService::HandleMessage(u32 data)
             setBacklightLevel(cmd.backlightLevel);
         }
         //fall through
-        case (BLI_IPC_CMD_GET_CURRENT_LEVEL):
+        case BLI_IPC_CMD_GET_CURRENT_LEVEL:
+        {
             u8 level = getBacklightLevel();
             const bli_ipc_cmd result = {
                 .cmd_id = BLI_IPC_CMD_CURRENT_LEVEL_UPDATED,
@@ -35,6 +36,7 @@ void BackLightIpcService::HandleMessage(u32 data)
             };
             SendResponseMessage(result.as_u32);
             break;
+        }
     }
 }
 void BackLightIpcService::setBacklightLevel(const u8 level) const
