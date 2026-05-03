@@ -43,9 +43,14 @@ void BackLightIpcService::setBacklightLevel(const u8 level) const
 {
     if (isDSiMode())
     {
-        u8 val = level-1;
-        if (val>=5) val = 4;
+        u8 val = level - 1;
+        if (val >= 5)
+        {
+            val = 4;
+        }
+        rtos_lockMutex(&gMCU_Mutex);
         mcu_setLightLevel(val);
+        rtos_unlockMutex(&gMCU_Mutex);
     }
     else
     {
