@@ -22,8 +22,10 @@ void BackLightIpcService::HandleMessage(u32 data)
 
     switch (cmd.cmd_id)
     {
-        case (BLI_IPC_CMD_SET_CURRENT_LEVEL):
+        case BLI_IPC_CMD_SET_CURRENT_LEVEL:
+        {
             setBacklightLevel(cmd.backlightLevel);
+        }
         //fall through
         case (BLI_IPC_CMD_GET_CURRENT_LEVEL):
             u8 level = getBacklightLevel();
