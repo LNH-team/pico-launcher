@@ -8,11 +8,10 @@ enum backlightIpcCommand{
 };
 
 union bli_ipc_cmd{
-    struct __attribute__((packed)){
+    struct {
         u8 cmd_id;
         u8 backlightLevel;
-        u16 :16-IPC_FIFO_MSG_CHANNEL_BITS;//padding
-        const u8 RESERVED_CHANNEL_BITS:IPC_FIFO_MSG_CHANNEL_BITS;
+        //note last 5 bits are reserved for IPC_FIFO_MSG_CHANNEL_BITS
     };
     u32 as_u32;
 };
