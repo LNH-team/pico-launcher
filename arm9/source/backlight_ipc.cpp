@@ -32,7 +32,7 @@ extern "C" u8 setBacklightlevel(u8 level)
         .backlightLevel = level
     }.as_u32;
 
-    ipc_sendFifoMessage(IPC_CHANNEL_BACKLIGHT,CMD_SET);
+    ipc_sendFifoMessage(IPC_CHANNEL_BACKLIGHT, CMD_SET);
     rtos_waitEvent(&sEvent, false, true);
 
     return sBacklightLevel;
