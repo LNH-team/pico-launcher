@@ -60,6 +60,13 @@ void RomBrowserController::HideDisplaySettings()
     _stateMachine.Fire(RomBrowserStateTrigger::HideDisplaySettings);
 }
 
+void RomBrowserController::SetTheme(
+    const String<char, 64> theme)
+{
+    _appSettingsService->GetAppSettings().theme = theme;
+    _saveSettingsPending = true;
+}
+
 void RomBrowserController::SetRomBrowserDisplaySettings(
     const RomBrowserDisplaySettings& romBrowserDisplaySettings)
 {

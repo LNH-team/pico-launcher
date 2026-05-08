@@ -160,7 +160,10 @@ SharedPtr<IconButton2DView> DisplaySettingsBottomSheetView::CreatePreviousThemeI
     );
     previousTheme->SetAction([] (IconButtonView* sender, void* arg)
     {
+        auto self = reinterpret_cast<DisplaySettingsBottomSheetView*>(arg);
         // TODO: Cycle theme back 1
+        String<char, 64> nextTheme = "material";
+        self->_viewModel->SetTheme(nextTheme);
     }, this);
     return previousTheme;
 }
@@ -175,7 +178,10 @@ SharedPtr<IconButton2DView> DisplaySettingsBottomSheetView::CreateNextThemeIconB
     );
     nextTheme->SetAction([] (IconButtonView* sender, void* arg)
     {
+        auto self = reinterpret_cast<DisplaySettingsBottomSheetView*>(arg);
         // TODO: Cycle theme forward 1
+        String<char, 64> nextTheme = "raspberry";
+        self->_viewModel->SetTheme(nextTheme);
     }, this);
     return nextTheme;
 }

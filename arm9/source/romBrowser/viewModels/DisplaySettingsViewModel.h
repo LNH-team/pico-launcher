@@ -44,6 +44,14 @@ public:
         return _appSettings->theme.GetString();
     }
 
+    void SetTheme(String<char, 64> theme)
+    {
+        if (_appSettings->theme != theme)
+        {
+            _romBrowserController->SetTheme(theme);
+        }
+    }
+
     void Close()
     {
         _romBrowserController->HideDisplaySettings();

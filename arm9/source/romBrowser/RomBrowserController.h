@@ -49,6 +49,8 @@ public:
         return _appSettingsService->GetAppSettings().romBrowserDisplaySettings;
     }
 
+    void SetTheme(const String<char, 64> theme) override;
+
     virtual const FileInfo& GetTriggerFileInfo() const override { return _triggerFileInfo; }
 
 private:
