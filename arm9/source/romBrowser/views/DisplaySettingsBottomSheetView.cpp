@@ -15,6 +15,7 @@
 #include "moviesIcon.h"
 #include "unknownIcon.h"
 #include "coverflowIcon.h"
+#include "backIcon.h"
 #include "../IRomBrowserController.h"
 #include "gui/input/InputProvider.h"
 #include "themes/material/MaterialColorScheme.h"
@@ -59,7 +60,8 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     , _layoutLabel(Label2DView::CreateShared(64, 16, 25, fontRepository->GetFont(FontType::Regular10)))
     , _sortingLabel(Label2DView::CreateShared(64, 16, 25, fontRepository->GetFont(FontType::Regular10)))
     , _themeLabel(Label2DView::CreateShared(64, 16, 25, fontRepository->GetFont(FontType::Regular10)))
-    , _themeValue(Label2DView::CreateShared(96, 16, 25, fontRepository->GetFont(FontType::Regular10)))
+    // 96 (32 * 3) but we remove 4 for each side to get a similar offset as the buttons have between them
+    , _themeValue(Label2DView::CreateShared(88, 16, 25, fontRepository->GetFont(FontType::Regular10)))
     , _materialColorScheme(materialColorScheme)
     // , _filtersLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
 {
@@ -86,7 +88,12 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
         AddChildTail(sortOption.GetPointer());
     }
 
+    _themeValue->SetEllipsisStyle(LabelView::EllipsisStyle::Marquee);
     AddChildTail(_themeValue.GetPointer());
+    _previousTheme = CreatePreviousThemeIconButton();
+    AddChildTail(_previousTheme.GetPointer());
+    _nextTheme = CreateNextThemeIconButton();
+    AddChildTail(_nextTheme.GetPointer());
 
     // for (auto& filterOption : _filterOptions)
     // {
@@ -143,6 +150,36 @@ SharedPtr<IconButton2DView> DisplaySettingsBottomSheetView::CreateSortOptionIcon
     return sortOption;
 }
 
+SharedPtr<IconButton2DView> DisplaySettingsBottomSheetView::CreatePreviousThemeIconButton()
+{
+    auto previousTheme = IconButton2DView::CreateShared(
+        IconButtonView::Type::Tonal,
+        IconButtonView::State::NoToggle,
+        md::sys::color::surfaceContainerLow,
+        _materialColorScheme
+    );
+    previousTheme->SetAction([] (IconButtonView* sender, void* arg)
+    {
+        // TODO: Cycle theme back 1
+    }, this);
+    return previousTheme;
+}
+
+SharedPtr<IconButton2DView> DisplaySettingsBottomSheetView::CreateNextThemeIconButton()
+{
+    auto nextTheme = IconButton2DView::CreateShared(
+        IconButtonView::Type::Tonal,
+        IconButtonView::State::NoToggle,
+        md::sys::color::surfaceContainerLow,
+        _materialColorScheme
+    );
+    nextTheme->SetAction([] (IconButtonView* sender, void* arg)
+    {
+        // TODO: Cycle theme forward 1
+    }, this);
+    return nextTheme;
+}
+
 // IconButtonView DisplaySettingsBottomSheetView::CreateFilterOptionIconButton()
 // {
 //     IconButtonView filterOption
@@ -172,6 +209,10 @@ void DisplaySettingsBottomSheetView::InitVram(const VramContext& vramContext)
         _sortOptions[0]->SetIconVramOffset(LoadIcon(*objVramManager, sortNameAscendingIconTiles, sortNameAscendingIconTilesLen));
         _sortOptions[1]->SetIconVramOffset(LoadIcon(*objVramManager, sortNameDescendingIconTiles, sortNameDescendingIconTilesLen));
         // _sortOptions[2].SetIconVramOffset(LoadIcon(objVramManager, recentIconTiles, recentIconTilesLen));
+
+        // previous/next theme
+        _previousTheme->SetIconVramOffset(LoadIcon(*objVramManager, backIconTiles, backIconTilesLen)); // TODO: chevron left
+        _nextTheme->SetIconVramOffset(LoadIcon(*objVramManager, backIconTiles, backIconTilesLen)); // TODO: chevron right
 
         // filter options
         // _filterOptions[0].SetIconVramOffset(LoadIcon(objVramManager, gamesIconTiles, gamesIconTilesLen));
@@ -229,8 +270,13 @@ void DisplaySettingsBottomSheetView::Update()
     }
     themeNameUtf16[themeNameLength] = u'\0';
     x = 70;
-    _themeValue->SetPosition(x, _position.y + THEME_LABEL_Y);
+    _previousTheme->SetPosition(x, _position.y + 102);
+    _previousTheme->SetState(IconButtonView::State::NoToggle);
+    // +32 but we move it 4 extra to create a similar offset as the buttons have between them
+    _themeValue->SetPosition(x + 36, _position.y + THEME_LABEL_Y);
     _themeValue->SetText(themeNameUtf16);
+    _nextTheme->SetPosition(x + 128, _position.y + 102);
+    _nextTheme->SetState(IconButtonView::State::NoToggle);
 
     // x = 70;
     // for (auto& filterOption : _filterOptions)
@@ -294,6 +340,12 @@ SharedPtr<View> DisplaySettingsBottomSheetView::MoveFocus(const SharedPtr<View>&
                     idx = 0;
                 return _layoutOptions[idx];
             }
+            else if (direction == FocusMoveDirection::Up)
+            {
+                if (idx >= 2)
+                    return _nextTheme;
+                return _previousTheme;
+            }
             // else if (direction == FocusMoveDirection::Up)
             // {
             //     if (idx >= (int)_filterOptions.size())
@@ -326,11 +378,17 @@ SharedPtr<View> DisplaySettingsBottomSheetView::MoveFocus(const SharedPtr<View>&
                     idx = 0;
                 return _sortOptions[idx];
             }
-            else //if (direction == FocusMoveDirection::Up)
+            else if (direction == FocusMoveDirection::Up)
             {
                 if (idx >= (int)_layoutOptions.size())
                     idx = _layoutOptions.size() - 1;
                 return _layoutOptions[idx];
+            }
+            else //if (direction == FocusMoveDirection::Down)
+            {
+                if (idx >= 2)
+                    return _nextTheme;
+                return _previousTheme;
             }
             // else //if (direction == FocusMoveDirection::Down)
             // {
@@ -340,6 +398,33 @@ SharedPtr<View> DisplaySettingsBottomSheetView::MoveFocus(const SharedPtr<View>&
             // }
         }
         idx++;
+    }
+    idx = 0;
+    bool onNextTheme = currentFocus.GetPointer() == _nextTheme.GetPointer();
+    if (currentFocus.GetPointer() == _previousTheme.GetPointer() || onNextTheme)
+    {
+        if (direction == FocusMoveDirection::Left || direction == FocusMoveDirection::Right)
+        {
+            return onNextTheme ? _previousTheme : _nextTheme;
+        }
+        else if (direction == FocusMoveDirection::Up)
+        {
+            if (onNextTheme)
+                idx = _sortOptions.size() - 1;
+            return _sortOptions[idx];
+        }
+        else //if (direction == FocusMoveDirection::Down)
+        {
+            if (onNextTheme)
+                idx = _layoutOptions.size() - 1;
+            return _layoutOptions[idx];
+        }
+        // else //if (direction == FocusMoveDirection::Down)
+        // {
+        //     if (onNextTheme)
+        //         idx = _filterOptions.size() - 1;
+        //     return _filterOptions[idx];
+        // }
     }
     // idx = 0;
     // for (auto& filterOption : _filterOptions)
@@ -387,6 +472,8 @@ void DisplaySettingsBottomSheetView::SetGraphics(
     {
         sortOption->SetGraphics(iconButtonVramToken);
     }
+    _previousTheme->SetGraphics(iconButtonVramToken);
+    _nextTheme->SetGraphics(iconButtonVramToken);
     // for (auto& filterOption : _filterOptions)
     //     filterOption.SetGraphics(iconButtonVramToken);
 }
