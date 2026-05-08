@@ -6,8 +6,9 @@
 class DisplaySettingsViewModel
 {
 public:
-    explicit DisplaySettingsViewModel(IRomBrowserController* romBrowserController)
+    explicit DisplaySettingsViewModel(IRomBrowserController* romBrowserController, AppSettings* appSettings)
         : _romBrowserController(romBrowserController)
+        , _appSettings(appSettings)
         , _romBrowserDisplaySettings(_romBrowserController->GetRomBrowserDisplaySettings()) { }
 
     constexpr RomBrowserLayout GetRomBrowserDisplayMode() const
@@ -38,6 +39,11 @@ public:
         }
     }
 
+    const char* GetTheme() const
+    {
+        return _appSettings->theme.GetString();
+    }
+
     void Close()
     {
         _romBrowserController->HideDisplaySettings();
@@ -45,5 +51,6 @@ public:
 
 private:
     IRomBrowserController* _romBrowserController;
+    AppSettings* _appSettings;
     RomBrowserDisplaySettings _romBrowserDisplaySettings;
 };

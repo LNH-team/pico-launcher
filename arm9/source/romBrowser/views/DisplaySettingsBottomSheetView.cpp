@@ -30,6 +30,9 @@
 #define SORTING_LABEL_X     20
 #define SORTING_LABEL_Y     78
 
+#define THEME_LABEL_X       20
+#define THEME_LABEL_Y       110
+
 #define FILTERS_LABEL_X     20
 #define FILTERS_LABEL_Y     112
 
@@ -55,6 +58,8 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     , _titleLabel(Label2DView::CreateShared(128, 16, 25, fontRepository->GetFont(FontType::Medium11)))
     , _layoutLabel(Label2DView::CreateShared(64, 16, 25, fontRepository->GetFont(FontType::Regular10)))
     , _sortingLabel(Label2DView::CreateShared(64, 16, 25, fontRepository->GetFont(FontType::Regular10)))
+    , _themeLabel(Label2DView::CreateShared(64, 16, 25, fontRepository->GetFont(FontType::Regular10)))
+    , _themeValue(Label2DView::CreateShared(96, 16, 25, fontRepository->GetFont(FontType::Regular10)))
     , _materialColorScheme(materialColorScheme)
     // , _filtersLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
 {
@@ -64,6 +69,8 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     AddChildTail(_layoutLabel.GetPointer());
     _sortingLabel->SetText(u"Sorting");
     AddChildTail(_sortingLabel.GetPointer());
+    _themeLabel->SetText(u"Theme");
+    AddChildTail(_themeLabel.GetPointer());
     // _filtersLabel.SetText(u"Filters");
     // AddChildTail(&_filtersLabel);
 
@@ -78,6 +85,8 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
         sortOption = CreateSortOptionIconButton();
         AddChildTail(sortOption.GetPointer());
     }
+
+    AddChildTail(_themeValue.GetPointer());
 
     // for (auto& filterOption : _filterOptions)
     // {
@@ -178,6 +187,7 @@ void DisplaySettingsBottomSheetView::UpdateLabels()
     _titleLabel->SetPosition(TITLE_LABEL_X, _position.y + TITLE_LABEL_Y);
     _layoutLabel->SetPosition(LAYOUT_LABEL_X, _position.y + LAYOUT_LABEL_Y);
     _sortingLabel->SetPosition(SORTING_LABEL_X, _position.y + SORTING_LABEL_Y);
+    _themeLabel->SetPosition(THEME_LABEL_X, _position.y + THEME_LABEL_Y);
     // _filtersLabel.SetPosition(FILTERS_LABEL_X, _position.y + FILTERS_LABEL_Y);
 }
 
@@ -209,6 +219,19 @@ void DisplaySettingsBottomSheetView::Update()
         x += 32;
         idx++;
     }
+
+    const char* currentTheme = _viewModel->GetTheme();
+    size_t themeNameLength = strlen(currentTheme);
+    char16_t themeNameUtf16[65];
+    for (size_t i = 0; i < themeNameLength && i < 64; i++)
+    {
+        themeNameUtf16[i] = static_cast<char16_t>(currentTheme[i]);
+    }
+    themeNameUtf16[themeNameLength] = u'\0';
+    x = 70;
+    _themeValue->SetPosition(x, _position.y + THEME_LABEL_Y);
+    _themeValue->SetText(themeNameUtf16);
+
     // x = 70;
     // for (auto& filterOption : _filterOptions)
     // {
@@ -228,6 +251,10 @@ void DisplaySettingsBottomSheetView::Draw(GraphicsContext& graphicsContext)
         _layoutLabel->SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         _sortingLabel->SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
         _sortingLabel->SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+        _themeLabel->SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+        _themeLabel->SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+        _themeValue->SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+        _themeValue->SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         // _filtersLabel.SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
         // _filtersLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         BottomSheetView::Draw(graphicsContext);

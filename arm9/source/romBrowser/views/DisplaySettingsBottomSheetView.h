@@ -37,6 +37,8 @@ private:
     SharedPtr<Label2DView> _titleLabel;
     SharedPtr<Label2DView> _layoutLabel;
     SharedPtr<Label2DView> _sortingLabel;
+    SharedPtr<Label2DView> _themeLabel;
+    SharedPtr<Label2DView> _themeValue;
     // LabelView _filtersLabel;
 
     std::array<SharedPtr<IconButton2DView>, 4> _layoutOptions;
