@@ -330,12 +330,14 @@ void App::HandleShowDisplaySettingsTrigger()
     auto displaySettingsDialog = DisplaySettingsBottomSheetView::CreateShared(
         &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository());
     displaySettingsDialog->SetGraphics(_iconButtonViewVram);
+    _displaySettingsBottomSheetView = displaySettingsDialog;
     _dialogPresenter.ShowDialog(std::move(displaySettingsDialog));
 }
 
 void App::HandleHideDisplaySettingsTrigger()
 {
     _dialogPresenter.CloseDialog();
+    _displaySettingsBottomSheetView.Reset();
     if (!_dialogPresenter.GetOldFocus())
         _romBrowserBottomScreenView->Focus(_focusManager);
 }
@@ -423,10 +425,7 @@ void App::HandleChangeThemeTrigger(RomBrowserState newState)
 
     if (newState == RomBrowserState::DisplaySettings)
     {
-        auto displaySettingsDialog = DisplaySettingsBottomSheetView::CreateShared(
-            &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository());
-        displaySettingsDialog->SetGraphics(_iconButtonViewVram);
-        _dialogPresenter.ReplaceDialog(std::move(displaySettingsDialog));
+        _displaySettingsBottomSheetView->SetMaterialColorScheme(&_theme->GetMaterialColorScheme());
     }
     else if (newState == RomBrowserState::Browser)
     {

@@ -22,6 +22,7 @@ public:
         FocusMoveDirection direction, View* source) override;
 
     void SetGraphics(const IconButton2DView::VramToken& iconButtonVramToken);
+    void SetMaterialColorScheme(const MaterialColorScheme* materialColorScheme);
 
     void Focus(FocusManager& focusManager) override
     {

@@ -23,6 +23,7 @@
 #include "romBrowser/viewModels/DisplaySettingsViewModel.h"
 #include "romBrowser/views/RomBrowserBottomScreenView.h"
 #include "romBrowser/views/RomBrowserTopScreenView.h"
+#include "romBrowser/views/DisplaySettingsBottomSheetView.h"
 #include "romBrowser/views/IconButton2DView.h"
 #include "romBrowser/views/ChipView.h"
 #include "romBrowser/Theme/Material/MaterialThemeFileIconFactory.h"
@@ -83,6 +84,7 @@ private:
 
     SharedPtr<RomBrowserBottomScreenView> _romBrowserBottomScreenView;
     SharedPtr<RomBrowserTopScreenView> _romBrowserTopScreenView;
+    SharedPtr<DisplaySettingsBottomSheetView> _displaySettingsBottomSheetView;
 
     RomBrowserController _romBrowserController;
 

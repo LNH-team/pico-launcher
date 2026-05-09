@@ -32,23 +32,6 @@ void DialogPresenter::CloseDialog()
     _newState = State::BottomSheetClosing;
 }
 
-void DialogPresenter::ReplaceDialog(SharedPtr<DialogView> dialog)
-{
-    _nextDialog.Reset();
-
-    if (!_currentDialog || _curState == State::Idle)
-    {
-        ShowDialog(std::move(dialog));
-        return;
-    }
-
-    _focusManager->Unfocus();
-    _currentDialog = std::move(dialog);
-    _currentDialog->SetPosition(_currentDialog->GetPosition().x, _yAnimator.GetValue());
-    _currentDialog->Focus(*_focusManager);
-    _initVram = true;
-}
-
 void DialogPresenter::Update()
 {
     if (_curState != _newState)

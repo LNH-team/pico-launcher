@@ -42,6 +42,11 @@ public:
         _state = state;
     }
 
+    void SetMaterialColorScheme(const MaterialColorScheme* materialColorScheme)
+    {
+        _materialColorScheme = materialColorScheme;
+    }
+
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
     void HandlePenDown(const Point& touchPoint, FocusManager& focusManager) override;
     void HandlePenMove(const Point& touchPoint, FocusManager& focusManager) override;

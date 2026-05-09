@@ -480,6 +480,22 @@ void DisplaySettingsBottomSheetView::SetGraphics(
     //     filterOption.SetGraphics(iconButtonVramToken);
 }
 
+void DisplaySettingsBottomSheetView::SetMaterialColorScheme(
+    const MaterialColorScheme* materialColorScheme)
+{
+    _materialColorScheme = materialColorScheme;
+    for (auto& layoutOption : _layoutOptions)
+    {
+        layoutOption->SetMaterialColorScheme(materialColorScheme);
+    }
+    for (auto& sortOption : _sortOptions)
+    {
+        sortOption->SetMaterialColorScheme(materialColorScheme);
+    }
+    _previousTheme->SetMaterialColorScheme(materialColorScheme);
+    _nextTheme->SetMaterialColorScheme(materialColorScheme);
+}
+
 void DisplaySettingsBottomSheetView::Close()
 {
     _viewModel->Close();
