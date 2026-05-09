@@ -6,7 +6,7 @@
 
 void CustomSubBackground::VBlank()
 {
-    REG_DISPCNT_SUB = (REG_DISPCNT_SUB & ~0xF) | 5 | (4 << 8);
+    REG_DISPCNT_SUB = (REG_DISPCNT_SUB & ~((0xF) | (1 << 8))) | 5 | (1 << 10);
     REG_BG2CNT_SUB = BG_BMP16_256x256 | BG_PRIORITY_3 | BG_COLOR_16 | BG_MAP_BASE(2);
     REG_BG2HOFS_SUB = 0;
     REG_BG2VOFS_SUB = 0;
