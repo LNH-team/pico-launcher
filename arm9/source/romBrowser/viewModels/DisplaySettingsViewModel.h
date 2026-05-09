@@ -44,13 +44,9 @@ public:
         return _appSettings->theme.GetString();
     }
 
-    void SetTheme(String<char, 64> theme)
-    {
-        if (_appSettings->theme != theme)
-        {
-            _romBrowserController->SetTheme(theme);
-        }
-    }
+    void SetTheme(const String<char, 64>& theme);
+    void SelectPreviousTheme();
+    void SelectNextTheme();
 
     void Close()
     {
@@ -61,4 +57,6 @@ private:
     IRomBrowserController* _romBrowserController;
     AppSettings* _appSettings;
     RomBrowserDisplaySettings _romBrowserDisplaySettings;
+
+    void SelectRelativeTheme(int offset);
 };
