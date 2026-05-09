@@ -96,9 +96,11 @@ private:
 
     DialogPresenter _dialogPresenter;
 
+    VramState _vramStateBeforeLoadTheme;
     VramState _vramStateBeforeMakeBottomScreenView;
     VramState _vramStateAfterMakeBottomScreenView;
     bool _changeDisplayMode = false;
+    bool _changeTheme = false;
 
     ChipView::VramToken _chipViewVram;
     IconButton2DView::VramToken _iconButtonViewVram;
@@ -110,6 +112,7 @@ private:
     void InitVramMapping() const;
     void DisplaySplashScreen() const;
     void LoadTheme();
+    void ApplyThemePalette() const;
     void VCountIrq();
     void HandleInput();
     void HandleTrigger(RomBrowserStateTrigger trigger, RomBrowserState newState);
@@ -120,6 +123,7 @@ private:
     void HandleNavigateTrigger();
     void HandleFolderLoadDoneTrigger();
     void HandleChangeDisplayModeTrigger(RomBrowserState newState);
+    void HandleChangeThemeTrigger(RomBrowserState newState);
 
     bool IsRomBrowserVisible() const;
 

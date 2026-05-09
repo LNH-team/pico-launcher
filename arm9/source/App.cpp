@@ -107,6 +107,21 @@ void App::LoadTheme()
         &_theme->GetMaterialColorScheme(), _theme->GetFontRepository());
 }
 
+void App::ApplyThemePalette() const
+{
+    const auto& materialColorScheme = _theme->GetMaterialColorScheme();
+
+    auto scrimBlendColor = Rgb<8, 8, 8>(
+        materialColorScheme.inverseOnSurface.r + (materialColorScheme.scrim.r - materialColorScheme.inverseOnSurface.r) * 5 / 16,
+        materialColorScheme.inverseOnSurface.g + (materialColorScheme.scrim.g - materialColorScheme.inverseOnSurface.g) * 5 / 16,
+        materialColorScheme.inverseOnSurface.b + (materialColorScheme.scrim.b - materialColorScheme.inverseOnSurface.b) * 5 / 16);
+
+    RgbMixer::MakeGradientPalette((u16*)GFX_PLTT_BG_MAIN, scrimBlendColor, materialColorScheme.GetColor(md::sys::color::surfaceContainerLow));
+
+    GFX_PLTT_BG_MAIN[0] = ColorConverter::ToGBGR565(materialColorScheme.inverseOnSurface);
+    GFX_PLTT_BG_MAIN[31] = ColorConverter::ToGBGR565(materialColorScheme.scrim);
+}
+
 void App::VCountIrq()
 {
     _mainObjPltt.VCount();
@@ -127,6 +142,7 @@ void App::Run()
 
     _dialogPresenter.InitVram();
 
+    StoreVramState(_vramStateBeforeLoadTheme);
     LoadTheme();
 
     _ioTaskQueue.StartThread(1, _ioTaskThreadStack, sizeof(_ioTaskThreadStack));
@@ -145,17 +161,7 @@ void App::Run()
 
     StoreVramState(_vramStateAfterMakeBottomScreenView);
 
-    const auto& materialColorScheme = _theme->GetMaterialColorScheme();
-
-    auto scrimBlendColor = Rgb<8, 8, 8>(
-        materialColorScheme.inverseOnSurface.r + (materialColorScheme.scrim.r - materialColorScheme.inverseOnSurface.r) * 5 / 16,
-        materialColorScheme.inverseOnSurface.g + (materialColorScheme.scrim.g - materialColorScheme.inverseOnSurface.g) * 5 / 16,
-        materialColorScheme.inverseOnSurface.b + (materialColorScheme.scrim.b - materialColorScheme.inverseOnSurface.b) * 5 / 16);
-
-    RgbMixer::MakeGradientPalette((u16*)GFX_PLTT_BG_MAIN, scrimBlendColor, materialColorScheme.GetColor(md::sys::color::surfaceContainerLow));
-
-    GFX_PLTT_BG_MAIN[0] = ColorConverter::ToGBGR565(materialColorScheme.inverseOnSurface);
-    GFX_PLTT_BG_MAIN[31] = ColorConverter::ToGBGR565(materialColorScheme.scrim);
+    ApplyThemePalette();
     REG_DISPCNT = 0x211F1B;
     REG_BG0HOFS = 0;
     REG_BG0VOFS = 0;
@@ -291,6 +297,11 @@ void App::HandleTrigger(RomBrowserStateTrigger trigger, RomBrowserState newState
             _changeDisplayMode = true;
             break;
         }
+        case RomBrowserStateTrigger::ChangeTheme:
+        {
+            _changeTheme = true;
+            break;
+        }
     }
 }
 
@@ -377,6 +388,59 @@ void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)
         _romBrowserBottomScreenView->Focus(_focusManager);
 }
 
+void App::HandleChangeThemeTrigger(RomBrowserState newState)
+{
+    auto previousTheme = std::move(_theme);
+    auto previousTopBackground = std::move(_topBackground);
+    auto previousBottomBackground = std::move(_bottomBackground);
+    auto previousMaterialThemeFileIconFactory = std::move(_materialThemeFileIconFactory);
+    auto previousRomBrowserBottomScreenView = std::move(_romBrowserBottomScreenView);
+    auto previousRomBrowserTopScreenView = std::move(_romBrowserTopScreenView);
+
+    _dialogPresenter.ClearOldFocus();
+    RestoreVramState(_vramStateBeforeLoadTheme);
+    LoadTheme();
+    ApplyThemePalette();
+
+    StoreVramState(_vramStateBeforeMakeBottomScreenView);
+    auto displayMode = RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
+        _romBrowserController.GetRomBrowserDisplaySettings().layout);
+    _romBrowserBottomScreenView = RomBrowserBottomScreenView::CreateShared(
+        &_romBrowserBottomScreenViewModel,
+        displayMode,
+        _materialThemeFileIconFactory.get(),
+        _theme->GetRomBrowserViewFactory(),
+        &_vblankTextureLoader);
+    _romBrowserBottomScreenView->InitVram(_mainVramContext);
+    StoreVramState(_vramStateAfterMakeBottomScreenView);
+    _romBrowserTopScreenView = RomBrowserTopScreenView::CreateShared(
+        _romBrowserController.GetRomBrowserViewModel(),
+        displayMode,
+        _materialThemeFileIconFactory.get(),
+        _theme->GetRomBrowserViewFactory());
+    _romBrowserTopScreenView->InitVram(_subVramContext);
+    _romBrowserBottomScreenView->RomBrowserViewModelInvalidated(_mainVramContext);
+
+    if (newState == RomBrowserState::DisplaySettings)
+    {
+        auto displaySettingsDialog = DisplaySettingsBottomSheetView::CreateShared(
+            &_displaySettingsBottomSheetViewModel, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository());
+        displaySettingsDialog->SetGraphics(_iconButtonViewVram);
+        _dialogPresenter.ReplaceDialog(std::move(displaySettingsDialog));
+    }
+    else if (newState == RomBrowserState::Browser)
+    {
+        _romBrowserBottomScreenView->Focus(_focusManager);
+    }
+
+    previousRomBrowserTopScreenView.Reset();
+    previousRomBrowserBottomScreenView.Reset();
+    previousMaterialThemeFileIconFactory.reset();
+    previousBottomBackground.reset();
+    previousTopBackground.reset();
+    previousTheme.reset();
+}
+
 bool App::IsRomBrowserVisible() const
 {
     const auto& stateMachine = _romBrowserController.GetStateMachine();
@@ -396,6 +460,11 @@ void App::Update()
     {
         HandleChangeDisplayModeTrigger(curState);
         _changeDisplayMode = false;
+    }
+    if (_changeTheme)
+    {
+        HandleChangeThemeTrigger(curState);
+        _changeTheme = false;
     }
     if (stateMachine.HasStateChanged())
     {
@@ -456,13 +525,13 @@ void App::Draw()
     if (_bottomBackground)
         _bottomBackground->Draw(mainGraphicsContext);
 
-    if (!_changeDisplayMode && IsRomBrowserVisible())
+    if (!_changeDisplayMode && !_changeTheme && IsRomBrowserVisible())
     {
         _romBrowserTopScreenView->Draw(subGraphicsContext);
     }
 
     _dialogPresenter.ApplyClipArea(mainGraphicsContext);
-    if (!_changeDisplayMode)
+    if (!_changeDisplayMode && !_changeTheme)
     {
         _romBrowserBottomScreenView->Draw(mainGraphicsContext);
     }

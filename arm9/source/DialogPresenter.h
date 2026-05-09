@@ -20,6 +20,10 @@ public:
     /// @brief Closes the current dialog.
     void CloseDialog();
 
+    /// @brief Replaces the currently visible dialog without replaying its opening animation.
+    /// @param dialog The dialog to show.
+    void ReplaceDialog(SharedPtr<DialogView> dialog);
+
     /// @brief Updates the dialog presenter.
     void Update();
 

@@ -65,6 +65,7 @@ void RomBrowserController::SetTheme(
 {
     _appSettingsService->GetAppSettings().theme = theme;
     _saveSettingsPending = true;
+    _stateMachine.Fire(RomBrowserStateTrigger::ChangeTheme);
 }
 
 void RomBrowserController::SetRomBrowserDisplaySettings(
