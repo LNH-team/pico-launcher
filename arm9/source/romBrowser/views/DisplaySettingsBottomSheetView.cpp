@@ -15,7 +15,8 @@
 #include "moviesIcon.h"
 #include "unknownIcon.h"
 #include "coverflowIcon.h"
-#include "backIcon.h"
+#include "leftIcon.h"
+#include "rightIcon.h"
 #include "../IRomBrowserController.h"
 #include "gui/input/InputProvider.h"
 #include "themes/material/MaterialColorScheme.h"
@@ -213,8 +214,8 @@ void DisplaySettingsBottomSheetView::InitVram(const VramContext& vramContext)
         // _sortOptions[2].SetIconVramOffset(LoadIcon(objVramManager, recentIconTiles, recentIconTilesLen));
 
         // previous/next theme
-        _previousTheme->SetIconVramOffset(LoadIcon(*objVramManager, backIconTiles, backIconTilesLen)); // TODO: chevron left
-        _nextTheme->SetIconVramOffset(LoadIcon(*objVramManager, backIconTiles, backIconTilesLen)); // TODO: chevron right
+        _previousTheme->SetIconVramOffset(LoadIcon(*objVramManager, leftIconTiles, leftIconTilesLen)); // TODO: chevron left
+        _nextTheme->SetIconVramOffset(LoadIcon(*objVramManager, rightIconTiles, rightIconTilesLen)); // TODO: chevron right
 
         // filter options
         // _filterOptions[0].SetIconVramOffset(LoadIcon(objVramManager, gamesIconTiles, gamesIconTilesLen));
