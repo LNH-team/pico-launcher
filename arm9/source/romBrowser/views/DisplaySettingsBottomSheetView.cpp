@@ -154,7 +154,7 @@ SharedPtr<IconButton2DView> DisplaySettingsBottomSheetView::CreateSortOptionIcon
 SharedPtr<IconButton2DView> DisplaySettingsBottomSheetView::CreatePreviousThemeIconButton()
 {
     auto previousTheme = IconButton2DView::CreateShared(
-        IconButtonView::Type::Tonal,
+        IconButtonView::Type::Standard,
         IconButtonView::State::NoToggle,
         md::sys::color::surfaceContainerLow,
         _materialColorScheme
@@ -170,7 +170,7 @@ SharedPtr<IconButton2DView> DisplaySettingsBottomSheetView::CreatePreviousThemeI
 SharedPtr<IconButton2DView> DisplaySettingsBottomSheetView::CreateNextThemeIconButton()
 {
     auto nextTheme = IconButton2DView::CreateShared(
-        IconButtonView::Type::Tonal,
+        IconButtonView::Type::Standard,
         IconButtonView::State::NoToggle,
         md::sys::color::surfaceContainerLow,
         _materialColorScheme
@@ -214,8 +214,8 @@ void DisplaySettingsBottomSheetView::InitVram(const VramContext& vramContext)
         // _sortOptions[2].SetIconVramOffset(LoadIcon(objVramManager, recentIconTiles, recentIconTilesLen));
 
         // previous/next theme
-        _previousTheme->SetIconVramOffset(LoadIcon(*objVramManager, leftIconTiles, leftIconTilesLen)); // TODO: chevron left
-        _nextTheme->SetIconVramOffset(LoadIcon(*objVramManager, rightIconTiles, rightIconTilesLen)); // TODO: chevron right
+        _previousTheme->SetIconVramOffset(LoadIcon(*objVramManager, leftIconTiles, leftIconTilesLen));
+        _nextTheme->SetIconVramOffset(LoadIcon(*objVramManager, rightIconTiles, rightIconTilesLen));
 
         // filter options
         // _filterOptions[0].SetIconVramOffset(LoadIcon(objVramManager, gamesIconTiles, gamesIconTilesLen));
