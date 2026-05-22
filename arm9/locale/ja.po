@@ -1,0 +1,43 @@
+# Japanese translations for arm package.
+# Copyright (C) 2026 THE arm'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the arm package.
+# Automatically generated, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: arm 9\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-05-20 21:31+0900\n"
+"PO-Revision-Date: 2026-05-18 21:54+0900\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: arm9/source/romBrowser/views/cheats/CheatsBottomSheetView.cpp:56
+#: arm9/source/romBrowser/views/NdsGameDetailsBottomSheetView.cpp:20
+msgid "Cheats"
+msgstr "チート"
+
+#: arm9/source/romBrowser/views/cheats/CheatsBottomSheetView.cpp:57
+msgid "No cheats found."
+msgstr "チートが見つかりません。"
+
+#: arm9/source/romBrowser/views/DisplaySettingsBottomSheetView.cpp:62
+msgid "Display Settings"
+msgstr "表示設定"
+
+#: arm9/source/romBrowser/views/DisplaySettingsBottomSheetView.cpp:64
+msgid "Layout"
+msgstr "レイアウト"
+
+#: arm9/source/romBrowser/views/DisplaySettingsBottomSheetView.cpp:66
+msgid "Sorting"
+msgstr "表示順"
+
+#: arm9/source/romBrowser/views/NdsGameDetailsBottomSheetView.cpp:23
+msgid "Favorite"
+msgstr "お気に入り"

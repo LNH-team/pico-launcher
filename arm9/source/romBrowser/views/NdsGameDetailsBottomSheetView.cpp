@@ -8,6 +8,7 @@
 #include "smallHeartIconFilled.h"
 #include "../IRomBrowserController.h"
 #include "NdsGameDetailsBottomSheetView.h"
+#include "translate.h"
 
 NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     IRomBrowserController* romBrowserController, const MaterialColorScheme* materialColorScheme,
@@ -16,10 +17,10 @@ NdsGameDetailsBottomSheetView::NdsGameDetailsBottomSheetView(
     , _cheatsChip(ChipView::CreateShared(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository))
     , _favoriteChip(ChipView::CreateShared(md::sys::color::surfaceContainerLow, materialColorScheme, fontRepository))
 {
-    _cheatsChip->SetText(u"Cheats");
+    _cheatsChip->SetText(_(u"Cheats"));
     _cheatsChip->SetSelected(false);
     AddChildTail(_cheatsChip.GetPointer());
-    _favoriteChip->SetText(u"Favorite");
+    _favoriteChip->SetText(_(u"Favorite"));
     _favoriteChip->SetSelected(true);
     AddChildTail(_favoriteChip.GetPointer());
 }
