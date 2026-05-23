@@ -115,6 +115,7 @@ private:
     void DisplaySplashScreen() const;
     void LoadTheme();
     void ApplyThemePalette() const;
+    void StartBgmFromConfigAsync();
     void VCountIrq();
     void HandleInput();
     void HandleTrigger(RomBrowserStateTrigger trigger, RomBrowserState newState);

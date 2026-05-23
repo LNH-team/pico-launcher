@@ -21,6 +21,7 @@ AudioStreamPlayer* AudioStreamPlayer::sCurrentPlayer = nullptr;
 
 AudioStreamPlayer::AudioStreamPlayer()
 {
+    rtos_createMutex(&_controlMutex);
     rtos_createMutex(&_mutex);
     rtos_createEvent(&_event);
     DC_FlushRange(&_soundStopCmdList, sizeof(_soundStopCmdList));
@@ -28,9 +29,6 @@ AudioStreamPlayer::AudioStreamPlayer()
 
 bool AudioStreamPlayer::StartPlaybackIntern(std::unique_ptr<IAudioStream> audioStream)
 {
-    if (_isPlaying)
-        StopPlaybackIntern();
-
     _audioStream = std::move(audioStream);
     
     // fill buffer
@@ -83,13 +81,15 @@ void AudioStreamPlayer::StopPlaybackIntern()
         return;
 
     _isPlaying = false;
-    rtos_wakeupThread(&_thread);
+    rtos_signalEvent(&_event);
     ipc_sendFifoMessage(IPC_CHANNEL_SOUND, (u32)&_soundStopCmdList);
     tmr_stop(AUDIO_STREAM_PLAYER_TIMER);
     rtos_disableIrqMask(RTOS_IRQ_TIMER(AUDIO_STREAM_PLAYER_TIMER));
-    rtos_joinThread(&_thread);
+    if (_thread.state != RTOS_THREAD_STATE_DEAD)
+        rtos_joinThread(&_thread);
     sCurrentPlayer = nullptr;
     _audioStream.reset();
+    rtos_createEvent(&_event);
 }
 
 void AudioStreamPlayer::ThreadMain()

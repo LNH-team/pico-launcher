@@ -26,21 +26,27 @@ public:
     bool StartPlayback(std::unique_ptr<IAudioStream> audioStream) override
     {
         bool result;
-        rtos_lockMutex(&_mutex);
+        rtos_lockMutex(&_controlMutex);
         {
-            result = StartPlaybackIntern(std::move(audioStream));
+            StopPlaybackIntern();
+
+            rtos_lockMutex(&_mutex);
+            {
+                result = StartPlaybackIntern(std::move(audioStream));
+            }
+            rtos_unlockMutex(&_mutex);
         }
-        rtos_unlockMutex(&_mutex);
+        rtos_unlockMutex(&_controlMutex);
         return result;
     }
 
     void StopPlayback() override
     {
-        rtos_lockMutex(&_mutex);
+        rtos_lockMutex(&_controlMutex);
         {
             StopPlaybackIntern();
         }
-        rtos_unlockMutex(&_mutex);
+        rtos_unlockMutex(&_controlMutex);
     }
 
 private:
@@ -89,6 +95,7 @@ private:
         (0b11 << 8) | SND_IPC_CMD_STOP_CHANNELS
     };
     u32 _threadStack[2048 / sizeof(u32)] alignas(32);
+    rtos_mutex_t _controlMutex;
     rtos_mutex_t _mutex;
     rtos_thread_t _thread;
     rtos_event_t _event;

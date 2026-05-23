@@ -122,6 +122,15 @@ void App::ApplyThemePalette() const
     GFX_PLTT_BG_MAIN[31] = ColorConverter::ToGBGR565(materialColorScheme.scrim);
 }
 
+void App::StartBgmFromConfigAsync()
+{
+    _ioTaskQueue.Enqueue([this] (const vu8& cancelRequested)
+    {
+        _bgmService.StartBgmFromConfig();
+        return TaskResult<void>::Completed();
+    });
+}
+
 void App::VCountIrq()
 {
     _mainObjPltt.VCount();
@@ -183,11 +192,7 @@ void App::Run()
 
     LOG_DEBUG("Amount of main obj vram used: %d\n", _mainObjVram.GetState());
 
-    _ioTaskQueue.Enqueue([this] (const vu8& cancelRequested)
-    {
-        _bgmService.StartBgmFromConfig();
-        return TaskResult<void>::Completed();
-    });
+    StartBgmFromConfigAsync();
 
     _fadeAnimator = Animator(16, 0, 16, &md::sys::motion::easing::linear);
 
@@ -399,6 +404,7 @@ void App::HandleChangeThemeTrigger(RomBrowserState newState)
     auto previousRomBrowserBottomScreenView = std::move(_romBrowserBottomScreenView);
     auto previousRomBrowserTopScreenView = std::move(_romBrowserTopScreenView);
 
+    _bgmService.StopBgm();
     _dialogPresenter.ClearOldFocus();
     RestoreVramState(_vramStateBeforeLoadTheme);
     LoadTheme();
@@ -431,6 +437,7 @@ void App::HandleChangeThemeTrigger(RomBrowserState newState)
     {
         _romBrowserBottomScreenView->Focus(_focusManager);
     }
+    StartBgmFromConfigAsync();
 
     previousRomBrowserTopScreenView.Reset();
     previousRomBrowserBottomScreenView.Reset();

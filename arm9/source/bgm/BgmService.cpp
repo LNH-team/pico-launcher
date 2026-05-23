@@ -9,6 +9,8 @@
 
 bool BgmService::StartBgm(const TCHAR* filePath)
 {
+    StopBgm();
+
     auto stream = std::make_unique<BcstmAudioStream>();
     if (!stream->Open(filePath))
         return false;
@@ -18,20 +20,20 @@ bool BgmService::StartBgm(const TCHAR* filePath)
 
 void BgmService::StartBgmFromConfig()
 {
+    StopBgm();
+
     TCHAR pathBuffer[128];
     mini_snprintf(pathBuffer, sizeof(pathBuffer), "/_pico/themes/%s/bgm", _appSettingsService.GetAppSettings().theme.GetString());
     NullFileTypeProvider fileTypeProvider;
     auto bgmFolder = SdFolderFactory(&fileTypeProvider).CreateFromPath(pathBuffer);
     if (!bgmFolder || bgmFolder->GetFileCount() == 0)
     {
-        StopBgm();
         return;
     }
     u32 bgmToPlay = _randomGenerator.NextU32(bgmFolder->GetFileCount());
     auto stream = std::make_unique<BcstmAudioStream>();
     if (!stream->Open(bgmFolder->GetFiles()[bgmToPlay]->GetFastFileRef()))
     {
-        StopBgm();
         return;
     }
 
