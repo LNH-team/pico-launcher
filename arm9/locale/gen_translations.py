@@ -16,6 +16,24 @@ def load_po_entries(po_path):
             entries.append((entry.msgid, msgstr))
     return entries
 
+def escape_utf16(s):
+    """
+    Convert Python Unicode string → UTF-16 escape sequence for C (u"…")
+    Example: "あ" → "\\u3042"
+    """
+    out = []
+    for ch in s:
+        code = ord(ch)
+        if code <= 0xFFFF:
+            out.append(f"\\u{code:04X}")
+        else:
+            # surrogate pair
+            code -= 0x10000
+            high = 0xD800 + (code >> 10)
+            low  = 0xDC00 + (code & 0x3FF)
+            out.append(f"\\u{high:04X}\\u{low:04X}")
+    return "".join(out)
+
 def generate_c(po_dir, output_c):
     po_files = collect_po_files(po_dir)
     if not po_files:
@@ -47,7 +65,8 @@ def generate_c(po_dir, output_c):
         f.write("// List of all msgid strings\n")
         f.write("static const char16_t* msgid_table[] = {\n")
         for msgid in msgids:
-            f.write(f"    u\"{msgid}\",\n")
+            esc = escape_utf16(msgid)
+            f.write(f"    u\"{esc}\",\n")
         f.write("    NULL\n};\n\n")
 
         # msgstr tables
@@ -55,7 +74,8 @@ def generate_c(po_dir, output_c):
             f.write(f"// Translations for language: {lang}\n")
             f.write(f"static const char16_t* msgstr_{lang}[] = {{\n")
             for msgstr in msgstr_list:
-                f.write(f"    u\"{msgstr}\",\n")
+                esc = escape_utf16(msgstr)
+                f.write(f"    u\"{esc}\",\n")
             f.write("    NULL\n};\n\n")
 
         # language table
