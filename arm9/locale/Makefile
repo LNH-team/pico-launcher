@@ -1,6 +1,6 @@
 SUBSET_MEDIUM = NotoSansJP-Medium-subset.ttf
 SUBSET_REGULAR = NotoSansJP-Regular-subset.ttf
-TARGETS_MEDIUM = NotoSansJP-Medium-10.nft2 NotoSansJP-Medium-11.nft2 NotoSansJP-Medium-7_5.nft2
+TARGETS_MEDIUM = NotoSansJP-Medium-10.nft2 NotoSansJP-Medium-11.nft2
 TARGETS_REGULAR = NotoSansJP-Regular-10.nft2
 
 all: $(TARGETS_MEDIUM) $(TARGETS_REGULAR)
@@ -25,7 +25,6 @@ $(TARGETS_MEDIUM): NotoSansJP-Medium-subset.ttf
 	@echo "  GEN $@"
 	@python3 ./gen_nft2.py $< 10 NotoSansJP-Medium-10.nft2
 	@python3 ./gen_nft2.py $< 11 NotoSansJP-Medium-11.nft2
-	@python3 ./gen_nft2.py $< 7.5 NotoSansJP-Medium-7_5.nft2
 
 $(TARGETS_REGULAR): NotoSansJP-Regular-subset.ttf
 	@echo "  GEN $@"
