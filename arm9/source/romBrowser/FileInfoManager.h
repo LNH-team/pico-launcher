@@ -4,13 +4,15 @@
 #include "FileInfo.h"
 #include "FileType/FileCover.h"
 #include "ICoverRepository.h"
+#include "IIconRepository.h"
 #include "core/AtomicSharedPtr.h"
 #include "FileType/InternalFileInfo.h"
 
 class FileInfoManager
 {
 public:
-    FileInfoManager(std::unique_ptr<const FileInfo*[]> items, u32 itemCount, const ICoverRepository& coverRepository);
+    FileInfoManager(std::unique_ptr<const FileInfo*[]> items, u32 itemCount, const ICoverRepository& coverRepository,
+        const IIconRepository& iconRepository);
     ~FileInfoManager();
 
     const InternalFileInfo* GetInternalFileInfo(int index)
@@ -22,6 +24,8 @@ public:
     {
         return _extraFileInfo[index].fileCover.Lock();
     }
+
+    std::unique_ptr<FileIcon> GetFileIcon(int index);
 
     void LoadFileInfo(int index);
 
@@ -37,10 +41,12 @@ private:
     {
         const InternalFileInfo* internalFileInfo;
         AtomicSharedPtr<FileCover> fileCover;
+        AtomicSharedPtr<BmpFileIconData> iconData;
     };
 
     std::unique_ptr<const FileInfo*[]> _items;
     u32 _itemCount;
     std::unique_ptr<ExtraFileInfo[]> _extraFileInfo;
     const ICoverRepository& _coverRepository;
+    const IIconRepository& _iconRepository;
 };

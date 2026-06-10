@@ -14,7 +14,6 @@ GbaInternalFileInfo::GbaInternalFileInfo(const FastFileRef& fastFileRef)
     if (file->Seek(0xAC) != FR_OK)
         return;
 
-    u32 bytesRead;
-    if (file->Read(_gameCode, 4, bytesRead) != FR_OK)
-        return;
+    if (!file->ReadExact(_gameCode, 4))
+        memset(_gameCode, 0, sizeof(_gameCode));
 }

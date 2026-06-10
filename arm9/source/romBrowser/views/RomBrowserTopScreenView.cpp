@@ -61,7 +61,7 @@ void RomBrowserTopScreenView::Update()
                     fileNameAsTitle = false;
                 }
 
-                _selectedFileIcon = info->CreateGameIcon();
+                _selectedFileIcon = fileInfoManager.GetFileIcon(selectedItem);
                 if (!_selectedFileIcon)
                 {
                     _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
@@ -86,22 +86,26 @@ void RomBrowserTopScreenView::Update()
         }
         else
         {
+            _selectedFileIcon = fileInfoManager.GetFileIcon(selectedItem);
+            if (!_selectedFileIcon)
+            {
+                _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
+            }
+            if (_selectedFileIcon)
+            {
+                _selectedFileIcon->SetAnimFrame(_viewModel->GetIconFrameCounter());
+                _iconGraphicsUploaded = false;
+            }
+            _fileInfoView->SetIcon(std::move(_selectedFileIcon));
+            _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), true);
+
+            _lastSelectedItem = selectedItem;
+
             auto cover = fileInfoManager.GetFileCover(selectedItem);
             if (cover.IsValid())
             {
                 _selectedFileCover = std::move(cover);
                 _coverGraphicsUploaded = false;
-
-                _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
-                if (_selectedFileIcon)
-                {
-                    _selectedFileIcon->SetAnimFrame(_viewModel->GetIconFrameCounter());
-                    _iconGraphicsUploaded = false;
-                }
-                _fileInfoView->SetIcon(std::move(_selectedFileIcon));
-                _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), true);
-
-                _lastSelectedItem = selectedItem;
             }
         }
     }

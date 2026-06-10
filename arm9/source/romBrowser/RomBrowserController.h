@@ -7,6 +7,7 @@
 #include "core/task/TaskQueue.h"
 #include "IRomBrowserController.h"
 #include "CoverRepository.h"
+#include "IconRepository.h"
 #include "FileType/ExtensionFileTypeProvider.h"
 #include "services/settings/IAppSettingsService.h"
 #include "cheats/ICheatRepository.h"
@@ -40,6 +41,7 @@ public:
     TaskQueueBase* GetIoTaskQueue() const override { return _ioTaskQueue; }
     TaskQueueBase* GetBgTaskQueue() const override { return _bgTaskQueue; }
     const ICoverRepository& GetCoverRepository() const override { return *_coverRepository; }
+    const IIconRepository& GetIconRepository() const override { return *_iconRepository; }
     const ICheatRepository& GetCheatRepository() const override { return *_cheatRepository; }
 
     void SetRomBrowserDisplaySettings(const RomBrowserDisplaySettings& romBrowserDisplaySettings) override;
@@ -66,6 +68,7 @@ private:
     QueueTask<void> _navigateTask;
     bool _saveSettingsPending = false;
     std::unique_ptr<CoverRepository> _coverRepository;
+    std::unique_ptr<IconRepository> _iconRepository;
     ExtensionFileTypeProvider _fileTypeProvider;
     std::unique_ptr<ICheatRepository> _cheatRepository;
 

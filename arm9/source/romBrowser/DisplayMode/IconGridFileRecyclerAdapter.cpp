@@ -29,10 +29,10 @@ TaskResult<void> IconGridFileRecyclerAdapter::BindView(SharedPtr<View> view, int
 {
     auto iconGridItemView = static_cast<IconGridItemView*>(view.GetPointer());
     iconGridItemView->GetViewModel().SetIndex(index);
-    auto icon = internalFileInfo ? internalFileInfo->CreateGameIcon() : nullptr;
+    const auto& fileInfo = _fileInfoManager->GetItem(index);
+    auto icon = _fileInfoManager->GetFileIcon(index);
     if (!icon)
     {
-        const auto& fileInfo = _fileInfoManager->GetItem(index);
         icon = fileInfo.GetFileType()->CreateFileIcon(fileInfo.GetFileName(), _themeFileIconFactory);
     }
     if (icon != nullptr)

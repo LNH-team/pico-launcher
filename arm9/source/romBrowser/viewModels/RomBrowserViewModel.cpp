@@ -36,7 +36,7 @@ RomBrowserViewModel::RomBrowserViewModel(IRomBrowserController* romBrowserContro
     u64 endTick = gTickCounter.GetValue();
     LOG_DEBUG("Filter + sort took: %d us\n", (u32)TickCounter::TicksToMicroSeconds(endTick - startTick));
     _fileInfoManager = std::make_unique<FileInfoManager>(std::move(sortedFilteredFiles),
-        filteredCount, _romBrowserController->GetCoverRepository());
+        filteredCount, _romBrowserController->GetCoverRepository(), _romBrowserController->GetIconRepository());
     _selectedItem = _fileInfoManager->GetItemIndex(initialSelectedFileName);
 }
 

@@ -6,6 +6,7 @@
 #include "fat/File.h"
 #include "core/math/ColorConverter.h"
 #include "BmpFileCover.h"
+#include "BmpHeader.h"
 
 BmpFileCover::BmpFileCover(const FastFileRef& coverFileRef)
 {
@@ -13,6 +14,9 @@ BmpFileCover::BmpFileCover(const FastFileRef& coverFileRef)
     file->Open(coverFileRef, FA_READ);
 
     if (!file->ReadExact(_coverBuffer, 0x436))
+        return;
+
+    if (!BmpHeader::Validate(_coverBuffer, 128, 96, 8))
         return;
 
     u32 dataOffset = _coverBuffer[0xA] | (_coverBuffer[0xB] << 8) | (_coverBuffer[0xC] << 16) | (_coverBuffer[0xD] << 24);
