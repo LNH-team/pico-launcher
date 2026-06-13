@@ -9,6 +9,7 @@ class FileInfo;
 class TaskQueueBase;
 class ICoverRepository;
 class IIconRepository;
+class IBannerRepository;
 class ICheatRepository;
 
 class IRomBrowserController
@@ -36,6 +37,7 @@ public:
     virtual TaskQueueBase* GetBgTaskQueue() const = 0;
     virtual const ICoverRepository& GetCoverRepository() const = 0;
     virtual const IIconRepository& GetIconRepository() const = 0;
+    virtual const IBannerRepository& GetBannerRepository() const = 0;
     virtual const ICheatRepository& GetCheatRepository() const = 0;
 
     virtual const RomBrowserDisplaySettings& GetRomBrowserDisplaySettings() const = 0;

@@ -35,7 +35,7 @@ TaskResult<void> BannerListFileRecyclerAdapter::BindView(SharedPtr<View> view, i
     if (internalFileInfo)
     {
         const char16_t* gameTitle = internalFileInfo->GetGameTitle();
-        if (gameTitle)
+        if (gameTitle && gameTitle[0] != 0)
         {
             listItemView->SetGameTitle(gameTitle);
             fileNameAsTitle = false;

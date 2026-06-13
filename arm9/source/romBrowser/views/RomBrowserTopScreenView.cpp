@@ -44,48 +44,45 @@ void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
 void RomBrowserTopScreenView::Update()
 {
     int selectedItem = _viewModel->GetSelectedItem();
-    if (selectedItem != _lastSelectedItem)
+    if (selectedItem >= 0)
     {
         auto& fileInfoManager = _viewModel->GetFileInfoManager();
-        const auto& item = fileInfoManager.GetItem(selectedItem);
-        if (item.GetFileType()->HasInternalFileInfo())
+
+        if (selectedItem != _lastSelectedItem)
         {
+            _lastSelectedItem = selectedItem;
+            _lastLoadedSelectedItem = -1;
+
+            if (!fileInfoManager.IsFileInfoLoaded(selectedItem))
+            {
+                // Queue a background load for the selected item since it might not be visible on the bottom screen.
+                // Capture the SharedPtr to prevent lifetime/destruction race conditions.
+                auto viewModel = _viewModel;
+                _viewModel->GetIoTaskQueue()->Enqueue([viewModel, selectedItem] (const vu8& cancelRequested)
+                {
+                    viewModel->GetFileInfoManager().LoadFileInfo(selectedItem);
+                    return TaskResult<void>::Completed();
+                });
+            }
+        }
+
+        if (fileInfoManager.IsFileInfoLoaded(selectedItem) && selectedItem != _lastLoadedSelectedItem)
+        {
+            _lastLoadedSelectedItem = selectedItem;
+            const auto& item = fileInfoManager.GetItem(selectedItem);
+
+            bool fileNameAsTitle = true;
             auto info = fileInfoManager.GetInternalFileInfo(selectedItem);
             if (info)
             {
-                bool fileNameAsTitle = true;
                 const char16_t* gameTitle = info->GetGameTitle();
-                if (gameTitle)
+                if (gameTitle && gameTitle[0] != 0)
                 {
                     _fileInfoView->SetGameTitleAsync(_viewModel->GetBgTaskQueue(), gameTitle);
                     fileNameAsTitle = false;
                 }
-
-                _selectedFileIcon = fileInfoManager.GetFileIcon(selectedItem);
-                if (!_selectedFileIcon)
-                {
-                    _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
-                }
-                if (_selectedFileIcon)
-                {
-                    _selectedFileIcon->SetAnimFrame(_viewModel->GetIconFrameCounter());
-                    _iconGraphicsUploaded = false;
-                }
-                _fileInfoView->SetIcon(std::move(_selectedFileIcon));
-                _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), fileNameAsTitle);
-
-                _lastSelectedItem = selectedItem;
-
-                auto cover = fileInfoManager.GetFileCover(selectedItem);
-                if (cover.IsValid())
-                {
-                    _selectedFileCover = std::move(cover);
-                    _coverGraphicsUploaded = false;
-                }
             }
-        }
-        else
-        {
+
             _selectedFileIcon = fileInfoManager.GetFileIcon(selectedItem);
             if (!_selectedFileIcon)
             {
@@ -97,9 +94,7 @@ void RomBrowserTopScreenView::Update()
                 _iconGraphicsUploaded = false;
             }
             _fileInfoView->SetIcon(std::move(_selectedFileIcon));
-            _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), true);
-
-            _lastSelectedItem = selectedItem;
+            _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), fileNameAsTitle);
 
             auto cover = fileInfoManager.GetFileCover(selectedItem);
             if (cover.IsValid())

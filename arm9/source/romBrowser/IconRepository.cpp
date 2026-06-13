@@ -82,11 +82,7 @@ SharedPtr<BmpFileIconData> IconRepository::LoadIconData(
     if (_userIconsFolder)
     {
         u32 length = StringUtil::Copy(nameBuffer, fileInfo.GetFileName(), sizeof(nameBuffer) - 5);
-        nameBuffer[length + 0] = '.';
-        nameBuffer[length + 1] = 'b';
-        nameBuffer[length + 2] = 'm';
-        nameBuffer[length + 3] = 'p';
-        nameBuffer[length + 4] = 0;
+        memcpy(nameBuffer + length, ".bmp", 5);
         iconFile = _userIconsFolder->BinarySearch(nameBuffer);
     }
 
@@ -100,11 +96,7 @@ SharedPtr<BmpFileIconData> IconRepository::LoadIconData(
             if (gameCode)
             {
                 u32 length = StringUtil::Copy(nameBuffer, gameCode, sizeof(nameBuffer) - 5);
-                nameBuffer[length + 0] = '.';
-                nameBuffer[length + 1] = 'b';
-                nameBuffer[length + 2] = 'm';
-                nameBuffer[length + 3] = 'p';
-                nameBuffer[length + 4] = 0;
+                memcpy(nameBuffer + length, ".bmp", 5);
                 iconFile = iconFolder->BinarySearch(nameBuffer);
             }
         }

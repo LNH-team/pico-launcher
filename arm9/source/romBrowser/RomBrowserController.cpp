@@ -148,6 +148,11 @@ void RomBrowserController::HandleNavigateTrigger()
             _iconRepository = std::make_unique<IconRepository>();
             _iconRepository->Initialize();
         }
+        if (!_bannerRepository)
+        {
+            _bannerRepository = std::make_unique<BannerRepository>();
+            _bannerRepository->Initialize();
+        }
         if (!_cheatRepository)
         {
             _cheatRepository = UsrCheatRepositoryFactory().FromUsrCheatDat("/_pico/usrcheat.dat");

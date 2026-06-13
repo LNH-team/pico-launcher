@@ -40,11 +40,7 @@ FileCover* CoverRepository::GetCoverForFile(const FileInfo& fileInfo, const Inte
         if (_userCoversFolder)
         {
             u32 length = StringUtil::Copy(nameBuffer, fileInfo.GetFileName(), sizeof(nameBuffer) - 5);
-            nameBuffer[length + 0] = '.';
-            nameBuffer[length + 1] = 'b';
-            nameBuffer[length + 2] = 'm';
-            nameBuffer[length + 3] = 'p';
-            nameBuffer[length + 4] = 0;
+            memcpy(nameBuffer + length, ".bmp", 5);
             coverFile = _userCoversFolder->BinarySearch(nameBuffer);
         }
 
@@ -58,11 +54,7 @@ FileCover* CoverRepository::GetCoverForFile(const FileInfo& fileInfo, const Inte
                 if (gameCode)
                 {
                     u32 length = StringUtil::Copy(nameBuffer, gameCode, sizeof(nameBuffer) - 5);
-                    nameBuffer[length + 0] = '.';
-                    nameBuffer[length + 1] = 'b';
-                    nameBuffer[length + 2] = 'm';
-                    nameBuffer[length + 3] = 'p';
-                    nameBuffer[length + 4] = 0;
+                    memcpy(nameBuffer + length, ".bmp", 5);
                 }
 
                 coverFile = coverFolder->BinarySearch(nameBuffer);

@@ -1,4 +1,5 @@
 #include "common.h"
+#include <memory>
 #include <string.h>
 #include <nds/arm9/cache.h>
 #include "fat/File.h"
@@ -8,21 +9,22 @@
 
 BmpFileIconData::BmpFileIconData(const FastFileRef& iconFileRef)
 {
-    memset(_iconGfx, 0, sizeof(_iconGfx));
-    memset(_iconPltt, 0, sizeof(_iconPltt));
     File file;
     file.Open(iconFileRef, FA_READ);
-    Load(file);
-    DC_FlushRange(_iconGfx, sizeof(_iconGfx));
-    DC_FlushRange(_iconPltt, sizeof(_iconPltt));
+    Init(file);
 }
 
 BmpFileIconData::BmpFileIconData(const TCHAR* path)
 {
-    memset(_iconGfx, 0, sizeof(_iconGfx));
-    memset(_iconPltt, 0, sizeof(_iconPltt));
     File file;
     file.Open(path, FA_READ);
+    Init(file);
+}
+
+void BmpFileIconData::Init(File& file)
+{
+    memset(_iconGfx, 0, sizeof(_iconGfx));
+    memset(_iconPltt, 0, sizeof(_iconPltt));
     Load(file);
     DC_FlushRange(_iconGfx, sizeof(_iconGfx));
     DC_FlushRange(_iconPltt, sizeof(_iconPltt));
@@ -30,7 +32,7 @@ BmpFileIconData::BmpFileIconData(const TCHAR* path)
 
 void BmpFileIconData::Load(File& file)
 {
-    // BMP header + 16-color palette (14 + 40 + 64 bytes)
+    // BMP file header (14) + DIB header (40) + 16-color palette (64)
     u8 headerAndPalette[118];
     if (!file.ReadExact(headerAndPalette, sizeof(headerAndPalette)))
         return;
@@ -44,6 +46,8 @@ void BmpFileIconData::Load(File& file)
     if (dataOffset < sizeof(headerAndPalette))
         return;
 
+    const bool topDown = BmpHeader::IsTopDown(headerAndPalette);
+
     const u8* paletteData = &headerAndPalette[0x36];
     for (u32 i = 0; i < 16; i++)
     {
@@ -54,18 +58,29 @@ void BmpFileIconData::Load(File& file)
         _iconPltt[i] = ColorConverter::ToXBGR555(Rgb<5, 5, 5>(Rgb<8, 8, 8>(r, g, b)));
     }
 
-    u8 rawPixelData[512];
+    // Heap-allocate the staging buffer so it doesn't live on the task thread stack.
+    auto rawPixelData = std::make_unique<u8[]>(GfxSize);
+    if (!rawPixelData)
+    {
+        memset(_iconPltt, 0, sizeof(_iconPltt));
+        return;
+    }
     if (file.Seek(dataOffset) != FR_OK ||
-        !file.ReadExact(rawPixelData, sizeof(rawPixelData)))
+        !file.ReadExact(rawPixelData.get(), GfxSize))
     {
         memset(_iconPltt, 0, sizeof(_iconPltt));
         return;
     }
 
-    // Convert linear bottom-to-top rows to the DS tiled 4 bpp sprite format
+    // Convert BMP rows (bottom-up or top-down) to the DS tiled 4 bpp sprite format.
     for (int y = 0; y < 32; y++)
     {
-        const u8* srcRowPtr = rawPixelData + (31 - y) * 16; // 32 pixels @ 4 bpp = 16 bytes/row
+        // Bottom-up BMP (normal, positive height): row 0 is the bottom of the image.
+        // Top-down BMP (negative height): row 0 is the top of the image.
+        const u8* srcRowPtr = topDown
+            ? rawPixelData.get() + y * 16
+            : rawPixelData.get() + (31 - y) * 16;
+
         int ty = y / 8;
         int py = y % 8;
 
@@ -82,13 +97,9 @@ void BmpFileIconData::Load(File& file)
             int tileIdx = ty * 4 + tx;
             int destByteOffset = tileIdx * 32 + py * 4 + px / 2;
             if (px % 2 == 0)
-            {
                 _iconGfx[destByteOffset] = (_iconGfx[destByteOffset] & 0xF0) | colorIndex;
-            }
             else
-            {
                 _iconGfx[destByteOffset] = (_iconGfx[destByteOffset] & 0x0F) | (colorIndex << 4);
-            }
         }
     }
 }
