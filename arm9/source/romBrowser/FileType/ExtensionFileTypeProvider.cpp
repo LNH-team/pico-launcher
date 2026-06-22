@@ -29,6 +29,10 @@ ExtensionFileTypeProvider::ExtensionFileTypeProvider(const AppSettings& appSetti
         {
             baseFileType = &GbaFileType::sInstance;
         }
+        else if (isNdsExtension(appSettings.fileAssociations[i].extension))
+        {
+            baseFileType = &NdsFileType::sInstance;
+        }
         _customFileTypes[i] = CustomFileType(&appSettings.fileAssociations[i], baseFileType);
     }
 }
@@ -40,17 +44,17 @@ const FileType* ExtensionFileTypeProvider::GetFileType(const TCHAR* path) const
     {
         extension++; // skip over dot
 
-        if (isNdsExtension(extension))
-        {
-            return &NdsFileType::sInstance;
-        }
-
         for (u32 i = 0; i < _appSettings.numberOfFileAssociations; i++)
         {
             if (!strcasecmp(extension, _customFileTypes[i].GetShortName()))
             {
                 return &_customFileTypes[i];
             }
+        }
+
+        if (isNdsExtension(extension))
+        {
+            return &NdsFileType::sInstance;
         }
     }
 
