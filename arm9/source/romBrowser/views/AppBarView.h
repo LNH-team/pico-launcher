@@ -24,6 +24,11 @@ public:
         _buttons[button]->SetAction(action, arg);
     }
 
+    void SetButtonDisabled(int button, bool disabled)
+    {
+        _buttons[button]->SetDisabled(disabled);
+    }
+
     Rectangle GetBounds() const override;
     void Update() override;
     SharedPtr<View> MoveFocus(const SharedPtr<View>& currentFocus, FocusMoveDirection direction, View* source) override;

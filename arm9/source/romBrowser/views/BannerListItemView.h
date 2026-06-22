@@ -5,6 +5,9 @@
 #include "romBrowser/viewModels/RomBrowserItemViewModel.h"
 #include "RomBrowserItemInputHandler.h"
 
+class GraphicsContext;
+class VramContext;
+
 class BannerListItemView : public BannerView
 {
 public:
@@ -21,6 +24,19 @@ public:
         constexpr u32 GetVramOffset() const { return _vramOffset; }
     };
 
+    class FavoriteBadgeVramToken
+    {
+        u32 _vramOffset;
+    public:
+        FavoriteBadgeVramToken()
+            : _vramOffset(0) { }
+
+        explicit FavoriteBadgeVramToken(u32 offset)
+            : _vramOffset(offset) { }
+
+        constexpr u32 GetVramOffset() const { return _vramOffset; }
+    };
+
     void Update() override;
 
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
@@ -29,6 +45,13 @@ public:
     void HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager) override;
 
     virtual void SetGraphics(const VramToken& vramToken) { }
+
+    void SetFavoriteBadgeGraphics(const FavoriteBadgeVramToken& vramToken)
+    {
+        _favoriteBadgeVramOffset = vramToken.GetVramOffset();
+    }
+
+    static FavoriteBadgeVramToken UploadFavoriteBadgeGraphics(const VramContext& vramContext);
 
     void SetFirstLineAsync(TaskQueueBase* taskQueue, const char* firstLine, bool ellipsis) override
     {
@@ -75,7 +98,10 @@ protected:
     SharedPtr<LabelView> _secondLine;
     SharedPtr<LabelView> _thirdLine;
     RomBrowserItemInputHandler _inputHandler;
+    u32 _favoriteBadgeVramOffset = 0;
 
     BannerListItemView(std::unique_ptr<RomBrowserItemViewModel> viewModel, SharedPtr<LabelView> firstLine,
         SharedPtr<LabelView> secondLine, SharedPtr<LabelView> thirdLine);
+
+    void DrawFavoriteBadge(GraphicsContext& graphicsContext) const;
 };

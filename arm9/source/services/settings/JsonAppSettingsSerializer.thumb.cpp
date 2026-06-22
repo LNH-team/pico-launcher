@@ -7,7 +7,7 @@
 
 #pragma GCC optimize("Os")
 
-#define JSON_RESERVED_SIZE  2048
+#define JSON_RESERVED_SIZE  4096
 
 #define KEY_LANGUAGE                 "language"
 #define KEY_ROM_BROWSER_LAYOUT       "romBrowserLayout"
@@ -16,6 +16,7 @@
 #define KEY_LAST_USED_FILE_PATH      "lastUsedFilePath"
 #define KEY_FILE_ASSOCIATIONS        "fileAssociations"
 #define KEY_FILE_ASSOCIATIONS_APPLICATION_PATH  "appPath"
+#define KEY_FAVORITES                "favorites"
 
 static const char* serializeRomBrowserLayout(RomBrowserLayout romBrowserLayout)
 {
@@ -131,6 +132,12 @@ static std::unique_ptr<u8[]> writeJson(const AppSettings* appSettings, u32& leng
     json[KEY_LAST_USED_FILE_PATH] = appSettings->lastUsedFilePath.GetString();
     serializeFileAssociations(json, appSettings);
 
+    JsonArray favoritesArray = json.createNestedArray(KEY_FAVORITES);
+    for (u32 i = 0; i < appSettings->numberOfFavorites; i++)
+    {
+        favoritesArray.add(appSettings->favorites[i].GetString());
+    }
+
     u32 outputSize = measureJsonPretty(json);
     std::unique_ptr<u8[]> fileData(new(cache_align) u8[outputSize]);
 
@@ -182,6 +189,18 @@ static void readJson(AppSettings* appSettings, const JsonDocument& json)
     }
 
     tryParseFileAssociations(json[KEY_FILE_ASSOCIATIONS], appSettings);
+
+    JsonArrayConst favoritesArray = json[KEY_FAVORITES];
+    if (!favoritesArray.isNull())
+    {
+        appSettings->favorites = std::make_unique_for_overwrite<String<char, 256>[]>(favoritesArray.size());
+        u32 i = 0;
+        for (auto item : favoritesArray)
+        {
+            appSettings->favorites[i++] = item.as<const char*>();
+        }
+        appSettings->numberOfFavorites = i;
+    }
 }
 
 bool JsonAppSettingsSerializer::Deserialize(AppSettings* appSettings, const char* filePath) const

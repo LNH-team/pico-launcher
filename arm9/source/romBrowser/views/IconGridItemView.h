@@ -6,6 +6,8 @@
 #include "RomBrowserItemInputHandler.h"
 
 class MaterialColorScheme;
+class GraphicsContext;
+class VramContext;
 
 class IconGridItemView : public View
 {
@@ -18,6 +20,19 @@ public:
             : _vramOffset(0) { }
 
         explicit VramToken(u32 offset)
+            : _vramOffset(offset) { }
+
+        constexpr u32 GetVramOffset() const { return _vramOffset; }
+    };
+
+    class FavoriteBadgeVramToken
+    {
+        u32 _vramOffset;
+    public:
+        FavoriteBadgeVramToken()
+            : _vramOffset(0) { }
+
+        explicit FavoriteBadgeVramToken(u32 offset)
             : _vramOffset(offset) { }
 
         constexpr u32 GetVramOffset() const { return _vramOffset; }
@@ -50,6 +65,13 @@ public:
 
     virtual void SetGraphics(const VramToken& vramToken) { }
 
+    void SetFavoriteBadgeGraphics(const FavoriteBadgeVramToken& vramToken)
+    {
+        _favoriteBadgeVramOffset = vramToken.GetVramOffset();
+    }
+
+    static FavoriteBadgeVramToken UploadFavoriteBadgeGraphics(const VramContext& vramContext);
+
     RomBrowserItemViewModel& GetViewModel() const
     {
         return *_viewModel;
@@ -60,8 +82,11 @@ protected:
     std::unique_ptr<FileIcon> _icon;
     vu16* _iconVram;
     u32 _iconVramOffset;
+    u32 _favoriteBadgeVramOffset = 0;
     RomBrowserItemInputHandler _inputHandler;
 
     explicit IconGridItemView(std::unique_ptr<RomBrowserItemViewModel> viewModel)
         : _viewModel(std::move(viewModel)), _inputHandler(this, _viewModel.get()) { }
+
+    void DrawFavoriteBadge(GraphicsContext& graphicsContext) const;
 };

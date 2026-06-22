@@ -51,4 +51,6 @@ void CustomIconGridItemView::Draw(GraphicsContext& graphicsContext)
         _icon->SetPosition(6 + _position.x, 6 + _position.y);
         _icon->Draw(graphicsContext, _customThemeInfo->gridIconInfo.GetBlendColor());
     }
+
+    DrawFavoriteBadge(graphicsContext);
 }

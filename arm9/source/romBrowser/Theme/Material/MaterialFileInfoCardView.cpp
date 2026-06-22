@@ -3,8 +3,6 @@
 #include "gui/OamBuilder.h"
 #include "gui/IVramManager.h"
 #include "gui/VramContext.h"
-#include "core/math/RgbMixer.h"
-#include "core/math/ColorConverter.h"
 #include "iconCell.h"
 #include "gui/palette/GradientPalette.h"
 #include "themes/material/MaterialColorScheme.h"

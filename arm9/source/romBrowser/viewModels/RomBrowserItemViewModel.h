@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include "core/task/TaskQueue.h"
 
 class IRomBrowserController;
@@ -11,11 +12,13 @@ public:
 
     void Activate();
     void ShowGameInfo();
+    void ToggleFavorite();
 
-    void SetIndex(int index)
-    {
-        _index = index;
-    }
+    // Cached on SetIndex() (runs on _ioTaskQueue, same as icon loading) so Draw(),
+    // which runs on the render thread every frame, never touches the SD card.
+    bool IsFavorite() const { return _isFavorite.load(std::memory_order_acquire); }
+
+    void SetIndex(int index);
 
     void SetQueueTask(QueueTask<void> queueTask)
     {
@@ -37,6 +40,7 @@ public:
 
 private:
     int _index = -1;
+    std::atomic<bool> _isFavorite { false };
     QueueTask<void> _queueTask;
 
     IRomBrowserController* _romBrowserController;

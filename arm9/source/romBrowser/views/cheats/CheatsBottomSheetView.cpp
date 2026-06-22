@@ -17,8 +17,9 @@
 #define TITLE_LABEL_X               20
 #define TITLE_LABEL_Y               16
 
-#define CATEGORY_NAME_LABEL_X       (TITLE_LABEL_X + 43)
+#define CATEGORY_NAME_LABEL_X       (TITLE_LABEL_X + 38)
 #define CATEGORY_NAME_LABEL_Y       (TITLE_LABEL_Y + 1)
+#define CATEGORY_NAME_LABEL_WIDTH   85
 
 #define NO_CHEATS_FOUND_LABEL_X     20
 #define NO_CHEATS_FOUND_LABEL_Y     36
@@ -26,7 +27,7 @@
 #define DESCRIPTION_LABEL_X         16
 #define DESCRIPTION_LABEL_Y         147
 
-#define UP_BUTTON_X                 212
+#define UP_BUTTON_X                 221
 #define UP_BUTTON_Y                 (TITLE_LABEL_Y - 7)
 
 #define LIST_X                      16
@@ -39,7 +40,7 @@ CheatsBottomSheetView::CheatsBottomSheetView(SharedPtr<CheatsViewModel> viewMode
     FocusManager* focusManager)
     : _viewModel(std::move(viewModel))
     , _titleLabel(Label2DView::CreateShared(64, 16, 25, fontRepository->GetFont(FontType::Medium11)))
-    , _secondaryLabel(Label2DView::CreateShared(153, 16, 64, fontRepository->GetFont(FontType::Regular10)))
+    , _secondaryLabel(Label2DView::CreateShared(CATEGORY_NAME_LABEL_WIDTH, 16, 64, fontRepository->GetFont(FontType::Regular10)))
     , _descriptionLabel(Label2DView::CreateShared(224, 16, 256, fontRepository->GetFont(FontType::Medium7_5)))
     , _cheatListRecycler(RecyclerView::CreateShared(
         LIST_X, LIST_Y, LIST_WIDTH, LIST_HEIGHT, RecyclerView::Mode::VerticalList))
@@ -53,7 +54,7 @@ CheatsBottomSheetView::CheatsBottomSheetView(SharedPtr<CheatsViewModel> viewMode
     , _focusManager(focusManager)
 {
     _titleLabel->SetText(u"Cheats");
-    _secondaryLabel->SetText(u"No cheats found.");
+    _secondaryLabel->SetText(u"No cheats found");
     _secondaryLabel->SetEllipsisStyle(LabelView::EllipsisStyle::Ellipsis);
     _descriptionLabel->SetEllipsisStyle(LabelView::EllipsisStyle::Marquee);
     _descriptionLabel->SetText(u"");
@@ -226,6 +227,11 @@ void CheatsBottomSheetView::Draw(GraphicsContext& graphicsContext)
     graphicsContext.ResetClipArea();
 }
 
+void CheatsBottomSheetView::Focus(FocusManager& focusManager)
+{
+    _cheatListRecycler->Focus(focusManager);
+}
+
 SharedPtr<View> CheatsBottomSheetView::MoveFocus(const SharedPtr<View>& currentFocus, FocusMoveDirection direction, View* source)
 {
     if (!currentFocus)
@@ -297,7 +303,8 @@ void CheatsBottomSheetView::UpdateDescriptionText()
         auto cheatCategory = _viewModel->GetCurrentCheatCategory();
         u32 numberOfSubEntries = 0;
         auto subEntries = cheatCategory->GetSubEntries(numberOfSubEntries);
-        _descriptionLabel->SetText(subEntries[selectedItem].GetDescription());
+        const char* desc = subEntries[selectedItem].GetDescription();
+        _descriptionLabel->SetText(desc ? desc : "");
     }
 }
 

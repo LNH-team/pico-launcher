@@ -12,9 +12,10 @@ From here you can browse your SD card to launch homebrew and games.
 - A: Open a folder, or to launch a homebrew or game.
 - B: Go to the parent folder or close a menu.
 - L and R: Scroll quickly when there are many items in a folder.
+- X: Add or remove the selected item from your favorites.
 - Y: Open the cheats panel (see [Cheats](Cheats.md)).
 
-The back arrow on the top left of the bottom screen can also be used to go up to the parent folder.
+The back arrow on the top left of the bottom screen can also be used to go up to the parent folder. The heart icon on the top right of the bottom screen opens your favorites.
 
 Touch input is also supported.
 

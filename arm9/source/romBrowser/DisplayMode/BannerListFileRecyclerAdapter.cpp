@@ -22,6 +22,7 @@ void BannerListFileRecyclerAdapter::BindView(SharedPtr<View> view, int index) co
 {
     auto listItemView = static_cast<BannerListItemView*>(view.GetPointer());
     listItemView->SetGraphics(_bannerListItemViewGraphics);
+    listItemView->SetFavoriteBadgeGraphics(_favoriteBadgeVramToken);
     FileRecyclerAdapter::BindView(view, index);
 }
 
@@ -88,4 +89,5 @@ void BannerListFileRecyclerAdapter::ReleaseView(SharedPtr<View> view, int index)
 void BannerListFileRecyclerAdapter::InitVram(const VramContext& vramContext)
 {
     _bannerListItemViewGraphics = _romBrowserViewFactory->UploadBannerListItemViewGraphics(vramContext);
+    _favoriteBadgeVramToken = BannerListItemView::UploadFavoriteBadgeGraphics(vramContext);
 }

@@ -6,7 +6,7 @@ bool IconButtonView::HandleInput(const InputProvider& inputProvider, FocusManage
 {
     if (inputProvider.Triggered(InputKey::A))
     {
-        if (_action)
+        if (_action && !_disabled)
         {
             _action(this, _actionArg);
         }
@@ -18,7 +18,7 @@ bool IconButtonView::HandleInput(const InputProvider& inputProvider, FocusManage
 
 void IconButtonView::HandlePenDown(const Point& touchPoint, FocusManager& focusManager)
 {
-    if (GetBounds().Contains(touchPoint))
+    if (!_disabled && GetBounds().Contains(touchPoint))
     {
         _penDown = true;
     }
@@ -100,6 +100,11 @@ md::sys::color IconButtonView::GetCircleBackgroundColor() const
 
 md::sys::color IconButtonView::GetForegroundColor() const
 {
+    if (_disabled)
+    {
+        return md::sys::color::outline;
+    }
+
     switch (_type)
     {
         case Type::Standard:

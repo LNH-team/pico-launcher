@@ -4,7 +4,6 @@
 #include "gui/GraphicsContext.h"
 #include "backIcon.h"
 #include "settingsIcon.h"
-#include "heartIcon.h"
 #include "recentIcon.h"
 #include "listIcon.h"
 #include "gui/IVramManager.h"
@@ -16,7 +15,9 @@ RomBrowserBottomScreenView::RomBrowserBottomScreenView(
     const RomBrowserDisplayMode* displayMode,
     const IThemeFileIconFactory* themeFileIconFactory,
     const IRomBrowserViewFactory* romBrowserViewFactory,
-    VBlankTextureLoader* vblankTextureLoader)
+    VBlankTextureLoader* vblankTextureLoader,
+    const IFontRepository* fontRepository,
+    const MaterialColorScheme* materialColorScheme)
     : _viewModel(viewModel)
     , _romBrowserViewFactory(romBrowserViewFactory)
     , _romBrowserDisplayMode(displayMode)
@@ -24,6 +25,8 @@ RomBrowserBottomScreenView::RomBrowserBottomScreenView(
     , _romBrowserAppBarView(RomBrowserAppBarView::CreateShared(_viewModel->GetRomBrowserAppBarViewModel(),
         *displayMode, romBrowserViewFactory))
     , _vblankTextureLoader(vblankTextureLoader)
+    , _fontRepository(fontRepository)
+    , _materialColorScheme(materialColorScheme)
 {
     _romBrowserAppBarView->SetParent(this);
 }
@@ -148,7 +151,8 @@ void RomBrowserBottomScreenView::RomBrowserViewModelInvalidated(const VramContex
     {
         _romBrowserView = RomBrowserView::CreateShared(
             _viewModel->GetRomBrowserViewModel(), *_romBrowserDisplayMode,
-            _themeFileIconFactory, _romBrowserViewFactory, _vblankTextureLoader);
+            _themeFileIconFactory, _romBrowserViewFactory, _vblankTextureLoader,
+            _fontRepository, _materialColorScheme);
         _romBrowserView->SetParent(this);
         _romBrowserView->InitVram(vramContext);
     }

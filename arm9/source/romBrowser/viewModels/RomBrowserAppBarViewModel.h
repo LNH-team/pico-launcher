@@ -18,6 +18,16 @@ public:
         _romBrowserController->ShowDisplaySettings();
     }
 
+    void NavigateToPath(const TCHAR* name)
+    {
+        _romBrowserController->NavigateToPath(name);
+    }
+
+    bool IsAtRoot() const
+    {
+        return _romBrowserController->IsAtRoot();
+    }
+
     constexpr RomBrowserLayout GetRomBrowserLayout() const
     {
         return _romBrowserController->GetRomBrowserDisplaySettings().layout;

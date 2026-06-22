@@ -17,6 +17,11 @@ public:
         , _dirSectorOffset(fileInfo->fdiroffs), _startCluster(fileInfo->fclust)
         , _fileSize(fileInfo->fsize) { }
 
+    FastFileRef(FATFS* fs, const FILINFO* fileInfo)
+        : _fatFs(fs), _dirSector(fileInfo->fdirsect)
+        , _dirSectorOffset(fileInfo->fdiroffs), _startCluster(fileInfo->fclust)
+        , _fileSize(fileInfo->fsize) { }
+
     FATFS* GetFatFs() const { return _fatFs; }
     u32 GetDirSector() const { return _dirSector; }
     u32 GetDirSectorOffset() const { return _dirSectorOffset; }

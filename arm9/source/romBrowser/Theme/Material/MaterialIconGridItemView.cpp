@@ -50,6 +50,8 @@ void MaterialIconGridItemView::Draw(GraphicsContext& graphicsContext)
         _icon->SetPosition(6 + _position.x, 6 + _position.y);
         _icon->Draw(graphicsContext, frontColor);
     }
+
+    DrawFavoriteBadge(graphicsContext);
 }
 
 MaterialIconGridItemView::VramToken MaterialIconGridItemView::UploadGraphics(const VramContext& vramContext)
