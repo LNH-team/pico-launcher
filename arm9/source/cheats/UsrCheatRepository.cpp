@@ -110,7 +110,7 @@ std::unique_ptr<GameCheats> UsrCheatRepository::GetCheatsForGame(u32 gameCode, u
     auto entries = new CheatEntry[totalNumberOfItems];
     u32 entryCount = 0;
 
-    while (ptr < cheatData.get() + cheatDataLength)
+    while (ptr < cheatData.get() + cheatDataLength && entryCount < totalNumberOfItems)
     {
         u32 itemFlags = *(u32*)ptr;
         bool isCategory = ((itemFlags >> 28) & 1) == 1;
