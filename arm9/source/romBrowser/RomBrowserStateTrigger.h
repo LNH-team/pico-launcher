@@ -10,5 +10,7 @@ enum class RomBrowserStateTrigger
     FolderLoadDone,
     Launch,
     ShowDisplaySettings,
-    HideDisplaySettings
+    HideDisplaySettings,
+    ShowSearch,
+    HideSearch
 };

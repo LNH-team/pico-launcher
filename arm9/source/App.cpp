@@ -22,6 +22,7 @@
 #include "romBrowser/views/NdsGameDetailsBottomSheetView.h"
 #include "romBrowser/views/cheats/CheatsBottomSheetView.h"
 #include "romBrowser/views/DisplaySettingsBottomSheetView.h"
+#include "romBrowser/views/SearchBottomSheetView.h"
 #include "bgm/AudioStreamPlayer.h"
 #include "bgm/BgmService.h"
 #include "themes/ThemeInfoFactory.h"
@@ -291,6 +292,16 @@ void App::HandleTrigger(RomBrowserStateTrigger trigger, RomBrowserState newState
             _changeDisplayMode = true;
             break;
         }
+        case RomBrowserStateTrigger::ShowSearch:
+        {
+            HandleShowSearchTrigger();
+            break;
+        }
+        case RomBrowserStateTrigger::HideSearch:
+        {
+            HandleHideSearchTrigger();
+            break;
+        }
     }
 }
 
@@ -325,6 +336,35 @@ void App::HandleShowDisplaySettingsTrigger()
 void App::HandleHideDisplaySettingsTrigger()
 {
     _dialogPresenter.CloseDialog();
+    if (!_dialogPresenter.GetOldFocus())
+        _romBrowserBottomScreenView->Focus(_focusManager);
+}
+
+void App::HandleShowSearchTrigger()
+{
+    auto searchViewModel = std::make_unique<SearchViewModel>(&_romBrowserController);
+    auto searchDialog = SearchBottomSheetView::CreateShared(
+        std::move(searchViewModel), &_theme->GetMaterialColorScheme(), _theme->GetFontRepository(), &_focusManager);
+    _dialogPresenter.ShowDialog(std::move(searchDialog));
+}
+
+void App::HandleHideSearchTrigger()
+{
+    _dialogPresenter.CloseDialog();
+
+    _romBrowserTopScreenView.Reset();
+    RestoreVramState(_vramStateAfterMakeBottomScreenView);
+
+    auto displayMode = RomBrowserDisplayModeFactory().GetRomBrowserDisplayMode(
+        _romBrowserController.GetRomBrowserDisplaySettings().layout);
+    _romBrowserTopScreenView = RomBrowserTopScreenView::CreateShared(
+        _romBrowserController.GetRomBrowserViewModel(),
+        displayMode,
+        _materialThemeFileIconFactory.get(),
+        _theme->GetRomBrowserViewFactory());
+    _romBrowserTopScreenView->InitVram(_subVramContext);
+
+    _romBrowserBottomScreenView->RomBrowserViewModelInvalidated(_mainVramContext);
     if (!_dialogPresenter.GetOldFocus())
         _romBrowserBottomScreenView->Focus(_focusManager);
 }

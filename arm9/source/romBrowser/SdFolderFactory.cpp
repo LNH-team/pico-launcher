@@ -4,9 +4,11 @@
 #include "FileInfo.h"
 #include "FileType/Folder/FolderFileType.h"
 #include "SdFolderFactory.h"
+#include "string.h"
 
 std::unique_ptr<SdFolder> SdFolderFactory::CreateFromPath(const char* path) const
 {
+
     Directory directory;
     if (directory.Open(path) != FR_OK)
         return nullptr;

@@ -17,10 +17,7 @@ public:
     RomBrowserController(IAppSettingsService* appSettingsService,
         TaskQueueBase* ioTaskQueue, TaskQueueBase* bgTaskQueue);
 
-    void NavigateUp() override
-    {
-        NavigateToPath("..");
-    }
+    void NavigateUp() override;
 
     void NavigateToPath(const TCHAR* name) override;
     void LaunchFile(const FileInfo& fileInfo) override;
@@ -28,6 +25,11 @@ public:
     void HideGameInfo() override;
     void ShowDisplaySettings() override;
     void HideDisplaySettings() override;
+    void ShowSearch() override;
+    void HideSearch() override;
+    void SetSearchQuery(const char* query) override;
+    const char* GetSearchQuery() const override { return _searchQuery; }
+    void RefreshRomBrowserViewModel() override;
 
     void Update() override;
 
@@ -65,6 +67,7 @@ private:
     FileInfo _triggerFileInfo;
     QueueTask<void> _navigateTask;
     bool _saveSettingsPending = false;
+    char _searchQuery[33] = { 0 };
     std::unique_ptr<CoverRepository> _coverRepository;
     ExtensionFileTypeProvider _fileTypeProvider;
     std::unique_ptr<ICheatRepository> _cheatRepository;
@@ -74,6 +77,9 @@ private:
     void HandleFolderLoadDoneTrigger();
     void HandleLaunchTrigger();
     void HandleChangeDisplayModeTrigger();
+    void HandleShowSearchTrigger();
+    void HandleHideSearchTrigger();
+    bool IsSearchOpenFromStateMachine() const;
     void UpdateLastUsedFilepath();
     void SetPicoLoaderParams() const;
     void LoadCheats() const;

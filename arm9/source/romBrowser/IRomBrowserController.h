@@ -22,6 +22,11 @@ public:
     virtual void HideGameInfo() = 0;
     virtual void ShowDisplaySettings() = 0;
     virtual void HideDisplaySettings() = 0;
+    virtual void ShowSearch() = 0;
+    virtual void HideSearch() = 0;
+    virtual void SetSearchQuery(const char* query) = 0;
+    virtual const char* GetSearchQuery() const = 0;
+    virtual void RefreshRomBrowserViewModel() = 0;
 
     virtual void Update() = 0;
 

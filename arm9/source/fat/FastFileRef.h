@@ -10,7 +10,8 @@ class FastFileRef
     FSIZE_t _fileSize;
 
 public:
-    FastFileRef() { }
+    FastFileRef()
+        : _fatFs(nullptr), _dirSector(0), _dirSectorOffset(0), _startCluster(0), _fileSize(0) { }
 
     explicit FastFileRef(const DIR* directory, const FILINFO* fileInfo)
         : _fatFs(directory->obj.fs), _dirSector(fileInfo->fdirsect)

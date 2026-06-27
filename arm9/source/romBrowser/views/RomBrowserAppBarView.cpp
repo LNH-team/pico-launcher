@@ -1,11 +1,13 @@
 #include "common.h"
 #include "../viewModels/RomBrowserAppBarViewModel.h"
+#include "../viewModels/SearchViewModel.h"
 #include "gui/GraphicsContext.h"
 #include "gui/VramContext.h"
 #include "backIcon.h"
 #include "settingsIcon.h"
 #include "heartIcon.h"
-#include "recentIcon.h"
+#include "searchIcon.h"
+#include "searchOffIcon.h"
 #include "hGridIcon.h"
 #include "vGridIcon.h"
 #include "bannerListIcon.h"
@@ -20,7 +22,7 @@ RomBrowserAppBarView::RomBrowserAppBarView(
     const IRomBrowserViewFactory* romBrowserViewFactory)
     : _viewModel(viewModel)
 {
-    _appBarView = displayMode.CreateAppBarView(romBrowserViewFactory, 1, 1);
+    _appBarView = displayMode.CreateAppBarView(romBrowserViewFactory, 2, 1);
     AddChildTail(_appBarView.GetPointer());
 
     _appBarView->SetButtonAction(APP_BAR_BUTTON_BACK, [] (IconButtonView* sender, void* arg)
@@ -30,6 +32,10 @@ RomBrowserAppBarView::RomBrowserAppBarView(
     _appBarView->SetButtonAction(APP_BAR_BUTTON_DISPLAY_SETTINGS, [] (IconButtonView* sender, void* arg)
     {
         ((RomBrowserAppBarViewModel*)arg)->ShowDisplaySettings();
+    }, _viewModel);
+    _appBarView->SetButtonAction(APP_BAR_BUTTON_SEARCH, [] (IconButtonView* sender, void* arg)
+    {
+        SearchViewModel(((RomBrowserAppBarViewModel*)arg)->GetRomBrowserController()).ToggleSearch();
     }, _viewModel);
 }
 
@@ -47,6 +53,16 @@ void RomBrowserAppBarView::InitVram(const VramContext& vramContext)
         u32 settingsIconVramOffset = objVramManager->Alloc(settingsIconTilesLen);
         dma_ntrCopy32(3, settingsIconTiles, objVramManager->GetVramAddress(settingsIconVramOffset), settingsIconTilesLen);
         _appBarView->SetButtonIcon(APP_BAR_BUTTON_DISPLAY_SETTINGS, settingsIconVramOffset);
+
+        _searchIconVramOffset = objVramManager->Alloc(searchIconTilesLen);
+        dma_ntrCopy32(3, searchIconTiles, objVramManager->GetVramAddress(_searchIconVramOffset), searchIconTilesLen);
+
+        _searchOffIconVramOffset = objVramManager->Alloc(searchOffIconTilesLen);
+        dma_ntrCopy32(3, searchOffIconTiles, objVramManager->GetVramAddress(_searchOffIconVramOffset), searchOffIconTilesLen);
+
+        bool isSearchActive = SearchViewModel(_viewModel->GetRomBrowserController()).IsSearchActive();
+        _appBarView->SetButtonIcon(APP_BAR_BUTTON_SEARCH,
+            isSearchActive ? _searchOffIconVramOffset : _searchIconVramOffset);
 
         // u32 settingsIconVramOffset = objVramManager->Alloc(settingsIconTilesLen);
         // dma_ntrCopy32(3, settingsIconTiles, objVramManager->GetVramAddress(settingsIconVramOffset), settingsIconTilesLen);
@@ -97,6 +113,25 @@ void RomBrowserAppBarView::InitVram(const VramContext& vramContext)
         // }
         // _appBarView->SetButtonIcon(APP_BAR_BUTTON_DISPLAY_SETTINGS, displaySettingsIconVramOffset);
     }
+}
+
+void RomBrowserAppBarView::Update()
+{
+    bool isSearchActive = SearchViewModel(_viewModel->GetRomBrowserController()).IsSearchActive();
+    _appBarView->SetButtonIcon(APP_BAR_BUTTON_SEARCH,
+        isSearchActive ? _searchOffIconVramOffset : _searchIconVramOffset);
+
+    _appBarView->Update();
+}
+
+void RomBrowserAppBarView::Draw(GraphicsContext& graphicsContext)
+{
+    _appBarView->Draw(graphicsContext);
+}
+
+void RomBrowserAppBarView::VBlank()
+{
+    _appBarView->VBlank();
 }
 
 SharedPtr<View> RomBrowserAppBarView::MoveFocus(const SharedPtr<View>& currentFocus, FocusMoveDirection direction, View* source)

@@ -1,7 +1,67 @@
 #include "common.h"
 #include <string.h>
+#include <cctype>
 #include <algorithm>
 #include "SdFolder.h"
+
+namespace
+{
+    bool ContainsCaseInsensitive(const char* text, const char* query)
+    {
+        if (!query || query[0] == 0)
+            return true;
+
+        if (!text)
+            return false;
+
+        const char* queryStart = query;
+        while (*queryStart != 0)
+        {
+            while (*queryStart != 0 && std::isspace(static_cast<unsigned char>(*queryStart)))
+                queryStart++;
+
+            if (*queryStart == 0)
+                break;
+
+            const char* queryEnd = queryStart;
+            while (*queryEnd != 0 && !std::isspace(static_cast<unsigned char>(*queryEnd)))
+                queryEnd++;
+
+            const int tokenLen = queryEnd - queryStart;
+            if (tokenLen <= 0)
+            {
+                queryStart = queryEnd;
+                continue;
+            }
+
+            bool tokenMatched = false;
+            for (const char* start = text; *start != 0; start++)
+            {
+                int i = 0;
+                while (i < tokenLen && start[i] != 0)
+                {
+                    unsigned char textChar = static_cast<unsigned char>(start[i]);
+                    unsigned char queryChar = static_cast<unsigned char>(queryStart[i]);
+                    if (std::tolower(textChar) != std::tolower(queryChar))
+                        break;
+                    i++;
+                }
+                if (i == tokenLen)
+                {
+                    tokenMatched = true;
+                    break;
+                }
+            }
+
+            if (!tokenMatched)
+                return false;
+
+            queryStart = queryEnd;
+        }
+
+        return true;
+    }
+}
 
 SdFolder::SdFolder(FileInfo** files, int fileCount)
     : _files(files), _fileCount(fileCount) { }
@@ -23,8 +83,10 @@ std::unique_ptr<const FileInfo*[]> SdFolder::FilterAndSort(
         const FileInfo* file = _files[i];
         bool isHidden = file->GetFileName()[0] == '.' || file->IsHidden();
         auto classification = file->GetFileType()->GetClassification();
+        bool nameMatches = ContainsCaseInsensitive(file->GetFileName(), filterSortParams.nameQuery);
         if (classification != FileTypeClassification::Unknown &&
-            (!isHidden || filterSortParams.includeHiddenFiles))
+            (!isHidden || filterSortParams.includeHiddenFiles) &&
+            nameMatches)
         {
             sortedFilteredFiles[filteredCount++] = file;
         }
