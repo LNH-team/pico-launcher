@@ -1,7 +1,6 @@
 #include "common.h"
 #include <string.h>
 #include "core/StringUtil.h"
-#include "fat/Directory.h"
 #include "FileType/NullFileTypeProvider.h"
 #include "FileType/BmpFileIconData.h"
 #include "FileType/InternalFileInfo.h"
@@ -10,49 +9,7 @@
 
 void IconRepository::Initialize()
 {
-    NullFileTypeProvider fileTypeProvider;
-
-    // Collect subdirectory names first so the enumeration dir is closed before opening each one.
-    // Avoids nested simultaneous DIR objects which causes issues on DSi's SD IPC layer.
-    char subfolderNames[MaxSystemIconFolders][16] = {};
-    int subfolderCount = 0;
-    {
-        Directory iconsDir;
-        if (iconsDir.Open("/_pico/icons") == FR_OK)
-        {
-            auto sdFileInfo = std::make_unique<FILINFO>();
-            while (iconsDir.Read(sdFileInfo.get()) == FR_OK && sdFileInfo->fname[0] != 0)
-            {
-                if (!(sdFileInfo->fattrib & AM_DIR))
-                    continue;
-                if (!strcmp(sdFileInfo->fname, "user") || !strcmp(sdFileInfo->fname, "sources"))
-                    continue;
-                if (subfolderCount >= MaxSystemIconFolders)
-                    break;
-                StringUtil::Copy(subfolderNames[subfolderCount++], sdFileInfo->fname, 16);
-            }
-        }
-    } // iconsDir closed before opening any subfolder
-
-    for (int i = 0; i < subfolderCount; i++)
-    {
-        char path[270]; // "/_pico/icons/" (13) + max LFN (255) + null
-        u32 len = StringUtil::Copy(path, "/_pico/icons/", sizeof(path));
-        StringUtil::Copy(path + len, subfolderNames[i], sizeof(path) - len);
-
-        auto folder = SdFolderFactory(&fileTypeProvider).CreateFromPath(path);
-        if (folder)
-        {
-            folder->SortByNameInPlace();
-            auto& entry = _systemIconFolders[_systemIconFolderCount++];
-            StringUtil::Copy(entry.name, subfolderNames[i], sizeof(entry.name));
-            entry.folder = std::move(folder);
-        }
-    }
-
-    _userIconsFolder = SdFolderFactory(&fileTypeProvider).CreateFromPath("/_pico/icons/user");
-    if (_userIconsFolder)
-        _userIconsFolder->SortByNameInPlace();
+    InitializeFolders("/_pico/icons/");
 }
 
 SharedPtr<BmpFileIconData> IconRepository::LoadIconData(
@@ -70,7 +27,7 @@ SharedPtr<BmpFileIconData> IconRepository::LoadIconData(
         memcpy(nameBuffer + len, suffix, sizeof(suffix));
 
         FILINFO fi;
-        if (f_stat(nameBuffer, &fi) == FR_OK)
+        if (f_stat(nameBuffer, &fi) == FR_OK && !(fi.fattrib & AM_DIR))
             return SharedPtr<BmpFileIconData>::MakeShared(nameBuffer);
 
         return nullptr;
@@ -79,17 +36,17 @@ SharedPtr<BmpFileIconData> IconRepository::LoadIconData(
     const FileInfo* iconFile = nullptr;
 
     // Try to get an icon based on the filename in the user folder
-    if (_userIconsFolder)
+    if (_userFolder)
     {
         u32 length = StringUtil::Copy(nameBuffer, fileInfo.GetFileName(), sizeof(nameBuffer) - 5);
         memcpy(nameBuffer + length, ".bmp", 5);
-        iconFile = _userIconsFolder->BinarySearch(nameBuffer);
+        iconFile = _userFolder->BinarySearch(nameBuffer);
     }
 
     // Try to get an icon based on an internal game code
     if (!iconFile && internalFileInfo)
     {
-        const auto* iconFolder = GetIconFolder(fileType->GetShortName());
+        const auto* iconFolder = GetSystemFolder(fileType->GetShortName());
         if (iconFolder)
         {
             const char* gameCode = internalFileInfo->GetGameCode();
@@ -105,13 +62,5 @@ SharedPtr<BmpFileIconData> IconRepository::LoadIconData(
     if (iconFile)
         return SharedPtr<BmpFileIconData>::MakeShared(iconFile->GetFastFileRef());
 
-    return nullptr;
-}
-
-const SdFolder* IconRepository::GetIconFolder(const char* shortName) const
-{
-    for (int i = 0; i < _systemIconFolderCount; i++)
-        if (!strcmp(_systemIconFolders[i].name, shortName))
-            return _systemIconFolders[i].folder.get();
     return nullptr;
 }

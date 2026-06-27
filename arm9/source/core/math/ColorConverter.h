@@ -58,6 +58,14 @@ public:
         return color.r | (color.g << 5) | (color.b << 10);
     }
 
+    static u16 ToXBGR555(const Rgb<8, 8, 8>& color)
+    {
+        u32 r = sRgb8To5Table.Rgb8ToRgb5(color.r);
+        u32 g = sRgb8To5Table.Rgb8ToRgb5(color.g);
+        u32 b = sRgb8To5Table.Rgb8ToRgb5(color.b);
+        return r | (g << 5) | (b << 10);
+    }
+
     /// @brief Unpacks a 16 bit color with format Gbbb bbgg gggr rrrr.
     ///        With G an additional lsb of green forming a 6 bit value together with ggggg.
     /// @param color The packed color.

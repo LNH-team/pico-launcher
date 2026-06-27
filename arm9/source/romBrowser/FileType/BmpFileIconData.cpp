@@ -55,7 +55,7 @@ void BmpFileIconData::Load(File& file)
         u32 g = *paletteData++;
         u32 r = *paletteData++;
         paletteData++;
-        _iconPltt[i] = ColorConverter::ToXBGR555(Rgb<5, 5, 5>(Rgb<8, 8, 8>(r, g, b)));
+        _iconPltt[i] = ColorConverter::ToGBGR565(Rgb<8, 8, 8>(r, g, b));
     }
 
     // Heap-allocate the staging buffer so it doesn't live on the task thread stack.
@@ -73,6 +73,7 @@ void BmpFileIconData::Load(File& file)
     }
 
     // Convert BMP rows (bottom-up or top-down) to the DS tiled 4 bpp sprite format.
+    // BMP is high-nibble-first; DS tiles are low-nibble-first -- swap nibbles per 4-byte group.
     for (int y = 0; y < 32; y++)
     {
         // Bottom-up BMP (normal, positive height): row 0 is the bottom of the image.
@@ -84,22 +85,12 @@ void BmpFileIconData::Load(File& file)
         int ty = y / 8;
         int py = y % 8;
 
-        for (int x = 0; x < 32; x++)
+        for (int tx = 0; tx < 4; tx++)
         {
-            int tx = x / 8;
-            int px = x % 8;
-
-            // BMP stores the high nibble first
-            u8 byteVal = srcRowPtr[x / 2];
-            u8 colorIndex = (x % 2 == 0) ? (byteVal >> 4) : (byteVal & 0x0F);
-
-            // The DS sprite tile format stores the low nibble first
-            int tileIdx = ty * 4 + tx;
-            int destByteOffset = tileIdx * 32 + py * 4 + px / 2;
-            if (px % 2 == 0)
-                _iconGfx[destByteOffset] = (_iconGfx[destByteOffset] & 0xF0) | colorIndex;
-            else
-                _iconGfx[destByteOffset] = (_iconGfx[destByteOffset] & 0x0F) | (colorIndex << 4);
+            u32 val;
+            memcpy(&val, srcRowPtr + tx * 4, 4);
+            val = ((val >> 4) & 0x0F0F0F0F) | ((val & 0x0F0F0F0F) << 4);
+            memcpy(&_iconGfx[(ty * 4 + tx) * 32 + py * 4], &val, 4);
         }
     }
 }

@@ -28,61 +28,36 @@ void BannerView::SetFileNameAsync(TaskQueueBase* taskQueue, const TCHAR* fileNam
 
 void BannerView::SetGameTitleAsync(TaskQueueBase* taskQueue, const char16_t* gameTitle)
 {
-    const char16_t* lines[3] = { nullptr, nullptr, nullptr };
-    u32 lineLens[3] = { 0, 0, 0 };
-
     const char16_t* p = gameTitle;
-    int lineCount = 0;
-    const char16_t* lineStart = p;
-
+    int i = 0;
     while (true)
     {
-        char16_t c = *p;
+        u16 c = *p++;
         if (c == 0 || c == '\n')
         {
-            if (lineCount < 3)
+            if (i == 0)
             {
-                lines[lineCount] = lineStart;
-                lineLens[lineCount] = p - lineStart;
-                lineCount++;
+                _lines = 1;
+                SetFirstLineAsync(taskQueue, gameTitle, p - gameTitle, false);
             }
-            if (c == 0)
+            else if (i == 1)
+            {
+                _lines = 2;
+                SetSecondLineAsync(taskQueue, gameTitle, p - gameTitle);
+            }
+            else if (i == 2)
+            {
+                _lines = 3;
+                SetThirdLineAsync(taskQueue, gameTitle, p - gameTitle);
+            }
+            gameTitle = p;
+            i++;
+            if (c == 0 || i == 3)
                 break;
-            p++;
-            lineStart = p;
-        }
-        else
-        {
-            p++;
         }
     }
-
-    if (lineCount >= 3)
-    {
-        _lines = 3;
-        SetFirstLineAsync(taskQueue, lines[0], lineLens[0], false);
-        SetSecondLineAsync(taskQueue, lines[1], lineLens[1]);
-        SetThirdLineAsync(taskQueue, lines[2], lineLens[2]);
-    }
-    else if (lineCount == 2)
-    {
-        _lines = 2;
-        SetFirstLineAsync(taskQueue, lines[0], lineLens[0], false);
-        SetSecondLineAsync(taskQueue, lines[1], lineLens[1]);
-        SetThirdLineAsync(taskQueue, u"", 0);
-    }
-    else if (lineCount == 1)
-    {
-        _lines = 1;
-        SetFirstLineAsync(taskQueue, lines[0], lineLens[0], false);
+    if (i <= 1)
         SetSecondLineAsync(taskQueue, u"", 0);
+    if (i <= 2)
         SetThirdLineAsync(taskQueue, u"", 0);
-    }
-    else
-    {
-        _lines = 0;
-        SetFirstLineAsync(taskQueue, u"", 0, false);
-        SetSecondLineAsync(taskQueue, u"", 0);
-        SetThirdLineAsync(taskQueue, u"", 0);
-    }
 }

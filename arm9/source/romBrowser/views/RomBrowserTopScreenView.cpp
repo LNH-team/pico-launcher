@@ -83,7 +83,7 @@ void RomBrowserTopScreenView::Update()
                 }
             }
 
-            _selectedFileIcon = fileInfoManager.GetFileIcon(selectedItem);
+            _selectedFileIcon = info ? info->CreateGameIcon() : nullptr;
             if (!_selectedFileIcon)
             {
                 _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);

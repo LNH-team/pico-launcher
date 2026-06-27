@@ -24,9 +24,6 @@ public:
     /// @brief Creates a cover based on the internal file information.
     /// @return A unique pointer to the created cover when successful, or \c nullptr otherwise.
     virtual FileCover* CreateGameCover() const { return nullptr; }
-
-    /// @brief Returns whether this info represents a custom external banner patch.
-    virtual bool IsCustomBanner() const { return false; }
 };
 
 inline InternalFileInfo::~InternalFileInfo() { }

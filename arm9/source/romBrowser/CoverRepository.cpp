@@ -9,22 +9,7 @@
 
 void CoverRepository::Initialize()
 {
-    NullFileTypeProvider fileTypeProvider;
-    _ndsCoversFolder = SdFolderFactory(&fileTypeProvider).CreateFromPath("/_pico/covers/nds");
-    if (_ndsCoversFolder)
-    {
-        _ndsCoversFolder->SortByNameInPlace();
-    }
-    _gbaCoversFolder = SdFolderFactory(&fileTypeProvider).CreateFromPath("/_pico/covers/gba");
-    if (_gbaCoversFolder)
-    {
-        _gbaCoversFolder->SortByNameInPlace();
-    }
-    _userCoversFolder = SdFolderFactory(&fileTypeProvider).CreateFromPath("/_pico/covers/user");
-    if (_userCoversFolder)
-    {
-        _userCoversFolder->SortByNameInPlace();
-    }
+    InitializeFolders("/_pico/covers/");
 }
 
 FileCover* CoverRepository::GetCoverForFile(const FileInfo& fileInfo, const InternalFileInfo* internalFileInfo) const
@@ -37,17 +22,17 @@ FileCover* CoverRepository::GetCoverForFile(const FileInfo& fileInfo, const Inte
         const FileInfo* coverFile = nullptr;
 
         // Try to get a cover based on the filename in the user folder
-        if (_userCoversFolder)
+        if (_userFolder)
         {
             u32 length = StringUtil::Copy(nameBuffer, fileInfo.GetFileName(), sizeof(nameBuffer) - 5);
             memcpy(nameBuffer + length, ".bmp", 5);
-            coverFile = _userCoversFolder->BinarySearch(nameBuffer);
+            coverFile = _userFolder->BinarySearch(nameBuffer);
         }
 
         // Try to get a cover based on an internal game code
         if (!coverFile && internalFileInfo)
         {
-            const auto* coverFolder = GetCoverFolder(fileType->GetShortName());
+            const auto* coverFolder = GetSystemFolder(fileType->GetShortName());
             if (coverFolder)
             {
                 const char* gameCode = internalFileInfo->GetGameCode();
@@ -77,20 +62,4 @@ FileCover* CoverRepository::GetCoverForFile(const FileInfo& fileInfo, const Inte
     }
 
     return fileType->CreateFileCover(fileInfo.GetFileName());
-}
-
-const SdFolder* CoverRepository::GetCoverFolder(const char* coverFolderName) const
-{
-    if (!strcmp(coverFolderName, "nds"))
-    {
-        return _ndsCoversFolder.get();
-    }
-    else if (!strcmp(coverFolderName, "gba"))
-    {
-        return _gbaCoversFolder.get();
-    }
-    else
-    {
-        return nullptr;
-    }
 }

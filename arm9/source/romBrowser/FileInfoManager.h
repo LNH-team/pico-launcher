@@ -31,12 +31,7 @@ public:
         return _extraFileInfo[index].fileCover.Lock();
     }
 
-    // Precondition: IsFileInfoLoaded(index) must have returned true before calling this.
-    std::unique_ptr<FileIcon> GetFileIcon(int index);
-
     void LoadFileInfo(int index);
-
-    // Precondition: must not be called while the render thread may be reading this slot's data.
     void ReleaseFileInfo(int index);
 
     int GetItemIndex(const char* fileName);
@@ -47,11 +42,9 @@ public:
 private:
     struct ExtraFileInfo
     {
-        volatile bool loading = false; // claim flag: IRQ-protected TAS guards ReleaseFileInfo races
         volatile bool loaded = false;
         const InternalFileInfo* internalFileInfo{nullptr};
         AtomicSharedPtr<FileCover> fileCover;
-        AtomicSharedPtr<BmpFileIconData> iconData;
     };
 
     std::unique_ptr<const FileInfo*[]> _items;
