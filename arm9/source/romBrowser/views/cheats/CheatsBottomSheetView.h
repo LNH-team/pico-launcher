@@ -25,10 +25,7 @@ public:
     SharedPtr<View> MoveFocus(const SharedPtr<View>& currentFocus, FocusMoveDirection direction, View* source) override;
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
 
-    void Focus(FocusManager& focusManager) override
-    {
-        _cheatListRecycler->Focus(focusManager);
-    }
+    void Focus(FocusManager& focusManager) override;
 
 protected:
     void Close() override;
