@@ -28,7 +28,7 @@ BmpFileCover::BmpFileCover(const FastFileRef& coverFileRef)
         u32 g = *paletteData32++;
         u32 r = *paletteData32++;
         paletteData32++;
-        _palette[i] = ColorConverter::ToXBGR555(Rgb<8, 8, 8>(r, g, b));
+        _palette[i] = ColorConverter::ToXBGR555(Rgb<5, 5, 5>(Rgb8(r, g, b)));
     }
 
     if (file->Seek(dataOffset) != FR_OK ||

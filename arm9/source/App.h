@@ -64,9 +64,9 @@ private:
     Animator<int> _fadeAnimator;
 
     TaskQueue<32, sizeof(TaskBase) + 32> _ioTaskQueue;
-    u32 _ioTaskThreadStack[4096 / 4];
+    u32 _ioTaskThreadStack[2048 / 4];
     TaskQueue<32, sizeof(TaskBase) + 32> _bgTaskQueue;
-    u32 _bgTaskThreadStack[4096 / 4];
+    u32 _bgTaskThreadStack[2048 / 4];
 
     std::unique_ptr<ITheme> _theme;
     std::unique_ptr<IThemeBackground> _topBackground;

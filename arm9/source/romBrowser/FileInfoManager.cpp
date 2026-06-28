@@ -21,7 +21,7 @@ FileInfoManager::~FileInfoManager()
 
 void FileInfoManager::LoadFileInfo(int index)
 {
-    if (_extraFileInfo[index].loaded)
+    if (_extraFileInfo[index].internalFileInfo)
         return;
 
     const InternalFileInfo* internalFileInfo = _items[index]->CreateInternalFileInfo();
@@ -38,22 +38,19 @@ void FileInfoManager::LoadFileInfo(int index)
         // A custom icon (.bmp) wraps the existing internal file info, overriding only the icon.
         auto iconData = _iconRepository.LoadIconData(*_items[index], internalFileInfo);
         if (iconData)
-            internalFileInfo = new CustomIconInternalFileInfo(std::move(iconData), internalFileInfo);
+        {
+            internalFileInfo = new CustomIconInternalFileInfo(std::move(iconData), std::unique_ptr<const InternalFileInfo>(internalFileInfo));
+        }
     }
 
     if (!_extraFileInfo[index].fileCover.Lock())
         _extraFileInfo[index].fileCover = SharedPtr(_coverRepository.GetCoverForFile(*_items[index], internalFileInfo));
 
     _extraFileInfo[index].internalFileInfo = internalFileInfo;
-    asm volatile("" ::: "memory");
-    _extraFileInfo[index].loaded = true;
 }
 
 void FileInfoManager::ReleaseFileInfo(int index)
 {
-    _extraFileInfo[index].loaded = false;
-    asm volatile("" ::: "memory");
-
     auto internalFileInfo = _extraFileInfo[index].internalFileInfo;
     if (internalFileInfo)
     {

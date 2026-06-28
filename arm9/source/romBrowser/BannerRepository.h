@@ -2,7 +2,7 @@
 #include "IBannerRepository.h"
 #include "RepositoryBase.h"
 
-class BannerRepository : public IBannerRepository, public RepositoryBase
+class BannerRepository : public RepositoryBase, public IBannerRepository
 {
 public:
     void Initialize() override;

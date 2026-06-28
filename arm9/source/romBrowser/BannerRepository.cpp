@@ -1,5 +1,6 @@
 #include "common.h"
 #include <string.h>
+#include <memory>
 #include "core/StringUtil.h"
 #include "FileType/NullFileTypeProvider.h"
 #include "FileType/Bnr/BnrInternalFileInfo.h"
@@ -26,8 +27,8 @@ InternalFileInfo* BannerRepository::GetBannerForFile(const FileInfo& fileInfo, c
             sizeof(nameBuffer) - sizeof(suffix));
         memcpy(nameBuffer + len, suffix, sizeof(suffix));
 
-        FILINFO fi;
-        if (f_stat(nameBuffer, &fi) == FR_OK && !(fi.fattrib & AM_DIR))
+        auto fi = std::make_unique<FILINFO>();
+        if (f_stat(nameBuffer, fi.get()) == FR_OK && !(fi->fattrib & AM_DIR))
         {
             auto* bnr = new BnrInternalFileInfo(nameBuffer);
             if (bnr->HasBanner())
@@ -68,7 +69,7 @@ InternalFileInfo* BannerRepository::GetBannerForFile(const FileInfo& fileInfo, c
     // Try to get a banner based on an internal game code
     if (!bnrFile && internalFileInfo)
     {
-        const auto* bannerFolder = GetSystemFolder(fileType->GetShortName());
+        const auto* bannerFolder = GetFileTypeFolder(fileType->GetShortName());
         if (bannerFolder)
         {
             const char* gameCode = internalFileInfo->GetGameCode();

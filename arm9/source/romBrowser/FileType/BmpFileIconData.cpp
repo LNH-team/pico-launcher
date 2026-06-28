@@ -9,16 +9,16 @@
 
 BmpFileIconData::BmpFileIconData(const FastFileRef& iconFileRef)
 {
-    File file;
-    file.Open(iconFileRef, FA_READ);
-    Init(file);
+    const auto file = std::make_unique<File>();
+    file->Open(iconFileRef, FA_READ);
+    Init(*file);
 }
 
 BmpFileIconData::BmpFileIconData(const TCHAR* path)
 {
-    File file;
-    file.Open(path, FA_READ);
-    Init(file);
+    const auto file = std::make_unique<File>();
+    file->Open(path, FA_READ);
+    Init(*file);
 }
 
 void BmpFileIconData::Init(File& file)

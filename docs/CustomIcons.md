@@ -6,8 +6,8 @@ DS roms already show the icon from their internal banner, so custom icons are ma
 
 ### System icons (by game code)
 Place a `<gamecode>.bmp` file under `/_pico/icons/nds/` or `/_pico/icons/gba/`. For example:
-- `/_pico/icons/gba/BPEE.bmp` — Pokémon Emerald (GBA)
-- `/_pico/icons/nds/ADAE.bmp` — Pokémon Diamond (NDS, overrides the built-in banner)
+- `/_pico/icons/gba/BPEE.bmp` - Pokémon Emerald (GBA)
+- `/_pico/icons/nds/ADAE.bmp` - Pokémon Diamond (NDS, overrides the built-in banner)
 
 
 ### User icons (by filename)
@@ -15,12 +15,12 @@ Place a `<filename>.bmp` file under `/_pico/icons/user/`. For example, `myGame.g
 
 ### Folder icons
 Place a file named `folder.bmp` directly inside the folder you want to customise. For example:
-- `/GBA Games/folder.bmp` — icon for the `GBA Games` folder
-- `/GBA Games/Pokemon/folder.bmp` — icon for the `Pokemon` subfolder
+- `/GBA Games/folder.bmp` - icon for the `GBA Games` folder
+- `/GBA Games/Pokemon/folder.bmp` - icon for the `Pokemon` subfolder
 
-Each folder's `folder.bmp` is independent — two folders with the same name can have different icons. Since `.bmp` files are not a recognised ROM type, `folder.bmp` is never shown as a browser entry.
+Each folder's `folder.bmp` is independent - two folders with the same name can have different icons. Since `.bmp` files are not a recognised ROM type, `folder.bmp` is never shown as a browser entry.
 
-A folder can also use a `folder.bnr` file (see [Banners](Banners.md)) for its icon, in the same location. If both `folder.bnr` and `folder.bmp` exist, `folder.bnr` takes priority.
+A folder can also use a `folder.bnr` file (see [Custom Banners](CustomBanners.md)) for its icon, in the same location. If both `folder.bnr` and `folder.bmp` exist, `folder.bnr` takes priority.
 
 ### Priority
 User icon (`/_pico/icons/user/`) > system icon (`/_pico/icons/nds/` or `/_pico/icons/gba/`) > internal banner > theme default.

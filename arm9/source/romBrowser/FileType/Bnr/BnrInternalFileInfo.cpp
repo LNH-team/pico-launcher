@@ -7,7 +7,9 @@
 void BnrInternalFileInfo::Load(File& file, const char* originalGameCode)
 {
     if (originalGameCode)
+    {
         strncpy(_gameCode, originalGameCode, 4);
+    }
 
     _hasBanner = ReadBannerChunks(file, file.GetSize());
 }
@@ -23,6 +25,8 @@ BnrInternalFileInfo::BnrInternalFileInfo(const TCHAR* path, const char* original
 {
     const auto file = std::make_unique<File>();
     if (file->Open(path, FA_READ) == FR_OK)
+    {
         Load(*file, originalGameCode);
+    }
 }
 

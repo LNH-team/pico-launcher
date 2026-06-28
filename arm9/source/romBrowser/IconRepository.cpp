@@ -1,5 +1,6 @@
 #include "common.h"
 #include <string.h>
+#include <memory>
 #include "core/StringUtil.h"
 #include "FileType/NullFileTypeProvider.h"
 #include "FileType/BmpFileIconData.h"
@@ -26,9 +27,11 @@ SharedPtr<BmpFileIconData> IconRepository::LoadIconData(
             sizeof(nameBuffer) - sizeof(suffix));
         memcpy(nameBuffer + len, suffix, sizeof(suffix));
 
-        FILINFO fi;
-        if (f_stat(nameBuffer, &fi) == FR_OK && !(fi.fattrib & AM_DIR))
+        auto fi = std::make_unique<FILINFO>();
+        if (f_stat(nameBuffer, fi.get()) == FR_OK && !(fi->fattrib & AM_DIR))
+        {
             return SharedPtr<BmpFileIconData>::MakeShared(nameBuffer);
+        }
 
         return nullptr;
     }
@@ -46,7 +49,7 @@ SharedPtr<BmpFileIconData> IconRepository::LoadIconData(
     // Try to get an icon based on an internal game code
     if (!iconFile && internalFileInfo)
     {
-        const auto* iconFolder = GetSystemFolder(fileType->GetShortName());
+        const auto* iconFolder = GetFileTypeFolder(fileType->GetShortName());
         if (iconFolder)
         {
             const char* gameCode = internalFileInfo->GetGameCode();
@@ -59,8 +62,7 @@ SharedPtr<BmpFileIconData> IconRepository::LoadIconData(
         }
     }
 
-    if (iconFile)
-        return SharedPtr<BmpFileIconData>::MakeShared(iconFile->GetFastFileRef());
-
-    return nullptr;
+    return iconFile
+        ? SharedPtr<BmpFileIconData>::MakeShared(iconFile->GetFastFileRef())
+        : nullptr;
 }

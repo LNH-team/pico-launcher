@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "InternalFileInfo.h"
 #include "BmpFileIcon.h"
 #include "BmpFileIconData.h"
@@ -8,10 +9,10 @@
 class CustomIconInternalFileInfo : public InternalFileInfo
 {
 public:
-    CustomIconInternalFileInfo(SharedPtr<BmpFileIconData> iconData, const InternalFileInfo* wrapped)
-        : _iconData(std::move(iconData)), _wrapped(wrapped) {}
+    CustomIconInternalFileInfo(SharedPtr<BmpFileIconData> iconData, std::unique_ptr<const InternalFileInfo> wrapped)
+        : _iconData(std::move(iconData)), _wrapped(std::move(wrapped)) {}
 
-    ~CustomIconInternalFileInfo() { delete _wrapped; }
+    ~CustomIconInternalFileInfo() override = default;
 
     const char* GetGameCode() const override { return _wrapped ? _wrapped->GetGameCode() : nullptr; }
     const char16_t* GetGameTitle() const override { return _wrapped ? _wrapped->GetGameTitle() : nullptr; }
@@ -24,5 +25,5 @@ public:
 
 private:
     SharedPtr<BmpFileIconData> _iconData;
-    const InternalFileInfo* _wrapped;
+    std::unique_ptr<const InternalFileInfo> _wrapped;
 };

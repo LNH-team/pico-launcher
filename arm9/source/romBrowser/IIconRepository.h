@@ -8,11 +8,12 @@ class InternalFileInfo;
 class IIconRepository
 {
 public:
-    virtual ~IIconRepository() = 0;
+    virtual ~IIconRepository() = default;
 
     virtual void Initialize() = 0;
     virtual SharedPtr<BmpFileIconData> LoadIconData(
         const FileInfo& fileInfo, const InternalFileInfo* internalFileInfo) const = 0;
-};
 
-inline IIconRepository::~IIconRepository() { }
+protected:
+    IIconRepository() = default;
+};

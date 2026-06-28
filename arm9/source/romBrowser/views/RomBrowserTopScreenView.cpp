@@ -44,46 +44,54 @@ void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
 void RomBrowserTopScreenView::Update()
 {
     int selectedItem = _viewModel->GetSelectedItem();
-    if (selectedItem >= 0)
+
+    // 1. Handle selection change (show default view immediately)
+    if (selectedItem != _lastSelectedItem)
     {
-        auto& fileInfoManager = _viewModel->GetFileInfoManager();
+        _lastSelectedItem = selectedItem;
+        _currentIconLoaded = false;
 
-        if (selectedItem != _lastSelectedItem)
+        if (selectedItem >= 0)
         {
-            _lastSelectedItem = selectedItem;
-            _lastLoadedSelectedItem = -1;
+            auto& fileInfoManager = _viewModel->GetFileInfoManager();
+            const auto& item = fileInfoManager.GetItem(selectedItem);
 
-            if (!fileInfoManager.IsFileInfoLoaded(selectedItem))
+            _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
+            if (_selectedFileIcon)
             {
-                // Queue a background load for the selected item since it might not be visible on the bottom screen.
-                // Capture the SharedPtr to prevent lifetime/destruction race conditions.
-                auto viewModel = _viewModel;
-                _viewModel->GetIoTaskQueue()->Enqueue([viewModel, selectedItem] (const vu8& cancelRequested)
-                {
-                    viewModel->GetFileInfoManager().LoadFileInfo(selectedItem);
-                    return TaskResult<void>::Completed();
-                });
+                _selectedFileIcon->SetAnimFrame(_viewModel->GetIconFrameCounter());
+                _iconGraphicsUploaded = false;
+            }
+            _fileInfoView->SetIcon(std::move(_selectedFileIcon));
+            _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), true);
+
+            auto cover = fileInfoManager.GetFileCover(selectedItem);
+            if (cover.IsValid())
+            {
+                _selectedFileCover = std::move(cover);
+                _coverGraphicsUploaded = false;
             }
         }
+    }
 
-        if (fileInfoManager.IsFileInfoLoaded(selectedItem) && selectedItem != _lastLoadedSelectedItem)
+    // 2. Poll for loaded internal file info (custom banner, icon, title)
+    if (!_currentIconLoaded && selectedItem >= 0)
+    {
+        auto& fileInfoManager = _viewModel->GetFileInfoManager();
+        auto info = fileInfoManager.GetInternalFileInfo(selectedItem);
+        if (info)
         {
-            _lastLoadedSelectedItem = selectedItem;
             const auto& item = fileInfoManager.GetItem(selectedItem);
 
             bool fileNameAsTitle = true;
-            auto info = fileInfoManager.GetInternalFileInfo(selectedItem);
-            if (info)
+            const char16_t* gameTitle = info->GetGameTitle();
+            if (gameTitle && gameTitle[0] != 0)
             {
-                const char16_t* gameTitle = info->GetGameTitle();
-                if (gameTitle && gameTitle[0] != 0)
-                {
-                    _fileInfoView->SetGameTitleAsync(_viewModel->GetBgTaskQueue(), gameTitle);
-                    fileNameAsTitle = false;
-                }
+                _fileInfoView->SetGameTitleAsync(_viewModel->GetBgTaskQueue(), gameTitle);
+                fileNameAsTitle = false;
             }
 
-            _selectedFileIcon = info ? info->CreateGameIcon() : nullptr;
+            _selectedFileIcon = info->CreateGameIcon();
             if (!_selectedFileIcon)
             {
                 _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
@@ -102,8 +110,11 @@ void RomBrowserTopScreenView::Update()
                 _selectedFileCover = std::move(cover);
                 _coverGraphicsUploaded = false;
             }
+
+            _currentIconLoaded = true;
         }
     }
+
     ViewContainer::Update();
 }
 

@@ -3,9 +3,9 @@
 #include <nds/arm9/cache.h>
 #include "fat/File.h"
 #include "Nds/NdsFileIcon.h"
-#include "NdsBannerBase.h"
+#include "NdsBannerInternalFileInfo.h"
 
-bool NdsBannerBase::ReadBannerChunks(File& file, u32 availableSize)
+bool NdsBannerInternalFileInfo::ReadBannerChunks(File& file, u32 availableSize)
 {
     memset(&_banner, 0, sizeof(_banner));
 
@@ -41,19 +41,19 @@ bool NdsBannerBase::ReadBannerChunks(File& file, u32 availableSize)
     return true;
 }
 
-std::unique_ptr<FileIcon> NdsBannerBase::CreateGameIcon() const
+std::unique_ptr<FileIcon> NdsBannerInternalFileInfo::CreateGameIcon() const
 {
     return _hasBanner
         ? std::make_unique<NdsFileIcon>(&_banner)
         : nullptr;
 }
 
-const char* NdsBannerBase::GetGameCode() const
+const char* NdsBannerInternalFileInfo::GetGameCode() const
 {
     return _gameCode[0] != 0 ? _gameCode : nullptr;
 }
 
-const char16_t* NdsBannerBase::GetGameTitle() const
+const char16_t* NdsBannerInternalFileInfo::GetGameTitle() const
 {
     if (!_hasBanner)
         return nullptr;

@@ -2,7 +2,7 @@
 #include "IIconRepository.h"
 #include "RepositoryBase.h"
 
-class IconRepository : public IIconRepository, public RepositoryBase
+class IconRepository : public RepositoryBase, public IIconRepository
 {
 public:
     void Initialize() override;

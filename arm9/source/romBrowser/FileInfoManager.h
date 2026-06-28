@@ -21,11 +21,6 @@ public:
         return _extraFileInfo[index].internalFileInfo;
     }
 
-    bool IsFileInfoLoaded(int index) const
-    {
-        return _extraFileInfo[index].loaded;
-    }
-
     SharedPtr<FileCover> GetFileCover(int index)
     {
         return _extraFileInfo[index].fileCover.Lock();
@@ -42,8 +37,7 @@ public:
 private:
     struct ExtraFileInfo
     {
-        volatile bool loaded = false;
-        const InternalFileInfo* internalFileInfo{nullptr};
+        const InternalFileInfo* internalFileInfo;
         AtomicSharedPtr<FileCover> fileCover;
     };
 

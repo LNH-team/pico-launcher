@@ -8,8 +8,8 @@ This is especially useful for adding custom titles and animated icons to GBA ROM
 
 ### System banners (by game code)
 Place a `<gamecode>.bnr` file under `/_pico/banners/nds/` or `/_pico/banners/gba/`. For example:
-- `/_pico/banners/gba/BPEE.bnr` — Pokémon Emerald (GBA)
-- `/_pico/banners/nds/ADAE.bnr` — Pokémon Diamond (NDS, overrides the built-in banner)
+- `/_pico/banners/gba/BPEE.bnr` - Pokémon Emerald (GBA)
+- `/_pico/banners/nds/ADAE.bnr` - Pokémon Diamond (NDS, overrides the built-in banner)
 
 
 ### User banners (by filename)
@@ -19,7 +19,7 @@ Place a banner file under `/_pico/banners/user/`. You can name it in two ways:
 
 ### Folder banners
 Place a file named `folder.bnr` directly inside the folder you want to customise. For example:
-- `/GBA Games/folder.bnr` — custom icon and title for the `GBA Games` folder
+- `/GBA Games/folder.bnr` - custom icon and title for the `GBA Games` folder
 
 This gives the folder a custom icon (static or animated) and replaces its displayed name with the banner's title, anywhere the folder's name is shown. The folder's actual name on the SD card (used for navigation) is unchanged. Folder banners do not affect the folder's cover image, which always shows the same generic graphic.
 

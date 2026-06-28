@@ -15,5 +15,7 @@ GbaInternalFileInfo::GbaInternalFileInfo(const FastFileRef& fastFileRef)
         return;
 
     if (!file->ReadExact(_gameCode, 4))
+    {
         memset(_gameCode, 0, sizeof(_gameCode));
+    }
 }

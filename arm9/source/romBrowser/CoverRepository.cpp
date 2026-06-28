@@ -32,7 +32,7 @@ FileCover* CoverRepository::GetCoverForFile(const FileInfo& fileInfo, const Inte
         // Try to get a cover based on an internal game code
         if (!coverFile && internalFileInfo)
         {
-            const auto* coverFolder = GetSystemFolder(fileType->GetShortName());
+            const auto* coverFolder = GetFileTypeFolder(fileType->GetShortName());
             if (coverFolder)
             {
                 const char* gameCode = internalFileInfo->GetGameCode();

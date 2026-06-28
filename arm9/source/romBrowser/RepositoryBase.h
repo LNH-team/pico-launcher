@@ -5,8 +5,14 @@
 class RepositoryBase
 {
 protected:
+    /// @brief Scans directories and populates the folder cache under the given base path.
+    /// @param basePath The base path of the folders.
     void InitializeFolders(const char* basePath);
-    const SdFolder* GetSystemFolder(const char* shortName) const;
+
+    /// @brief Gets the cached folder corresponding to the file type suffix name.
+    /// @param shortName Suffix folder name (e.g. "nds" or "gba").
+    /// @return The pointer to the cached SdFolder, or nullptr.
+    const SdFolder* GetFileTypeFolder(const char* shortName) const;
 
     std::unique_ptr<SdFolder> _ndsFolder;
     std::unique_ptr<SdFolder> _gbaFolder;
