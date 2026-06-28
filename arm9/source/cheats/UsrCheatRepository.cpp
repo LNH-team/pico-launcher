@@ -107,20 +107,31 @@ std::unique_ptr<GameCheats> UsrCheatRepository::GetCheatsForGame(u32 gameCode, u
     // master codes
     ptr += 8 * 4;
 
+    const u8* endPtr = cheatData.get() + cheatDataLength;
+
+    if (totalNumberOfItems > 2000)
+    {
+        totalNumberOfItems = 2000;
+    }
+    if (totalNumberOfItems > (u32)(endPtr - ptr) / 4)
+    {
+        totalNumberOfItems = (u32)(endPtr - ptr) / 4;
+    }
+
     auto entries = new CheatEntry[totalNumberOfItems];
     u32 entryCount = 0;
 
-    while (ptr < cheatData.get() + cheatDataLength && entryCount < totalNumberOfItems)
+    while (ptr + 4 <= endPtr && entryCount < totalNumberOfItems)
     {
         u32 itemFlags = *(u32*)ptr;
         bool isCategory = ((itemFlags >> 28) & 1) == 1;
         if (isCategory)
         {
-            entries[entryCount++] = ParseCategory(ptr);
+            entries[entryCount++] = ParseCategory(ptr, endPtr);
         }
         else
         {
-            entries[entryCount++] = ParseCheat(ptr);
+            entries[entryCount++] = ParseCheat(ptr, endPtr);
         }
     }
 
@@ -158,8 +169,14 @@ const usr_cheat_index_entry_t* UsrCheatRepository::FindIndex(u32 gameCode, u32 h
     return nullptr;
 }
 
-CheatEntry UsrCheatRepository::ParseCategory(u8*& ptr) const
+CheatEntry UsrCheatRepository::ParseCategory(u8*& ptr, const u8* endPtr) const
 {
+    if (ptr + 4 > endPtr)
+    {
+        ptr = const_cast<u8*>(endPtr);
+        return CheatEntry();
+    }
+
     // flags
     u32 itemFlags = *(u32*)ptr;
     ptr += 4;
@@ -168,53 +185,129 @@ CheatEntry UsrCheatRepository::ParseCategory(u8*& ptr) const
 
     // item name
     const char* itemName = (const char*)ptr;
-    ptr += strlen(itemName) + 1;
+    u32 nameLen = 0;
+    while (ptr + nameLen < endPtr && ptr[nameLen] != '\0')
+    {
+        nameLen++;
+    }
+    if (ptr + nameLen >= endPtr)
+    {
+        ptr = const_cast<u8*>(endPtr);
+        return CheatEntry();
+    }
+    ptr += nameLen + 1;
 
     // item description
     const char* itemDescription = (const char*)ptr;
-    ptr += strlen(itemDescription) + 1;
+    u32 descLen = 0;
+    while (ptr + descLen < endPtr && ptr[descLen] != '\0')
+    {
+        descLen++;
+    }
+    if (ptr + descLen >= endPtr)
+    {
+        ptr = const_cast<u8*>(endPtr);
+        return CheatEntry();
+    }
+    ptr += descLen + 1;
 
     // padding
     ptr = (u8*)(((u32)ptr + 3) & ~3); // 32-bit align
+    if (ptr > endPtr)
+    {
+        ptr = const_cast<u8*>(endPtr);
+        return CheatEntry();
+    }
+
+    if (numberOfItems > 1000)
+    {
+        numberOfItems = 1000;
+    }
+    if (numberOfItems > (u32)(endPtr - ptr) / 4)
+    {
+        numberOfItems = (u32)(endPtr - ptr) / 4;
+    }
 
     auto entries = new CheatEntry[numberOfItems];
+    u32 parsedCount = 0;
     for (u32 i = 0; i < numberOfItems; i++)
     {
-        u32 itemFlags = *(u32*)ptr;
-        bool isCategory = ((itemFlags >> 28) & 1) == 1;
-        if (isCategory)
+        if (ptr >= endPtr)
         {
-            entries[i] = ParseCategory(ptr);
+            break;
+        }
+        u32 subFlags = *(u32*)ptr;
+        bool isSubCategory = ((subFlags >> 28) & 1) == 1;
+        if (isSubCategory)
+        {
+            entries[parsedCount++] = ParseCategory(ptr, endPtr);
         }
         else
         {
-            entries[i] = ParseCheat(ptr);
+            entries[parsedCount++] = ParseCheat(ptr, endPtr);
         }
     }
 
-    return CheatEntry(itemName, itemDescription, isMaxOneCheatActive, entries, numberOfItems);
+    return CheatEntry(itemName, itemDescription, isMaxOneCheatActive, entries, parsedCount);
 }
 
-CheatEntry UsrCheatRepository::ParseCheat(u8*& ptr) const
+CheatEntry UsrCheatRepository::ParseCheat(u8*& ptr, const u8* endPtr) const
 {
+    if (ptr + 4 > endPtr)
+    {
+        ptr = const_cast<u8*>(endPtr);
+        return CheatEntry();
+    }
+
     // flags
     u32* flagsPtr = (u32*)ptr;
     ptr += 4;
 
     // item name
     const char* itemName = (const char*)ptr;
-    ptr += strlen(itemName) + 1;
+    u32 nameLen = 0;
+    while (ptr + nameLen < endPtr && ptr[nameLen] != '\0')
+    {
+        nameLen++;
+    }
+    if (ptr + nameLen >= endPtr)
+    {
+        ptr = const_cast<u8*>(endPtr);
+        return CheatEntry();
+    }
+    ptr += nameLen + 1;
 
     // item description
     const char* itemDescription = (const char*)ptr;
-    ptr += strlen(itemDescription) + 1;
+    u32 descLen = 0;
+    while (ptr + descLen < endPtr && ptr[descLen] != '\0')
+    {
+        descLen++;
+    }
+    if (ptr + descLen >= endPtr)
+    {
+        ptr = const_cast<u8*>(endPtr);
+        return CheatEntry();
+    }
+    ptr += descLen + 1;
 
     // padding
     ptr = (u8*)(((u32)ptr + 3) & ~3); // 32-bit align
+    if (ptr + 4 > endPtr)
+    {
+        ptr = const_cast<u8*>(endPtr);
+        return CheatEntry();
+    }
 
     // number of code words
     u32 numberOfCodeWords = *(u32*)ptr;
     ptr += 4;
+
+    if (ptr + numberOfCodeWords * 4 > endPtr)
+    {
+        ptr = const_cast<u8*>(endPtr);
+        return CheatEntry();
+    }
 
     const void* cheatData = ptr;
 

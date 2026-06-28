@@ -23,6 +23,6 @@ private:
 
     std::unique_ptr<GameCheats> GetCheatsForGame(u32 gameCode, u32 headerCrc32) const;
     const usr_cheat_index_entry_t* FindIndex(u32 gameCode, u32 headerCrc32) const;
-    CheatEntry ParseCategory(u8*& ptr) const;
-    CheatEntry ParseCheat(u8*& ptr) const;
+    CheatEntry ParseCategory(u8*& ptr, const u8* endPtr) const;
+    CheatEntry ParseCheat(u8*& ptr, const u8* endPtr) const;
 };

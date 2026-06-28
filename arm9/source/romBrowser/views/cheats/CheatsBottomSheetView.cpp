@@ -303,8 +303,15 @@ void CheatsBottomSheetView::UpdateDescriptionText()
         auto cheatCategory = _viewModel->GetCurrentCheatCategory();
         u32 numberOfSubEntries = 0;
         auto subEntries = cheatCategory->GetSubEntries(numberOfSubEntries);
-        const char* desc = subEntries[selectedItem].GetDescription();
-        _descriptionLabel->SetText(desc ? desc : "");
+        if (subEntries && selectedItem < (int)numberOfSubEntries)
+        {
+            const char* desc = subEntries[selectedItem].GetDescription();
+            _descriptionLabel->SetText(desc ? desc : "");
+        }
+        else
+        {
+            _descriptionLabel->SetText("");
+        }
     }
 }
 
