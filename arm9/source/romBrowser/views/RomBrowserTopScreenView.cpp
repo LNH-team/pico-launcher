@@ -44,77 +44,67 @@ void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
 void RomBrowserTopScreenView::Update()
 {
     int selectedItem = _viewModel->GetSelectedItem();
-
-    // 1. Handle selection change (show default view immediately)
     if (selectedItem != _lastSelectedItem)
     {
-        _lastSelectedItem = selectedItem;
-        _currentIconLoaded = false;
-
-        if (selectedItem >= 0)
-        {
-            auto& fileInfoManager = _viewModel->GetFileInfoManager();
-            const auto& item = fileInfoManager.GetItem(selectedItem);
-
-            _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
-            if (_selectedFileIcon)
-            {
-                _selectedFileIcon->SetAnimFrame(_viewModel->GetIconFrameCounter());
-                _iconGraphicsUploaded = false;
-            }
-            _fileInfoView->SetIcon(std::move(_selectedFileIcon));
-            _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), true);
-
-            auto cover = fileInfoManager.GetFileCover(selectedItem);
-            if (cover.IsValid())
-            {
-                _selectedFileCover = std::move(cover);
-                _coverGraphicsUploaded = false;
-            }
-        }
-    }
-
-    // 2. Poll for loaded internal file info (custom banner, icon, title)
-    if (!_currentIconLoaded && selectedItem >= 0)
-    {
         auto& fileInfoManager = _viewModel->GetFileInfoManager();
-        auto info = fileInfoManager.GetInternalFileInfo(selectedItem);
-        if (info)
+        const auto& item = fileInfoManager.GetItem(selectedItem);
+        if (item.GetFileType()->HasInternalFileInfo())
         {
-            const auto& item = fileInfoManager.GetItem(selectedItem);
-
-            bool fileNameAsTitle = true;
-            const char16_t* gameTitle = info->GetGameTitle();
-            if (gameTitle && gameTitle[0] != 0)
+            auto info = fileInfoManager.GetInternalFileInfo(selectedItem);
+            if (info)
             {
-                _fileInfoView->SetGameTitleAsync(_viewModel->GetBgTaskQueue(), gameTitle);
-                fileNameAsTitle = false;
-            }
+                bool fileNameAsTitle = true;
+                const char16_t* gameTitle = info->GetGameTitle();
+                if (gameTitle)
+                {
+                    _fileInfoView->SetGameTitleAsync(_viewModel->GetBgTaskQueue(), gameTitle);
+                    fileNameAsTitle = false;
+                }
 
-            _selectedFileIcon = info->CreateGameIcon();
-            if (!_selectedFileIcon)
-            {
-                _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
-            }
-            if (_selectedFileIcon)
-            {
-                _selectedFileIcon->SetAnimFrame(_viewModel->GetIconFrameCounter());
-                _iconGraphicsUploaded = false;
-            }
-            _fileInfoView->SetIcon(std::move(_selectedFileIcon));
-            _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), fileNameAsTitle);
+                _selectedFileIcon = info->CreateGameIcon();
+                if (!_selectedFileIcon)
+                {
+                    _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
+                }
+                if (_selectedFileIcon)
+                {
+                    _selectedFileIcon->SetAnimFrame(_viewModel->GetIconFrameCounter());
+                    _iconGraphicsUploaded = false;
+                }
+                _fileInfoView->SetIcon(std::move(_selectedFileIcon));
+                _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), fileNameAsTitle);
 
+                _lastSelectedItem = selectedItem;
+
+                auto cover = fileInfoManager.GetFileCover(selectedItem);
+                if (cover.IsValid())
+                {
+                    _selectedFileCover = std::move(cover);
+                    _coverGraphicsUploaded = false;
+                }
+            }
+        }
+        else
+        {
             auto cover = fileInfoManager.GetFileCover(selectedItem);
             if (cover.IsValid())
             {
                 _selectedFileCover = std::move(cover);
                 _coverGraphicsUploaded = false;
-            }
 
-            _currentIconLoaded = true;
+                _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
+                if (_selectedFileIcon)
+                {
+                    _selectedFileIcon->SetAnimFrame(_viewModel->GetIconFrameCounter());
+                    _iconGraphicsUploaded = false;
+                }
+                _fileInfoView->SetIcon(std::move(_selectedFileIcon));
+                _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), true);
+
+                _lastSelectedItem = selectedItem;
+            }
         }
     }
-
     ViewContainer::Update();
 }
 

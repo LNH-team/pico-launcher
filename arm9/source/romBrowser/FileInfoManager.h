@@ -37,7 +37,8 @@ public:
 private:
     struct ExtraFileInfo
     {
-        const InternalFileInfo* internalFileInfo;
+        bool loaded = false;
+        const InternalFileInfo* internalFileInfo = nullptr;
         AtomicSharedPtr<FileCover> fileCover;
     };
 

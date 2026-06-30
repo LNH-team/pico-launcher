@@ -1,6 +1,5 @@
 #include "common.h"
 #include <string.h>
-#include <memory>
 #include "core/StringUtil.h"
 #include "FileType/NullFileTypeProvider.h"
 #include "FileType/BmpFileIconData.h"
@@ -27,8 +26,8 @@ SharedPtr<BmpFileIconData> IconRepository::LoadIconData(
             sizeof(nameBuffer) - sizeof(suffix));
         memcpy(nameBuffer + len, suffix, sizeof(suffix));
 
-        auto fi = std::make_unique<FILINFO>();
-        if (f_stat(nameBuffer, fi.get()) == FR_OK && !(fi->fattrib & AM_DIR))
+        FILINFO fi;
+        if (f_stat(nameBuffer, &fi) == FR_OK && !(fi.fattrib & AM_DIR))
         {
             return SharedPtr<BmpFileIconData>::MakeShared(nameBuffer);
         }

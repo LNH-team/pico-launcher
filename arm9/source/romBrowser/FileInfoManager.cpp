@@ -21,7 +21,7 @@ FileInfoManager::~FileInfoManager()
 
 void FileInfoManager::LoadFileInfo(int index)
 {
-    if (_extraFileInfo[index].internalFileInfo)
+    if (_extraFileInfo[index].loaded)
         return;
 
     const InternalFileInfo* internalFileInfo = _items[index]->CreateInternalFileInfo();
@@ -47,10 +47,13 @@ void FileInfoManager::LoadFileInfo(int index)
         _extraFileInfo[index].fileCover = SharedPtr(_coverRepository.GetCoverForFile(*_items[index], internalFileInfo));
 
     _extraFileInfo[index].internalFileInfo = internalFileInfo;
+    _extraFileInfo[index].loaded = true;
 }
 
 void FileInfoManager::ReleaseFileInfo(int index)
 {
+    _extraFileInfo[index].loaded = false;
+
     auto internalFileInfo = _extraFileInfo[index].internalFileInfo;
     if (internalFileInfo)
     {
