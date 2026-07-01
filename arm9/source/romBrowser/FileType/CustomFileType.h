@@ -34,12 +34,6 @@ public:
             : FileType::CreateFileCover(fileName);
     };
 
-    bool HasInternalFileInfo() const override
-    {
-        return _baseFileType != nullptr
-            && _baseFileType->HasInternalFileInfo();
-    }
-
     InternalFileInfo* CreateInternalFileInfo(const FastFileRef& fastFileRef) const override
     {
         return _baseFileType != nullptr

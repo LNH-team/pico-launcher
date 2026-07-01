@@ -45,10 +45,6 @@ public:
         return new UnknownFileCover();
     };
 
-    /// @brief Returns if this file format has internal file info or not.
-    /// @return \c true if this file format has internal file info, or \c false otherwise.
-    virtual bool HasInternalFileInfo() const { return false; }
-
     /// @brief Reads the internal file info of the file specified by \p fastFileRef.
     /// @param fastFileRef The file to get the internal file info of.
     /// @return The internal file info of the specified file when successful, or \c nullptr otherwise.

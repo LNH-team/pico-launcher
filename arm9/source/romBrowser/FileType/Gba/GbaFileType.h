@@ -16,8 +16,6 @@ public:
         return themeFileIconFactory->CreateGenericFileIcon(fileName);
     }
 
-    bool HasInternalFileInfo() const override { return true; }
-
     InternalFileInfo* CreateInternalFileInfo(const FastFileRef& fastFileRef) const override
     {
         return new GbaInternalFileInfo(fastFileRef);

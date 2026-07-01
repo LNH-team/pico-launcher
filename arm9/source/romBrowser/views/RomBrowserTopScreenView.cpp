@@ -44,64 +44,48 @@ void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
 void RomBrowserTopScreenView::Update()
 {
     int selectedItem = _viewModel->GetSelectedItem();
-    if (selectedItem != _lastSelectedItem)
+    if (selectedItem != _lastSelectedItem && selectedItem >= 0)
     {
         auto& fileInfoManager = _viewModel->GetFileInfoManager();
-        const auto& item = fileInfoManager.GetItem(selectedItem);
-        if (item.GetFileType()->HasInternalFileInfo())
+        // GetInternalFileInfo() covers both game banners and custom icon overrides (the
+        // latter apply to any file type, including folders), so check it directly instead
+        // of branching on FileType::HasInternalFileInfo() - that's a static per-type property
+        // and knows nothing about a per-item custom icon. IsFileInfoLoaded() distinguishes
+        // "still loading" from "loaded, and there's legitimately nothing" so this waits for
+        // the io thread instead of flashing the previous item's icon while undecided.
+        if (fileInfoManager.IsFileInfoLoaded(selectedItem))
         {
+            const auto& item = fileInfoManager.GetItem(selectedItem);
             auto info = fileInfoManager.GetInternalFileInfo(selectedItem);
-            if (info)
+
+            bool fileNameAsTitle = true;
+            const char16_t* gameTitle = info ? info->GetGameTitle() : nullptr;
+            if (gameTitle && gameTitle[0] != 0)
             {
-                bool fileNameAsTitle = true;
-                const char16_t* gameTitle = info->GetGameTitle();
-                if (gameTitle)
-                {
-                    _fileInfoView->SetGameTitleAsync(_viewModel->GetBgTaskQueue(), gameTitle);
-                    fileNameAsTitle = false;
-                }
-
-                _selectedFileIcon = info->CreateGameIcon();
-                if (!_selectedFileIcon)
-                {
-                    _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
-                }
-                if (_selectedFileIcon)
-                {
-                    _selectedFileIcon->SetAnimFrame(_viewModel->GetIconFrameCounter());
-                    _iconGraphicsUploaded = false;
-                }
-                _fileInfoView->SetIcon(std::move(_selectedFileIcon));
-                _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), fileNameAsTitle);
-
-                _lastSelectedItem = selectedItem;
-
-                auto cover = fileInfoManager.GetFileCover(selectedItem);
-                if (cover.IsValid())
-                {
-                    _selectedFileCover = std::move(cover);
-                    _coverGraphicsUploaded = false;
-                }
+                _fileInfoView->SetGameTitleAsync(_viewModel->GetBgTaskQueue(), gameTitle);
+                fileNameAsTitle = false;
             }
-        }
-        else
-        {
+
+            _selectedFileIcon = info ? info->CreateGameIcon() : nullptr;
+            if (!_selectedFileIcon)
+            {
+                _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
+            }
+            if (_selectedFileIcon)
+            {
+                _selectedFileIcon->SetAnimFrame(_viewModel->GetIconFrameCounter());
+                _iconGraphicsUploaded = false;
+            }
+            _fileInfoView->SetIcon(std::move(_selectedFileIcon));
+            _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), fileNameAsTitle);
+
+            _lastSelectedItem = selectedItem;
+
             auto cover = fileInfoManager.GetFileCover(selectedItem);
             if (cover.IsValid())
             {
                 _selectedFileCover = std::move(cover);
                 _coverGraphicsUploaded = false;
-
-                _selectedFileIcon = item.GetFileType()->CreateFileIcon("", _themeFileIconFactory);
-                if (_selectedFileIcon)
-                {
-                    _selectedFileIcon->SetAnimFrame(_viewModel->GetIconFrameCounter());
-                    _iconGraphicsUploaded = false;
-                }
-                _fileInfoView->SetIcon(std::move(_selectedFileIcon));
-                _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), item.GetFileName(), true);
-
-                _lastSelectedItem = selectedItem;
             }
         }
     }

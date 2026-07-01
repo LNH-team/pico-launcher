@@ -21,6 +21,14 @@ public:
         return _extraFileInfo[index].internalFileInfo;
     }
 
+    /// @brief Whether LoadFileInfo() has finished for this item. Unlike checking
+    ///        GetInternalFileInfo() for null, this distinguishes "still loading" from
+    ///        "loaded, and there's legitimately nothing" (e.g. a folder with no custom icon).
+    bool IsFileInfoLoaded(int index) const
+    {
+        return _extraFileInfo[index].loaded;
+    }
+
     SharedPtr<FileCover> GetFileCover(int index)
     {
         return _extraFileInfo[index].fileCover.Lock();
