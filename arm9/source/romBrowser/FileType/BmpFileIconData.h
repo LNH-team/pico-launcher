@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "fat/FastFileRef.h"
 
 class File;
@@ -11,14 +12,13 @@ public:
     static constexpr u32 GfxSize = 512;
 
     explicit BmpFileIconData(const FastFileRef& iconFileRef);
-    explicit BmpFileIconData(const TCHAR* path);
 
     const u8* GetGfx() const { return _iconGfx; }
     const u16* GetPltt() const { return _iconPltt; }
 
 private:
-    void Init(File& file);
-    void Load(File& file);
+    void Init(std::unique_ptr<File> file);
+    void Load(std::unique_ptr<File> file);
 
     u8 _iconGfx[GfxSize] alignas(32);
     u16 _iconPltt[16] alignas(32);

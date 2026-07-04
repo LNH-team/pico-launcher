@@ -4,29 +4,20 @@
 #include "fat/File.h"
 #include "BnrInternalFileInfo.h"
 
-void BnrInternalFileInfo::Load(File& file, const char* originalGameCode)
+BnrInternalFileInfo::BnrInternalFileInfo(const FastFileRef& bnrFileRef, const char* gameCode)
 {
-    if (originalGameCode)
-    {
-        strncpy(_gameCode, originalGameCode, 4);
-    }
-
-    _hasBanner = ReadBannerChunks(file, file.GetSize());
-}
-
-BnrInternalFileInfo::BnrInternalFileInfo(const FastFileRef& bnrFileRef, const char* originalGameCode)
-{
-    const auto file = std::make_unique<File>();
+    auto file = std::make_unique<File>();
     file->Open(bnrFileRef, FA_READ);
-    Load(*file, originalGameCode);
+    Load(std::move(file), gameCode);
 }
 
-BnrInternalFileInfo::BnrInternalFileInfo(const TCHAR* path, const char* originalGameCode)
+void BnrInternalFileInfo::Load(std::unique_ptr<File> file, const char* gameCode)
 {
-    const auto file = std::make_unique<File>();
-    if (file->Open(path, FA_READ) == FR_OK)
+    if (gameCode)
     {
-        Load(*file, originalGameCode);
+        strncpy(_gameCode, gameCode, 4);
     }
+
+    _hasBanner = ReadBannerChunks(*file, file->GetSize());
 }
 

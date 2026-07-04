@@ -1,6 +1,7 @@
 #include "common.h"
 #include <string.h>
-#include "core/StringUtil.h"
+#include "core/mini-printf.h"
+#include "fat/Directory.h"
 #include "FileType/NullFileTypeProvider.h"
 #include "FileType/BmpFileIconData.h"
 #include "FileType/InternalFileInfo.h"
@@ -12,7 +13,7 @@ void IconRepository::Initialize()
     InitializeFolders("/_pico/icons/");
 }
 
-SharedPtr<BmpFileIconData> IconRepository::LoadIconData(
+SharedPtr<BmpFileIconData> IconRepository::GetIconForFile(
     const FileInfo& fileInfo, const InternalFileInfo* internalFileInfo) const
 {
     char nameBuffer[256];
@@ -20,16 +21,21 @@ SharedPtr<BmpFileIconData> IconRepository::LoadIconData(
 
     if (fileType->GetClassification() == FileTypeClassification::Folder)
     {
-        // Look for folder.bmp inside the folder (path relative to FatFs CWD = current browse dir)
-        constexpr char suffix[] = "/folder.bmp";
-        u32 len = StringUtil::Copy(nameBuffer, fileInfo.GetFileName(),
-            sizeof(nameBuffer) - sizeof(suffix));
-        memcpy(nameBuffer + len, suffix, sizeof(suffix));
-
-        FILINFO fi;
-        if (f_stat(nameBuffer, &fi) == FR_OK && !(fi.fattrib & AM_DIR))
+        // Look for folder.bmp inside the folder (path relative to FatFs CWD = current browse dir).
+        // Scan with the already-open directory handle so the match can be turned directly into a
+        // FastFileRef, instead of stat'ing then re-opening the same path by name.
+        Directory folderDir;
+        if (folderDir.Open(fileInfo.GetFileName()) == FR_OK)
         {
-            return SharedPtr<BmpFileIconData>::MakeShared(nameBuffer);
+            FILINFO fi;
+            while (folderDir.Read(&fi) == FR_OK && fi.fname[0] != 0)
+            {
+                if (!(fi.fattrib & AM_DIR) && !strcasecmp(fi.fname, "folder.bmp"))
+                {
+                    return SharedPtr<BmpFileIconData>::MakeShared(
+                        FastFileRef(folderDir.GetFatFsDirectory(), &fi));
+                }
+            }
         }
 
         return nullptr;
@@ -40,8 +46,7 @@ SharedPtr<BmpFileIconData> IconRepository::LoadIconData(
     // Try to get an icon based on the filename in the user folder
     if (_userFolder)
     {
-        u32 length = StringUtil::Copy(nameBuffer, fileInfo.GetFileName(), sizeof(nameBuffer) - 5);
-        memcpy(nameBuffer + length, ".bmp", 5);
+        mini_snprintf(nameBuffer, sizeof(nameBuffer), "%s.bmp", fileInfo.GetFileName());
         iconFile = _userFolder->BinarySearch(nameBuffer);
     }
 
@@ -54,8 +59,7 @@ SharedPtr<BmpFileIconData> IconRepository::LoadIconData(
             const char* gameCode = internalFileInfo->GetGameCode();
             if (gameCode)
             {
-                u32 length = StringUtil::Copy(nameBuffer, gameCode, sizeof(nameBuffer) - 5);
-                memcpy(nameBuffer + length, ".bmp", 5);
+                mini_snprintf(nameBuffer, sizeof(nameBuffer), "%s.bmp", gameCode);
                 iconFile = iconFolder->BinarySearch(nameBuffer);
             }
         }

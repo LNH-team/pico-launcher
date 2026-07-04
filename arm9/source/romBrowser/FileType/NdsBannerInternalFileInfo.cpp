@@ -66,10 +66,8 @@ const char16_t* NdsBannerInternalFileInfo::GetGameTitle() const
     if (title && title[0] != 0)
         return title;
 
-    for (int i = 0; i < 8; ++i)
+    for (int i = NDS_BANNER_TITLE_LANGUAGE_FRENCH; i <= NDS_BANNER_TITLE_LANGUAGE_KOREAN; i++)
     {
-        if (i == NDS_BANNER_TITLE_LANGUAGE_ENGLISH || i == NDS_BANNER_TITLE_LANGUAGE_JAPANESE)
-            continue;
         title = _banner.title[i];
         if (title && title[0] != 0)
             return title;

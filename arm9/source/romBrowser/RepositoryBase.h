@@ -11,7 +11,7 @@ protected:
 
     /// @brief Gets the cached folder corresponding to the file type suffix name.
     /// @param shortName Suffix folder name (e.g. "nds" or "gba").
-    /// @return The pointer to the cached SdFolder, or nullptr.
+    /// @return A pointer to the cached \see SdFolder, or \c nullptr otherwise.
     const SdFolder* GetFileTypeFolder(const char* shortName) const;
 
     std::unique_ptr<SdFolder> _ndsFolder;

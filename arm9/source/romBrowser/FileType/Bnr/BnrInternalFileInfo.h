@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "../NdsBannerInternalFileInfo.h"
 #include "fat/FastFileRef.h"
 
@@ -8,9 +9,8 @@ class File;
 class alignas(32) BnrInternalFileInfo : public NdsBannerInternalFileInfo
 {
 public:
-    BnrInternalFileInfo(const FastFileRef& bnrFileRef, const char* originalGameCode = nullptr);
-    BnrInternalFileInfo(const TCHAR* path, const char* originalGameCode = nullptr);
+    BnrInternalFileInfo(const FastFileRef& bnrFileRef, const char* gameCode);
 
 private:
-    void Load(File& file, const char* originalGameCode);
+    void Load(std::unique_ptr<File> file, const char* gameCode);
 };

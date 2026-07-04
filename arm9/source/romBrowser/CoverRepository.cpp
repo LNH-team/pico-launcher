@@ -1,6 +1,5 @@
 #include "common.h"
-#include <string.h>
-#include "core/StringUtil.h"
+#include "core/mini-printf.h"
 #include "FileType/NullFileTypeProvider.h"
 #include "FileType/BmpFileCover.h"
 #include "FileType/InternalFileInfo.h"
@@ -24,8 +23,7 @@ FileCover* CoverRepository::GetCoverForFile(const FileInfo& fileInfo, const Inte
         // Try to get a cover based on the filename in the user folder
         if (_userFolder)
         {
-            u32 length = StringUtil::Copy(nameBuffer, fileInfo.GetFileName(), sizeof(nameBuffer) - 5);
-            memcpy(nameBuffer + length, ".bmp", 5);
+            mini_snprintf(nameBuffer, sizeof(nameBuffer), "%s.bmp", fileInfo.GetFileName());
             coverFile = _userFolder->BinarySearch(nameBuffer);
         }
 
@@ -38,8 +36,7 @@ FileCover* CoverRepository::GetCoverForFile(const FileInfo& fileInfo, const Inte
                 const char* gameCode = internalFileInfo->GetGameCode();
                 if (gameCode)
                 {
-                    u32 length = StringUtil::Copy(nameBuffer, gameCode, sizeof(nameBuffer) - 5);
-                    memcpy(nameBuffer + length, ".bmp", 5);
+                    mini_snprintf(nameBuffer, sizeof(nameBuffer), "%s.bmp", gameCode);
                 }
 
                 coverFile = coverFolder->BinarySearch(nameBuffer);

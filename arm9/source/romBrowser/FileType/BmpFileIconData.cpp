@@ -9,32 +9,25 @@
 
 BmpFileIconData::BmpFileIconData(const FastFileRef& iconFileRef)
 {
-    const auto file = std::make_unique<File>();
+    auto file = std::make_unique<File>();
     file->Open(iconFileRef, FA_READ);
-    Init(*file);
+    Init(std::move(file));
 }
 
-BmpFileIconData::BmpFileIconData(const TCHAR* path)
-{
-    const auto file = std::make_unique<File>();
-    file->Open(path, FA_READ);
-    Init(*file);
-}
-
-void BmpFileIconData::Init(File& file)
+void BmpFileIconData::Init(std::unique_ptr<File> file)
 {
     memset(_iconGfx, 0, sizeof(_iconGfx));
     memset(_iconPltt, 0, sizeof(_iconPltt));
-    Load(file);
+    Load(std::move(file));
     DC_FlushRange(_iconGfx, sizeof(_iconGfx));
     DC_FlushRange(_iconPltt, sizeof(_iconPltt));
 }
 
-void BmpFileIconData::Load(File& file)
+void BmpFileIconData::Load(std::unique_ptr<File> file)
 {
     // BMP file header (14) + DIB header (40) + 16-color palette (64)
     u8 headerAndPalette[118];
-    if (!file.ReadExact(headerAndPalette, sizeof(headerAndPalette)))
+    if (!file->ReadExact(headerAndPalette, sizeof(headerAndPalette)))
         return;
 
     if (!BmpHeader::Validate(headerAndPalette, 32, 32, 4))
@@ -65,8 +58,8 @@ void BmpFileIconData::Load(File& file)
         memset(_iconPltt, 0, sizeof(_iconPltt));
         return;
     }
-    if (file.Seek(dataOffset) != FR_OK ||
-        !file.ReadExact(rawPixelData.get(), GfxSize))
+    if (file->Seek(dataOffset) != FR_OK ||
+        !file->ReadExact(rawPixelData.get(), GfxSize))
     {
         memset(_iconPltt, 0, sizeof(_iconPltt));
         return;

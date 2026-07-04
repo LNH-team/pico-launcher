@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+- Custom BMP icons for games and folders, loaded from the SD card
+- Custom NDS banners (custom titles, subtitles, and animated icons) for games and folders, loaded from the SD card
+
 ### Fixed
 - Top screen cover is now displayed/hidden correctly when placed partially or fully off-screen
 - DSi banners with missing DSi part now fall back to the DS icon

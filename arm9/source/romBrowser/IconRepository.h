@@ -6,6 +6,6 @@ class IconRepository : public RepositoryBase, public IIconRepository
 {
 public:
     void Initialize() override;
-    SharedPtr<BmpFileIconData> LoadIconData(
+    SharedPtr<BmpFileIconData> GetIconForFile(
         const FileInfo& fileInfo, const InternalFileInfo* internalFileInfo) const override;
 };

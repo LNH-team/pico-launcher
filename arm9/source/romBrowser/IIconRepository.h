@@ -11,7 +11,7 @@ public:
     virtual ~IIconRepository() = default;
 
     virtual void Initialize() = 0;
-    virtual SharedPtr<BmpFileIconData> LoadIconData(
+    virtual SharedPtr<BmpFileIconData> GetIconForFile(
         const FileInfo& fileInfo, const InternalFileInfo* internalFileInfo) const = 0;
 
 protected:

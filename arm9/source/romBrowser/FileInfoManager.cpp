@@ -36,7 +36,7 @@ void FileInfoManager::LoadFileInfo(int index)
     else
     {
         // A custom icon (.bmp) wraps the existing internal file info, overriding only the icon.
-        auto iconData = _iconRepository.LoadIconData(*_items[index], internalFileInfo);
+        auto iconData = _iconRepository.GetIconForFile(*_items[index], internalFileInfo);
         if (iconData)
         {
             internalFileInfo = new CustomIconInternalFileInfo(std::move(iconData), std::unique_ptr<const InternalFileInfo>(internalFileInfo));

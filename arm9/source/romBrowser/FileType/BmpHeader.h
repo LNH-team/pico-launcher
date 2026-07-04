@@ -2,19 +2,24 @@
 #include <cstdlib>
 #include <nds/ndstypes.h>
 
-/// @brief Validates BITMAPFILEHEADER + BITMAPINFOHEADER fields from a raw BMP buffer.
-/// @param bmpHeader Buffer containing BMP data. Must be at least 50 bytes.
-/// @param expectedWidth Expected width of the image.
-/// @param expectedHeight Expected height of the image.
-/// @param expectedBpp Expected bits per pixel.
-/// @return True if valid, false otherwise.
+/// @brief Static helpers for reading and validating BITMAPFILEHEADER + BITMAPINFOHEADER
+///        fields from a raw BMP buffer.
 struct BmpHeader
 {
+    /// @brief Reads the (possibly negative) biHeight field of a BMP's DIB header.
+    /// @param bmpHeader Buffer containing BMP data. Must be at least 50 bytes.
+    /// @return The image height. Negative when the BMP is stored top-down.
     static s32 GetHeight(const u8* bmpHeader)
     {
         return (s32)(bmpHeader[0x16] | (bmpHeader[0x17] << 8) | (bmpHeader[0x18] << 16) | (bmpHeader[0x19] << 24));
     }
 
+    /// @brief Validates BITMAPFILEHEADER + BITMAPINFOHEADER fields from a raw BMP buffer.
+    /// @param bmpHeader Buffer containing BMP data. Must be at least 50 bytes.
+    /// @param expectedWidth Expected width of the image.
+    /// @param expectedHeight Expected height of the image.
+    /// @param expectedBpp Expected bits per pixel.
+    /// @return \c true when valid, or \c false otherwise.
     static bool Validate(const u8* bmpHeader, u32 expectedWidth, u32 expectedHeight, u32 expectedBpp)
     {
         if (bmpHeader[0] != 'B' || bmpHeader[1] != 'M')
@@ -34,10 +39,10 @@ struct BmpHeader
             && (clrUsed == 0 || clrUsed == (1u << expectedBpp));
     }
 
-    /// @brief Returns true if the BMP stores rows top-to-bottom (negative biHeight).
-    /// @note Call only after Validate() succeeds.
+    /// @brief Returns \c true if the BMP stores rows top-to-bottom (negative biHeight).
     /// @param bmpHeader The raw BMP buffer.
-    /// @return True if top-down, false otherwise.
+    /// @return \c true when top-down, or \c false otherwise.
+    /// @note Call only after Validate() succeeds.
     static bool IsTopDown(const u8* bmpHeader)
     {
         return GetHeight(bmpHeader) < 0;
