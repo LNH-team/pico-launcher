@@ -15,11 +15,18 @@
 #include "moviesIcon.h"
 #include "unknownIcon.h"
 #include "coverflowIcon.h"
+#include "oneicon.h"
+#include "twoicon.h"
+#include "threeicon.h"
+#include "fouricon.h"
+#include "fiveicon.h"
 #include "../IRomBrowserController.h"
 #include "gui/input/InputProvider.h"
 #include "themes/material/MaterialColorScheme.h"
 #include "themes/IFontRepository.h"
 #include "DisplaySettingsBottomSheetView.h"
+#include "backlight_ipc.h"
+#include "core/Environment.h"
 
 #define TITLE_LABEL_X       20
 #define TITLE_LABEL_Y       16
@@ -29,6 +36,9 @@
 
 #define SORTING_LABEL_X     20
 #define SORTING_LABEL_Y     78
+
+#define BACKLIGHT_LABEL_X   20
+#define BACKLIGHT_LABEL_Y   110
 
 #define FILTERS_LABEL_X     20
 #define FILTERS_LABEL_Y     112
@@ -48,6 +58,9 @@ static RomBrowserSortMode sRomBrowserSortModes[4] =
     [2] = RomBrowserSortMode::LastModified
 };
 
+static u32 sNumberOfBackLightLevels;
+static u8 sBacklightModes[5];
+
 DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     DisplaySettingsViewModel* viewModel, const MaterialColorScheme* materialColorScheme,
     const IFontRepository* fontRepository)
@@ -55,6 +68,7 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     , _titleLabel(Label2DView::CreateShared(128, 16, 25, fontRepository->GetFont(FontType::Medium11)))
     , _layoutLabel(Label2DView::CreateShared(64, 16, 25, fontRepository->GetFont(FontType::Regular10)))
     , _sortingLabel(Label2DView::CreateShared(64, 16, 25, fontRepository->GetFont(FontType::Regular10)))
+    , _backlightLabel(Label2DView::CreateShared(64, 16, 25, fontRepository->GetFont(FontType::Regular10)))
     , _materialColorScheme(materialColorScheme)
     // , _filtersLabel(64, 16, 25, fontRepository->GetFont(FontType::Regular10))
 {
@@ -64,6 +78,8 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     AddChildTail(_layoutLabel.GetPointer());
     _sortingLabel->SetText(u"Sorting");
     AddChildTail(_sortingLabel.GetPointer());
+    _backlightLabel->SetText(u"Backlight");
+    AddChildTail(_backlightLabel.GetPointer());
     // _filtersLabel.SetText(u"Filters");
     // AddChildTail(&_filtersLabel);
 
@@ -77,6 +93,17 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     {
         sortOption = CreateSortOptionIconButton();
         AddChildTail(sortOption.GetPointer());
+    }
+
+    sNumberOfBackLightLevels = Environment::IsDsiMode()?5:4;
+    int idx=0;
+    for (auto&backlightOption : _backlightOptions)
+    {
+        if (idx >= (int)sNumberOfBackLightLevels) break;
+        sBacklightModes[idx] = Environment::IsDsiMode() ? idx+1:idx;
+        backlightOption = CreateBacklightOptionIconButton();
+        AddChildTail(backlightOption.GetPointer());
+        idx++;
     }
 
     // for (auto& filterOption : _filterOptions)
@@ -134,6 +161,29 @@ SharedPtr<IconButton2DView> DisplaySettingsBottomSheetView::CreateSortOptionIcon
     return sortOption;
 }
 
+SharedPtr<IconButton2DView> DisplaySettingsBottomSheetView::CreateBacklightOptionIconButton()
+{
+    auto backLightOption = IconButton2DView::CreateShared(
+        IconButtonView::Type::Tonal,
+        IconButtonView::State::ToggleUnselected,
+        md::sys::color::surfaceContainerLow,
+        _materialColorScheme
+    );
+    backLightOption->SetAction([] (IconButtonView* sender, void* arg)
+    {
+        auto self = reinterpret_cast<DisplaySettingsBottomSheetView*>(arg);
+        for (u32 i = 0; i < sNumberOfBackLightLevels; i++)
+        {
+            if (self->_backlightOptions[i].GetPointer() == sender)
+            {
+                bli_setBacklightLevel(sBacklightModes[i]);
+                break;
+            }
+        }
+    }, this);
+    return backLightOption;
+}
+
 // IconButtonView DisplaySettingsBottomSheetView::CreateFilterOptionIconButton()
 // {
 //     IconButtonView filterOption
@@ -164,6 +214,14 @@ void DisplaySettingsBottomSheetView::InitVram(const VramContext& vramContext)
         _sortOptions[1]->SetIconVramOffset(LoadIcon(*objVramManager, sortNameDescendingIconTiles, sortNameDescendingIconTilesLen));
         // _sortOptions[2].SetIconVramOffset(LoadIcon(objVramManager, recentIconTiles, recentIconTilesLen));
 
+        // backlight options
+        _backlightOptions[0]->SetIconVramOffset(LoadIcon(*objVramManager, oneiconTiles, oneiconTilesLen));
+        _backlightOptions[1]->SetIconVramOffset(LoadIcon(*objVramManager, twoiconTiles, twoiconTilesLen));
+        _backlightOptions[2]->SetIconVramOffset(LoadIcon(*objVramManager, threeiconTiles, threeiconTilesLen));
+        _backlightOptions[3]->SetIconVramOffset(LoadIcon(*objVramManager, fouriconTiles, fouriconTilesLen));
+        if (sNumberOfBackLightLevels>4)
+            _backlightOptions[4]->SetIconVramOffset(LoadIcon(*objVramManager, fiveiconTiles, fiveiconTilesLen));
+
         // filter options
         // _filterOptions[0].SetIconVramOffset(LoadIcon(objVramManager, gamesIconTiles, gamesIconTilesLen));
         // _filterOptions[1].SetIconVramOffset(LoadIcon(objVramManager, picturesIconTiles, picturesIconTilesLen));
@@ -178,6 +236,7 @@ void DisplaySettingsBottomSheetView::UpdateLabels()
     _titleLabel->SetPosition(TITLE_LABEL_X, _position.y + TITLE_LABEL_Y);
     _layoutLabel->SetPosition(LAYOUT_LABEL_X, _position.y + LAYOUT_LABEL_Y);
     _sortingLabel->SetPosition(SORTING_LABEL_X, _position.y + SORTING_LABEL_Y);
+    _backlightLabel->SetPosition(BACKLIGHT_LABEL_X, _position.y+BACKLIGHT_LABEL_Y);
     // _filtersLabel.SetPosition(FILTERS_LABEL_X, _position.y + FILTERS_LABEL_Y);
 }
 
@@ -209,6 +268,20 @@ void DisplaySettingsBottomSheetView::Update()
         x += 32;
         idx++;
     }
+    x = 70;
+    idx = 0;
+
+    for (auto& backlightOption : _backlightOptions)
+    {
+        if (idx>=sNumberOfBackLightLevels)break;
+        backlightOption->SetPosition(x, _position.y + 102);
+        backlightOption->SetState(sBacklightModes[idx] == bli_getBacklightLevel()
+            ? IconButtonView::State::ToggleSelected
+            : IconButtonView::State::ToggleUnselected);
+        x += 32;
+        idx++;
+    }
+
     // x = 70;
     // for (auto& filterOption : _filterOptions)
     // {
@@ -228,6 +301,8 @@ void DisplaySettingsBottomSheetView::Draw(GraphicsContext& graphicsContext)
         _layoutLabel->SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         _sortingLabel->SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
         _sortingLabel->SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+        _backlightLabel->SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
+        _backlightLabel->SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         // _filtersLabel.SetBackgroundColor(_materialColorScheme->GetColor(md::sys::color::surfaceContainerLow));
         // _filtersLabel.SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         BottomSheetView::Draw(graphicsContext);
@@ -267,13 +342,13 @@ SharedPtr<View> DisplaySettingsBottomSheetView::MoveFocus(const SharedPtr<View>&
                     idx = 0;
                 return _layoutOptions[idx];
             }
-            // else if (direction == FocusMoveDirection::Up)
-            // {
-            //     if (idx >= (int)_filterOptions.size())
-            //         idx = _filterOptions.size() - 1;
-            //     return &_filterOptions[idx];
-            // }
-            else //if (direction == FocusMoveDirection::Down)
+            else if (direction == FocusMoveDirection::Up)
+            {
+                if (idx >= (int)sNumberOfBackLightLevels)
+                    idx = sNumberOfBackLightLevels - 1;
+                return _backlightOptions[idx];
+            }
+            else if (direction == FocusMoveDirection::Down)
             {
                 if (idx >= (int)_sortOptions.size())
                     idx = _sortOptions.size() - 1;
@@ -299,53 +374,54 @@ SharedPtr<View> DisplaySettingsBottomSheetView::MoveFocus(const SharedPtr<View>&
                     idx = 0;
                 return _sortOptions[idx];
             }
-            else //if (direction == FocusMoveDirection::Up)
+            else if (direction == FocusMoveDirection::Up)
             {
                 if (idx >= (int)_layoutOptions.size())
                     idx = _layoutOptions.size() - 1;
                 return _layoutOptions[idx];
             }
-            // else //if (direction == FocusMoveDirection::Down)
-            // {
-            //     if (idx >= (int)_filterOptions.size())
-            //         idx = _filterOptions.size() - 1;
-            //     return &_filterOptions[idx];
-            // }
+            else if (direction == FocusMoveDirection::Down)
+            {
+                if (idx >= (int)sNumberOfBackLightLevels)
+                    idx = sNumberOfBackLightLevels - 1;
+                return _backlightOptions[idx];
+            }
         }
         idx++;
     }
-    // idx = 0;
-    // for (auto& filterOption : _filterOptions)
-    // {
-    //     if (currentFocus == &filterOption)
-    //     {
-    //         if (direction == FocusMoveDirection::Left)
-    //         {
-    //             if (--idx < 0)
-    //                 idx += _filterOptions.size();
-    //             return &_filterOptions[idx];
-    //         }
-    //         else if (direction == FocusMoveDirection::Right)
-    //         {
-    //             if (++idx >= (int)_filterOptions.size())
-    //                 idx = 0;
-    //             return &_filterOptions[idx];
-    //         }
-    //         else if (direction == FocusMoveDirection::Up)
-    //         {
-    //             if (idx >= (int)_sortOptions.size())
-    //                 idx = _sortOptions.size() - 1;
-    //             return &_sortOptions[idx];
-    //         }
-    //         else //if (direction == FocusMoveDirection::Down)
-    //         {
-    //             if (idx >= (int)_layoutOptions.size())
-    //                 idx = _layoutOptions.size() - 1;
-    //             return &_layoutOptions[idx];
-    //         }
-    //     }
-    //     idx++;
-    // }
+    idx = 0;
+    for (auto& backlightOption : _backlightOptions)
+    {
+        if (idx>=(int)sNumberOfBackLightLevels)break;
+        if (currentFocus.GetPointer() == backlightOption.GetPointer())
+        {
+            if (direction == FocusMoveDirection::Left)
+            {
+                if (--idx < 0)
+                    idx += sNumberOfBackLightLevels;
+                return _backlightOptions[idx];
+            }
+            else if (direction == FocusMoveDirection::Right)
+            {
+                if (++idx >= (int)sNumberOfBackLightLevels)
+                    idx = 0;
+                return _backlightOptions[idx];
+            }
+            else if (direction == FocusMoveDirection::Up)
+            {
+                if (idx >= (int)_sortOptions.size())
+                    idx = _sortOptions.size() - 1;
+                return _sortOptions[idx];
+            }
+            else if (direction == FocusMoveDirection::Down)
+            {
+                if (idx >= (int)_layoutOptions.size())
+                    idx = _layoutOptions.size() - 1;
+                return _layoutOptions[idx];
+            }
+        }
+        idx++;
+    }
     return nullptr;
 }
 
@@ -359,6 +435,11 @@ void DisplaySettingsBottomSheetView::SetGraphics(
     for (auto& sortOption : _sortOptions)
     {
         sortOption->SetGraphics(iconButtonVramToken);
+    }
+    for (u32 i=0;i<sNumberOfBackLightLevels;i++)
+    {
+        auto backlightOption = _backlightOptions[i];
+        backlightOption->SetGraphics(iconButtonVramToken);
     }
     // for (auto& filterOption : _filterOptions)
     //     filterOption.SetGraphics(iconButtonVramToken);

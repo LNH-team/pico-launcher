@@ -30,6 +30,7 @@
 #include "ExitMode.h"
 #include "Arm7State.h"
 #include "mmc/tmio.h"
+#include "ipcServices/BacklightIpcService.h"
 #include "touchScreen.h"
 
 static NocashOutputStream sNocashOutputStream;
@@ -40,7 +41,10 @@ static DsiSdIpcService sDsiSdIpcService;
 static DldiIpcService sDldiIpcService;
 static SoundIpcService sSoundIpcService;
 static RtcIpcService sRtcIpcService;
+static BackLightIpcService sBackLightIpcService;
 
+rtos_mutex_t gI2cMutex;
+rtos_mutex_t gSpiMutex;
 ILogger* gLogger = &sThreadSafeLogger;
 
 static rtos_event_t sVCountEvent;
@@ -67,7 +71,9 @@ static void checkMcuIrq(void)
         if (mem_swapByte(false, &sMcuIrqFlag))
         {
             // check the irq mask
+            rtos_lockMutex(&gI2cMutex);
             u32 irqMask = mcu_getIrqMask();
+            rtos_unlockMutex(&gI2cMutex);
             if (irqMask & MCU_IRQ_RESET)
             {
                 // power button was released
@@ -108,7 +114,6 @@ static void clearSoundRegisters()
         REG_SOUNDxLEN(i) = 0;
     }
 }
-
 static void initializeArm7()
 {
     rtos_initIrq();
@@ -117,11 +122,18 @@ static void initializeArm7()
 
     clearSoundRegisters();
 
+    rtos_createMutex(&gI2cMutex);
+    rtos_createMutex(&gSpiMutex);
+
+    rtos_lockMutex(&gSpiMutex);
+
     pmic_setAmplifierEnable(true);
     sys_setSoundPower(true);
 
     readUserSettings();
     pmic_setPowerLedBlink(PMIC_CONTROL_POWER_LED_BLINK_NONE);
+
+    rtos_unlockMutex(&gSpiMutex);
 
     sio_setGpioSiIrq(false);
     sio_setGpioMode(RCNT0_L_MODE_GPIO);
@@ -141,6 +153,7 @@ static void initializeArm7()
     snd_setMasterEnable(true);
     sSoundIpcService.Start();
     sRtcIpcService.Start();
+    sBackLightIpcService.Start();
 
     initializeVCountIrq();
 
@@ -179,13 +192,17 @@ static bool performExit(ExitMode exitMode)
     {
         case ExitMode::Reset:
         {
+            rtos_lockMutex(&gI2cMutex);
             mcu_setWarmBootFlag(true);
             mcu_hardReset();
+            rtos_unlockMutex(&gI2cMutex);
             break;
         }
         case ExitMode::PowerOff:
         {
+            rtos_lockMutex(&gSpiMutex);
             pmic_shutdown();
+            rtos_unlockMutex(&gSpiMutex);
             break;
         }
         case ExitMode::PicoLoader:
@@ -230,12 +247,14 @@ int main()
         rtos_waitEvent(&sVCountEvent, true, true);
         u16 keys = REG_RCNT0_H | RCNT0_H_DATA_PEN;
         touchPosition touchPos;
+        rtos_lockMutex(&gSpiMutex);
         if (touch_update(touchPos))
         {
             keys &= ~RCNT0_H_DATA_PEN; // pen down
             SHARED_TOUCH_X = touchPos.px;
             SHARED_TOUCH_Y = touchPos.py;
         }
+        rtos_unlockMutex(&gSpiMutex);
         SHARED_KEY_XY = keys;
         updateArm7();
     }

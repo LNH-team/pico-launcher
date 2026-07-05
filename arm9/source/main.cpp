@@ -15,6 +15,7 @@
 #include "logger/ThreadSafeLogger.h"
 #include "dsiSdIpc.h"
 #include "dldiIpc.h"
+#include "backlight_ipc.h"
 #include "fat/ff.h"
 #include "services/settings/JsonAppSettingsService.h"
 #include "App.h"
@@ -179,6 +180,7 @@ int main(int argc, char* argv[])
         pload_setBootDrive(PLOAD_BOOT_DRIVE_DLDI);
         dldiInitSuccessful = true;
     }
+    bli_init();
 
     LOG_DEBUG("ARM9 Start\n");
     if (Environment::IsDsiMode())

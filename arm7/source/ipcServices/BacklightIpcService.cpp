@@ -1,0 +1,79 @@
+#include "common.h"
+#include <nds/system.h>
+#include <libtwl/spi/spiPmic.h>
+#include <libtwl/i2c/i2cMcu.h>
+#include <backlightIpcCommand.h>
+#include "BacklightIpcService.h"
+
+
+static inline bool mcu_setLightLevel(u8 val)
+{
+    return mcu_writeReg(MCU_REG_BACKLIGHT,val);
+}
+
+static inline u8 mcu_readLightLevel()
+{
+    return mcu_readReg(MCU_REG_BACKLIGHT);
+}
+
+void BackLightIpcService::HandleMessage(u32 data)
+{
+    const bli_ipc_cmd cmd = {.as_u32 = data};
+
+    switch (cmd.cmd_id)
+    {
+        case BLI_IPC_CMD_SET_CURRENT_LEVEL:
+        {
+            setBacklightLevel(cmd.backlightLevel);
+        }
+        //fall through
+        case BLI_IPC_CMD_GET_CURRENT_LEVEL:
+        {
+            u8 level = getBacklightLevel();
+            const bli_ipc_cmd result = {
+                .cmd_id = BLI_IPC_CMD_CURRENT_LEVEL_UPDATED,
+                .backlightLevel = level
+            };
+            SendResponseMessage(result.as_u32);
+            break;
+        }
+    }
+}
+void BackLightIpcService::setBacklightLevel(const u8 level) const
+{
+    if (isDSiMode())
+    {
+        u8 val = level - 1;
+        if (val >= 5)
+        {
+            val = 4;
+        }
+        rtos_lockMutex(&gI2cMutex);
+        mcu_setLightLevel(val);
+        rtos_unlockMutex(&gI2cMutex);
+    }
+    else
+    {
+        rtos_lockMutex(&gSpiMutex);
+        pmic_setBacklightLevel(level);
+        rtos_unlockMutex(&gSpiMutex);
+    }
+}
+u8 BackLightIpcService::getBacklightLevel() const
+{
+    u8 result;
+    if (isDSiMode())
+    {
+        rtos_lockMutex(&gI2cMutex);
+        result = mcu_readLightLevel() + 1;
+        rtos_unlockMutex(&gI2cMutex);
+    }
+    else
+    {
+        rtos_lockMutex(&gSpiMutex);
+        result = pmic_readRegister(PMIC_REG_BACKLIGHT) & PMIC_BACKLIGHT_MASK;
+        rtos_unlockMutex(&gSpiMutex);
+    }
+
+    return result;
+}
