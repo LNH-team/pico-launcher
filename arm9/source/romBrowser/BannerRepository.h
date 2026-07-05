@@ -7,5 +7,5 @@ class BannerRepository : public RepositoryBase, public IBannerRepository
 public:
     void Initialize() override;
     InternalFileInfo* GetBannerForFile(
-        const FileInfo& fileInfo, const InternalFileInfo* internalFileInfo) const override;
+        const FileInfo& fileInfo, const char* gameCode) const override;
 };

@@ -4,7 +4,6 @@
 #include "fat/Directory.h"
 #include "FileType/NullFileTypeProvider.h"
 #include "FileType/BmpFileIconData.h"
-#include "FileType/InternalFileInfo.h"
 #include "SdFolderFactory.h"
 #include "IconRepository.h"
 
@@ -14,7 +13,7 @@ void IconRepository::Initialize()
 }
 
 SharedPtr<BmpFileIconData> IconRepository::GetIconForFile(
-    const FileInfo& fileInfo, const InternalFileInfo* internalFileInfo) const
+    const FileInfo& fileInfo, const char* gameCode) const
 {
     char nameBuffer[256];
     const auto& fileType = fileInfo.GetFileType();
@@ -51,17 +50,13 @@ SharedPtr<BmpFileIconData> IconRepository::GetIconForFile(
     }
 
     // Try to get an icon based on an internal game code
-    if (!iconFile && internalFileInfo)
+    if (!iconFile && gameCode)
     {
         const auto* iconFolder = GetFileTypeFolder(fileType->GetShortName());
         if (iconFolder)
         {
-            const char* gameCode = internalFileInfo->GetGameCode();
-            if (gameCode)
-            {
-                mini_snprintf(nameBuffer, sizeof(nameBuffer), "%s.bmp", gameCode);
-                iconFile = iconFolder->BinarySearch(nameBuffer);
-            }
+            mini_snprintf(nameBuffer, sizeof(nameBuffer), "%s.bmp", gameCode);
+            iconFile = iconFolder->BinarySearch(nameBuffer);
         }
     }
 

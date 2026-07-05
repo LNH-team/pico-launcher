@@ -4,17 +4,16 @@
 #include "fat/Directory.h"
 #include "FileType/NullFileTypeProvider.h"
 #include "FileType/Bnr/BnrInternalFileInfo.h"
-#include "FileType/InternalFileInfo.h"
 #include "SdFolderFactory.h"
-#include "BannerRepository.h"
 #include "fat/File.h"
+#include "BannerRepository.h"
 
 void BannerRepository::Initialize()
 {
     InitializeFolders("/_pico/banners/");
 }
 
-InternalFileInfo* BannerRepository::GetBannerForFile(const FileInfo& fileInfo, const InternalFileInfo* internalFileInfo) const
+InternalFileInfo* BannerRepository::GetBannerForFile(const FileInfo& fileInfo, const char* gameCode) const
 {
     char nameBuffer[270];
     const auto& fileType = fileInfo.GetFileType();
@@ -35,7 +34,9 @@ InternalFileInfo* BannerRepository::GetBannerForFile(const FileInfo& fileInfo, c
                     auto* bnr = new BnrInternalFileInfo(
                         FastFileRef(folderDir.GetFatFsDirectory(), &fi), nullptr);
                     if (bnr->HasBanner())
+                    {
                         return bnr;
+                    }
                     delete bnr;
                     break;
                 }
@@ -55,25 +56,23 @@ InternalFileInfo* BannerRepository::GetBannerForFile(const FileInfo& fileInfo, c
     }
 
     // Try to get a banner based on an internal game code
-    if (!bnrFile && internalFileInfo)
+    if (!bnrFile && gameCode)
     {
         const auto* bannerFolder = GetFileTypeFolder(fileType->GetShortName());
         if (bannerFolder)
         {
-            const char* gameCode = internalFileInfo->GetGameCode();
-            if (gameCode)
-            {
-                mini_snprintf(nameBuffer, sizeof(nameBuffer), "%s.bnr", gameCode);
-                bnrFile = bannerFolder->BinarySearch(nameBuffer);
-            }
+            mini_snprintf(nameBuffer, sizeof(nameBuffer), "%s.bnr", gameCode);
+            bnrFile = bannerFolder->BinarySearch(nameBuffer);
         }
     }
 
     if (bnrFile)
     {
-        auto* bnr = new BnrInternalFileInfo(bnrFile->GetFastFileRef(), internalFileInfo ? internalFileInfo->GetGameCode() : nullptr);
+        auto* bnr = new BnrInternalFileInfo(bnrFile->GetFastFileRef(), gameCode);
         if (bnr->HasBanner())
+        {
             return bnr;
+        }
         delete bnr;
     }
 

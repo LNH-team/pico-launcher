@@ -10,7 +10,7 @@ public:
 
     virtual void Initialize() = 0;
     virtual InternalFileInfo* GetBannerForFile(
-        const FileInfo& fileInfo, const InternalFileInfo* internalFileInfo) const = 0;
+        const FileInfo& fileInfo, const char* gameCode) const = 0;
 
 protected:
     IBannerRepository() = default;

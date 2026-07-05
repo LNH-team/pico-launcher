@@ -23,7 +23,9 @@ struct BmpHeader
     static bool Validate(const u8* bmpHeader, u32 expectedWidth, u32 expectedHeight, u32 expectedBpp)
     {
         if (bmpHeader[0] != 'B' || bmpHeader[1] != 'M')
+        {
             return false;
+        }
 
         u32 dibSize = bmpHeader[0x0E] | (bmpHeader[0x0F] << 8) | (bmpHeader[0x10] << 16) | (bmpHeader[0x11] << 24);
         u32 width   = bmpHeader[0x12] | (bmpHeader[0x13] << 8) | (bmpHeader[0x14] << 16) | (bmpHeader[0x15] << 24);

@@ -3,8 +3,8 @@
 ## [Unreleased]
 
 ### Added
-- Custom BMP icons for games and folders, loaded from the SD card
-- Custom NDS banners (custom titles, subtitles, and animated icons) for games and folders, loaded from the SD card
+- Support for custom BMP icons for games and folders
+- Support for custom NDS banners (custom titles, subtitles and animated icons) for games and folders
 
 ### Fixed
 - Top screen cover is now displayed/hidden correctly when placed partially or fully off-screen

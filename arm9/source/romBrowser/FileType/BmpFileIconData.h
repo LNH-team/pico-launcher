@@ -17,9 +17,8 @@ public:
     const u16* GetPltt() const { return _iconPltt; }
 
 private:
-    void Init(std::unique_ptr<File> file);
-    void Load(std::unique_ptr<File> file);
-
     u8 _iconGfx[GfxSize] alignas(32);
     u16 _iconPltt[16] alignas(32);
+
+    void Load(std::unique_ptr<File> file);
 };

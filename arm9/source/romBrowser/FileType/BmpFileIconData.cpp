@@ -4,18 +4,14 @@
 #include <nds/arm9/cache.h>
 #include "fat/File.h"
 #include "core/math/ColorConverter.h"
-#include "BmpFileIconData.h"
 #include "BmpHeader.h"
+#include "BmpFileIconData.h"
 
 BmpFileIconData::BmpFileIconData(const FastFileRef& iconFileRef)
 {
     auto file = std::make_unique<File>();
     file->Open(iconFileRef, FA_READ);
-    Init(std::move(file));
-}
 
-void BmpFileIconData::Init(std::unique_ptr<File> file)
-{
     memset(_iconGfx, 0, sizeof(_iconGfx));
     memset(_iconPltt, 0, sizeof(_iconPltt));
     Load(std::move(file));
@@ -27,17 +23,19 @@ void BmpFileIconData::Load(std::unique_ptr<File> file)
 {
     // BMP file header (14) + DIB header (40) + 16-color palette (64)
     u8 headerAndPalette[118];
-    if (!file->ReadExact(headerAndPalette, sizeof(headerAndPalette)))
+    if (!file->ReadExact(headerAndPalette, sizeof(headerAndPalette)) ||
+        !BmpHeader::Validate(headerAndPalette, 32, 32, 4))
+    {
         return;
-
-    if (!BmpHeader::Validate(headerAndPalette, 32, 32, 4))
-        return;
+    }
 
     u32 dataOffset = headerAndPalette[0xA] | (headerAndPalette[0xB] << 8) |
         (headerAndPalette[0xC] << 16) | (headerAndPalette[0xD] << 24);
 
     if (dataOffset < sizeof(headerAndPalette))
+    {
         return;
+    }
 
     const bool topDown = BmpHeader::IsTopDown(headerAndPalette);
 
@@ -53,12 +51,8 @@ void BmpFileIconData::Load(std::unique_ptr<File> file)
 
     // Heap-allocate the staging buffer so it doesn't live on the task thread stack.
     auto rawPixelData = std::make_unique<u8[]>(GfxSize);
-    if (!rawPixelData)
-    {
-        memset(_iconPltt, 0, sizeof(_iconPltt));
-        return;
-    }
-    if (file->Seek(dataOffset) != FR_OK ||
+    if (!rawPixelData ||
+        file->Seek(dataOffset) != FR_OK ||
         !file->ReadExact(rawPixelData.get(), GfxSize))
     {
         memset(_iconPltt, 0, sizeof(_iconPltt));

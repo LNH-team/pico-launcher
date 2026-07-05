@@ -8,11 +8,7 @@ BnrInternalFileInfo::BnrInternalFileInfo(const FastFileRef& bnrFileRef, const ch
 {
     auto file = std::make_unique<File>();
     file->Open(bnrFileRef, FA_READ);
-    Load(std::move(file), gameCode);
-}
 
-void BnrInternalFileInfo::Load(std::unique_ptr<File> file, const char* gameCode)
-{
     if (gameCode)
     {
         strncpy(_gameCode, gameCode, 4);

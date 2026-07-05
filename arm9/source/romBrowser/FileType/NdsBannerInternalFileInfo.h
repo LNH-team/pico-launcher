@@ -14,13 +14,13 @@ public:
     bool HasBanner() const { return _hasBanner; }
 
 protected:
+    bool _hasBanner = false;
+    char _gameCode[5] = {};
+    nds_banner_t _banner alignas(32);
+
     /// @brief Reads banner chunks from the current file position.
     /// @param file The file to read from.
     /// @param availableSize The number of bytes remaining from that position.
     /// @return True on success, or false otherwise.
     bool ReadBannerChunks(File& file, u32 availableSize);
-
-    bool _hasBanner = false;
-    char _gameCode[5] = {};
-    nds_banner_t _banner alignas(32);
 };
