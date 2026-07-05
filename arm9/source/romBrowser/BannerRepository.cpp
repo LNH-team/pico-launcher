@@ -20,19 +20,19 @@ InternalFileInfo* BannerRepository::GetBannerForFile(const FileInfo& fileInfo, c
 
     if (fileType->GetClassification() == FileTypeClassification::Folder)
     {
-        // Look for folder.bnr inside the folder (path relative to FatFs CWD = current browse dir).
+        // Look for banner.bnr inside the folder (path relative to FatFs CWD = current browse dir).
         // Scan with the already-open directory handle so the match can be turned directly into a
         // FastFileRef, instead of stat'ing then re-opening the same path by name.
         Directory folderDir;
         if (folderDir.Open(fileInfo.GetFileName()) == FR_OK)
         {
-            FILINFO fi;
-            while (folderDir.Read(&fi) == FR_OK && fi.fname[0] != 0)
+            FILINFO folderFileInfo;
+            while (folderDir.Read(&folderFileInfo) == FR_OK && folderFileInfo.fname[0] != 0)
             {
-                if (!(fi.fattrib & AM_DIR) && !strcasecmp(fi.fname, "folder.bnr"))
+                if (!(folderFileInfo.fattrib & AM_DIR) && !strcasecmp(folderFileInfo.fname, "banner.bnr"))
                 {
                     auto* bnr = new BnrInternalFileInfo(
-                        FastFileRef(folderDir.GetFatFsDirectory(), &fi), nullptr);
+                        FastFileRef(folderDir.GetFatFsDirectory(), &folderFileInfo), nullptr);
                     if (bnr->HasBanner())
                     {
                         return bnr;

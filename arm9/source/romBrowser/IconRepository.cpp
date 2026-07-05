@@ -12,27 +12,26 @@ void IconRepository::Initialize()
     InitializeFolders("/_pico/icons/");
 }
 
-SharedPtr<BmpFileIconData> IconRepository::GetIconForFile(
-    const FileInfo& fileInfo, const char* gameCode) const
+SharedPtr<BmpFileIconData> IconRepository::GetIconForFile(const FileInfo& fileInfo, const char* gameCode) const
 {
     char nameBuffer[256];
     const auto& fileType = fileInfo.GetFileType();
 
     if (fileType->GetClassification() == FileTypeClassification::Folder)
     {
-        // Look for folder.bmp inside the folder (path relative to FatFs CWD = current browse dir).
+        // Look for icon.bmp inside the folder (path relative to FatFs CWD = current browse dir).
         // Scan with the already-open directory handle so the match can be turned directly into a
         // FastFileRef, instead of stat'ing then re-opening the same path by name.
         Directory folderDir;
         if (folderDir.Open(fileInfo.GetFileName()) == FR_OK)
         {
-            FILINFO fi;
-            while (folderDir.Read(&fi) == FR_OK && fi.fname[0] != 0)
+            FILINFO folderFileInfo;
+            while (folderDir.Read(&folderFileInfo) == FR_OK && folderFileInfo.fname[0] != 0)
             {
-                if (!(fi.fattrib & AM_DIR) && !strcasecmp(fi.fname, "folder.bmp"))
+                if (!(folderFileInfo.fattrib & AM_DIR) && !strcasecmp(folderFileInfo.fname, "icon.bmp"))
                 {
                     return SharedPtr<BmpFileIconData>::MakeShared(
-                        FastFileRef(folderDir.GetFatFsDirectory(), &fi));
+                        FastFileRef(folderDir.GetFatFsDirectory(), &folderFileInfo));
                 }
             }
         }
