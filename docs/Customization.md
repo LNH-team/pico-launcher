@@ -1,5 +1,5 @@
 # Customization
-Pico Launcher supports custom icons, banners and covers for files and folders by placing files in the right locations on the SD card. They all follow the same folder structure: nds and gba files by game code, user files by filename, and folder-level overrides.
+Pico Launcher supports custom icons, banners and covers for files and folders by placing files in the right locations on the SD card. They all follow the same folder structure: nds and gba files by game code, user files by filename and folder-level overrides.
 
 ## Icons
 Custom icons are `.bmp` files. DS roms already show the icon from their internal banner, so custom icons are mainly useful for GBA roms and other file types.
@@ -68,7 +68,7 @@ Place a file named `cover.bmp` directly inside the folder you want to customise.
 - `/GBA Games/cover.bmp` - cover for the `GBA Games` folder
 
 ### Cover priority
-User cover (`/_pico/covers/user/`) > game code based cover (`/_pico/covers/nds/` or `/_pico/covers/gba/`) > built-in generated cover > generic placeholder.
+User cover (`/_pico/covers/user/`) > game code based cover (`/_pico/covers/nds/` or `/_pico/covers/gba/`) > generic placeholder.
 Folder covers (`cover.bmp`) are looked up independently and do not participate in the above priority chain.
 
 ### Cover format

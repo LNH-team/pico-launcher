@@ -22,16 +22,16 @@ SharedPtr<BmpFileIconData> IconRepository::GetIconForFile(const FileInfo& fileIn
         // Look for icon.bmp inside the folder (path relative to FatFs CWD = current browse dir).
         // Scan with the already-open directory handle so the match can be turned directly into a
         // FastFileRef, instead of stat'ing then re-opening the same path by name.
-        Directory folderDir;
-        if (folderDir.Open(fileInfo.GetFileName()) == FR_OK)
+        auto folderDir = std::make_unique<Directory>();
+        if (folderDir->Open(fileInfo.GetFileName()) == FR_OK)
         {
             FILINFO folderFileInfo;
-            while (folderDir.Read(&folderFileInfo) == FR_OK && folderFileInfo.fname[0] != 0)
+            while (folderDir->Read(&folderFileInfo) == FR_OK && folderFileInfo.fname[0] != 0)
             {
                 if (!(folderFileInfo.fattrib & AM_DIR) && !strcasecmp(folderFileInfo.fname, "icon.bmp"))
                 {
                     return SharedPtr<BmpFileIconData>::MakeShared(
-                        FastFileRef(folderDir.GetFatFsDirectory(), &folderFileInfo));
+                        FastFileRef(folderDir->GetFatFsDirectory(), &folderFileInfo));
                 }
             }
         }
