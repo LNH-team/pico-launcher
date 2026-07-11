@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: arm 9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-20 21:31+0900\n"
+"POT-Creation-Date: 2026-07-11 11:03+0900\n"
 "PO-Revision-Date: 2026-05-18 21:54+0900\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -26,18 +26,22 @@ msgstr "チート"
 msgid "No cheats found."
 msgstr "チートが見つかりません。"
 
-#: arm9/source/romBrowser/views/DisplaySettingsBottomSheetView.cpp:62
+#: arm9/source/romBrowser/views/DisplaySettingsBottomSheetView.cpp:70
 msgid "Display Settings"
 msgstr "表示設定"
 
-#: arm9/source/romBrowser/views/DisplaySettingsBottomSheetView.cpp:64
+#: arm9/source/romBrowser/views/DisplaySettingsBottomSheetView.cpp:79
 msgid "Layout"
 msgstr "レイアウト"
 
-#: arm9/source/romBrowser/views/DisplaySettingsBottomSheetView.cpp:66
+#: arm9/source/romBrowser/views/DisplaySettingsBottomSheetView.cpp:81
 msgid "Sorting"
 msgstr "表示順"
 
 #: arm9/source/romBrowser/views/NdsGameDetailsBottomSheetView.cpp:23
 msgid "Favorite"
 msgstr "お気に入り"
+
+#: arm9/source/settings/views/ThemeListTopView.cpp:17
+msgid "プレビューはありません"
+msgstr ""
