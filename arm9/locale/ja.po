@@ -43,5 +43,5 @@ msgid "Favorite"
 msgstr "お気に入り"
 
 #: arm9/source/settings/views/ThemeListTopView.cpp:17
-msgid "プレビューはありません"
-msgstr ""
+msgid "No preview"
+msgstr "プレビューはありません"
