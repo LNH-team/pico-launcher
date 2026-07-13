@@ -1,6 +1,5 @@
 #include "common.h"
 #include <memory>
-#include <libtwl/rtos/rtosIrq.h>
 #include "json/ArduinoJson.h"
 #include "AppSettings.h"
 #include "fat/File.h"
@@ -17,7 +16,6 @@
 #define KEY_LAST_USED_FILE_PATH      "lastUsedFilePath"
 #define KEY_FILE_ASSOCIATIONS        "fileAssociations"
 #define KEY_FILE_ASSOCIATIONS_APPLICATION_PATH  "appPath"
-#define KEY_FAVORITES                "favorites"
 
 static const char* serializeRomBrowserLayout(RomBrowserLayout romBrowserLayout)
 {
@@ -123,49 +121,9 @@ static void serializeFileAssociations(DynamicJsonDocument& json, const AppSettin
     }
 }
 
-// settings.favorites can be replaced (and the old buffer freed) by a writer running on
-// another thread at any time, so it's read the same way IsFavorite() does: never hold
-// rtos_disableIrqs() across a heap allocation, only across the actual array reads. Since the
-// count can change between sizing the snapshot and copying it, retry if it grew in between.
-static std::unique_ptr<String<char, 256>[]> snapshotFavorites(const AppSettings* appSettings, u32& outCount)
-{
-    for (;;)
-    {
-        u32 capacity;
-        {
-            u32 irq = rtos_disableIrqs();
-            capacity = appSettings->numberOfFavorites;
-            rtos_restoreIrqs(irq);
-        }
-
-        auto snapshot = std::make_unique_for_overwrite<String<char, 256>[]>(capacity);
-
-        u32 irq = rtos_disableIrqs();
-        outCount = appSettings->numberOfFavorites;
-        if (outCount > capacity)
-        {
-            rtos_restoreIrqs(irq);
-            continue;
-        }
-        for (u32 i = 0; i < outCount; i++)
-        {
-            snapshot[i] = appSettings->favorites[i];
-        }
-        rtos_restoreIrqs(irq);
-        return snapshot;
-    }
-}
-
 static std::unique_ptr<u8[]> writeJson(const AppSettings* appSettings, u32& length)
 {
-    u32 favoritesCount;
-    std::unique_ptr<String<char, 256>[]> favoritesSnapshot = snapshotFavorites(appSettings, favoritesCount);
-
-    // favorites are added to the document by reference (JsonArray::add(const char*) links
-    // rather than copies - see StringAdapter<const char*, void> in ArduinoJson.h), so only
-    // the per-element structural slot needs budgeting here, not the string bytes themselves.
     size_t capacity = JSON_RESERVED_SIZE
-        + JSON_ARRAY_SIZE(favoritesCount)
         + JSON_OBJECT_SIZE(appSettings->numberOfFileAssociations);
     DynamicJsonDocument json(capacity);
     json[KEY_LANGUAGE] = appSettings->language.GetString();
@@ -174,12 +132,6 @@ static std::unique_ptr<u8[]> writeJson(const AppSettings* appSettings, u32& leng
     json[KEY_THEME] = appSettings->theme.GetString();
     json[KEY_LAST_USED_FILE_PATH] = appSettings->lastUsedFilePath.GetString();
     serializeFileAssociations(json, appSettings);
-
-    JsonArray favoritesArray = json.createNestedArray(KEY_FAVORITES);
-    for (u32 i = 0; i < favoritesCount; i++)
-    {
-        favoritesArray.add(favoritesSnapshot[i].GetString());
-    }
 
     u32 outputSize = measureJsonPretty(json);
     std::unique_ptr<u8[]> fileData(new(cache_align) u8[outputSize]);
@@ -232,18 +184,6 @@ static void readJson(AppSettings* appSettings, const JsonDocument& json)
     }
 
     tryParseFileAssociations(json[KEY_FILE_ASSOCIATIONS], appSettings);
-
-    JsonArrayConst favoritesArray = json[KEY_FAVORITES];
-    if (!favoritesArray.isNull())
-    {
-        appSettings->favorites = std::make_unique_for_overwrite<String<char, 256>[]>(favoritesArray.size());
-        u32 i = 0;
-        for (auto item : favoritesArray)
-        {
-            appSettings->favorites[i++] = item.as<const char*>();
-        }
-        appSettings->numberOfFavorites = i;
-    }
 }
 
 DeserializeResult JsonAppSettingsSerializer::Deserialize(AppSettings* appSettings, const char* filePath) const

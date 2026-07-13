@@ -31,7 +31,7 @@
 
 #define SPLASH_FRAMES       44
 
-App::App(IAppSettingsService& appSettingsService, IBgmService& bgmService)
+App::App(IAppSettingsService& appSettingsService, IFavoritesService& favoritesService, IBgmService& bgmService)
     : _mainObjPltt(GFX_PLTT_OBJ_MAIN)
     , _mainObjVram(GFX_OBJ_MAIN)
     , _mainObjDialogVram(GFX_OBJ_MAIN, 128 * 1024)
@@ -46,7 +46,7 @@ App::App(IAppSettingsService& appSettingsService, IBgmService& bgmService)
     , _inputRepeater(&_inputProvider,
         InputKey::DpadLeft | InputKey::DpadRight | InputKey::DpadUp | InputKey::DpadDown | InputKey::L | InputKey::R,
         25, 8)
-    , _romBrowserController(&appSettingsService, &_ioTaskQueue, &_bgTaskQueue)
+    , _romBrowserController(&appSettingsService, &favoritesService, &_ioTaskQueue, &_bgTaskQueue)
     , _displaySettingsBottomSheetViewModel(&_romBrowserController)
     , _romBrowserBottomScreenViewModel(&_romBrowserController)
     , _dialogPresenter(&_focusManager, &_mainObjDialogVram) { }

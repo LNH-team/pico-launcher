@@ -14,9 +14,10 @@
 #include "RomBrowserController.h"
 
 RomBrowserController::RomBrowserController(
-    IAppSettingsService* appSettingsService, TaskQueueBase* ioTaskQueue,
-    TaskQueueBase* bgTaskQueue)
+    IAppSettingsService* appSettingsService, IFavoritesService* favoritesService,
+    TaskQueueBase* ioTaskQueue, TaskQueueBase* bgTaskQueue)
     : _appSettingsService(appSettingsService)
+    , _favoritesService(favoritesService)
     , _ioTaskQueue(ioTaskQueue), _bgTaskQueue(bgTaskQueue)
     , _fileTypeProvider(appSettingsService->GetAppSettings()) { }
 
@@ -161,15 +162,15 @@ void RomBrowserController::HandleNavigateTrigger()
             u32 capacity;
             {
                 u32 irq = rtos_disableIrqs();
-                capacity = _appSettingsService->GetAppSettings().numberOfFavorites;
+                capacity = _favoritesService->GetFavorites().numberOfFavorites;
                 rtos_restoreIrqs(irq);
             }
 
             favoritesSnapshot = std::make_unique_for_overwrite<String<char, 256>[]>(capacity);
 
             u32 irq = rtos_disableIrqs();
-            const auto& settings = _appSettingsService->GetAppSettings();
-            favoritesSnapshotCount = settings.numberOfFavorites;
+            const auto& favorites = _favoritesService->GetFavorites();
+            favoritesSnapshotCount = favorites.numberOfFavorites;
             if (favoritesSnapshotCount > capacity)
             {
                 rtos_restoreIrqs(irq);
@@ -177,7 +178,7 @@ void RomBrowserController::HandleNavigateTrigger()
             }
             for (u32 i = 0; i < favoritesSnapshotCount; i++)
             {
-                favoritesSnapshot[i] = settings.favorites[i];
+                favoritesSnapshot[i] = favorites.favorites[i];
             }
             rtos_restoreIrqs(irq);
             break;
@@ -234,7 +235,7 @@ void RomBrowserController::HandleNavigateTrigger()
             u32 count = 0;
             FileInfo** fileInfos = (FileInfo**)malloc(sizeof(FileInfo*) * favoritesSnapshotCount);
             // Paths that failed f_stat() here get removed individually below (against whatever
-            // settings.favorites actually is at that point), rather than replacing the whole
+            // favorites.favorites actually is at that point), rather than replacing the whole
             // array with survivors built from this stale snapshot - that would silently discard
             // any favorite the user toggled during this navigation.
             auto deadPaths = std::make_unique_for_overwrite<String<char, 256>[]>(favoritesSnapshotCount);
@@ -268,7 +269,7 @@ void RomBrowserController::HandleNavigateTrigger()
                 {
                     RemoveFavoriteAtPath(deadPaths[i].GetString());
                 }
-                _appSettingsService->Save();
+                _favoritesService->Save();
             }
             // Pressing back from favorites always returns to the real folder browsed before
             // entering it, so it's never a meaningless action here regardless of that folder.
@@ -402,12 +403,12 @@ void RomBrowserController::LoadCheats() const
     pload_setCheatData(cheatData);
 }
 
-void RomBrowserController::GetFileInfoPath(const FileInfo& fileInfo, char* pathBuffer, u32 bufferSize) const
+bool RomBrowserController::GetFileInfoPath(const FileInfo& fileInfo, char* pathBuffer, u32 bufferSize) const
 {
     if (fileInfo.GetFullPath())
     {
         StringUtil::Copy(pathBuffer, fileInfo.GetFullPath(), bufferSize);
-        return;
+        return strlen(fileInfo.GetFullPath()) < bufferSize;
     }
 
     f_getcwd(pathBuffer, bufferSize);
@@ -416,24 +417,31 @@ void RomBrowserController::GetFileInfoPath(const FileInfo& fileInfo, char* pathB
     {
         pathBuffer[idx - 1] = 0;
     }
-    strlcat(pathBuffer, fileInfo.GetFileName(), bufferSize);
+    // strlcat() returns the length it *wanted* to build, so a result at or over the buffer
+    // size is the truncation signal.
+    return (u32)strlcat(pathBuffer, fileInfo.GetFileName(), bufferSize) < bufferSize;
 }
 
 bool RomBrowserController::IsFavorite(const FileInfo& fileInfo) const
 {
     char path[256];
-    GetFileInfoPath(fileInfo, path, sizeof(path));
-
-    // ToggleFavoriteAtPath()/RemoveFavoriteAtPath() can replace settings.favorites (freeing
-    // the old buffer) from either the main thread or the io thread depending on call site, so
-    // this read - like every other read of the array - needs its own guard rather than relying
-    // on which thread it happens to run on.
-    u32 irq = rtos_disableIrqs();
-    const auto& settings = _appSettingsService->GetAppSettings();
-    bool found = false;
-    for (u32 i = 0; i < settings.numberOfFavorites; i++)
+    if (!GetFileInfoPath(fileInfo, path, sizeof(path)))
     {
-        if (strcmp(settings.favorites[i].GetString(), path) == 0)
+        // Too long to have ever been stored (see ToggleFavorite), so it cannot be a
+        // favorite - and comparing the truncated prefix could match a different entry.
+        return false;
+    }
+
+    // ToggleFavoriteAtPath()/RemoveFavoriteAtPath() can replace favorites (freeing the old
+    // buffer) from either the main thread or the io thread depending on call site, so this
+    // read - like every other read of the array - needs its own guard rather than relying on
+    // which thread it happens to run on.
+    u32 irq = rtos_disableIrqs();
+    const auto& favorites = _favoritesService->GetFavorites();
+    bool found = false;
+    for (u32 i = 0; i < favorites.numberOfFavorites; i++)
+    {
+        if (strcmp(favorites.favorites[i].GetString(), path) == 0)
         {
             found = true;
             break;
@@ -454,7 +462,7 @@ void RomBrowserController::ToggleFavorite(const FileInfo& fileInfo)
         ToggleFavoriteAtPath(fileInfo.GetFullPath());
         _ioTaskQueue->Enqueue([this] (const vu8& cancelRequested)
         {
-            _appSettingsService->Save();
+            _favoritesService->Save();
             return TaskResult<void>::Completed();
         });
         return;
@@ -468,16 +476,23 @@ void RomBrowserController::ToggleFavorite(const FileInfo& fileInfo)
     _ioTaskQueue->Enqueue([this, fileInfoCopy = FileInfo(fileInfo)] (const vu8& cancelRequested)
     {
         char path[256];
-        GetFileInfoPath(fileInfoCopy, path, sizeof(path));
+        if (!GetFileInfoPath(fileInfoCopy, path, sizeof(path)))
+        {
+            // A truncated path is a prefix that can name a different file, so storing it
+            // would put the heart on the wrong item - and IsFavorite() would never match it
+            // back anyway. Refuse instead.
+            LOG_ERROR("Path too long to favorite: %s\n", fileInfoCopy.GetFileName());
+            return TaskResult<void>::Completed();
+        }
         ToggleFavoriteAtPath(path);
-        _appSettingsService->Save();
+        _favoritesService->Save();
         return TaskResult<void>::Completed();
     });
 }
 
 // ToggleFavoriteAtPath() can run on the main thread (favorites-view toggles, see
 // ToggleFavorite() below) or the io thread (regular-view toggles), and RemoveFavoriteAtPath()
-// runs on the io thread from the favorites-prune path - so settings.favorites has no single
+// runs on the io thread from the favorites-prune path - so favorites.favorites has no single
 // writer to assume exclusivity from. The search, decide, and rebuild all happen inside one
 // rtos_disableIrqs() section (so a stale foundIndex can never be used against an array that
 // changed after it was found), but the heap allocation is sized from a snapshot taken and
@@ -486,14 +501,14 @@ void RomBrowserController::ToggleFavorite(const FileInfo& fileInfo)
 // second writer too.
 void RomBrowserController::ToggleFavoriteAtPath(const char* path)
 {
-    auto& settings = _appSettingsService->GetAppSettings();
+    auto& favorites = _favoritesService->GetFavorites();
 
     for (;;)
     {
         u32 oldCount;
         {
             u32 irq = rtos_disableIrqs();
-            oldCount = settings.numberOfFavorites;
+            oldCount = favorites.numberOfFavorites;
             rtos_restoreIrqs(irq);
         }
 
@@ -501,7 +516,7 @@ void RomBrowserController::ToggleFavoriteAtPath(const char* path)
         auto newFavorites = std::make_unique_for_overwrite<String<char, 256>[]>(oldCount + 1);
 
         u32 irq = rtos_disableIrqs();
-        u32 currentCount = settings.numberOfFavorites;
+        u32 currentCount = favorites.numberOfFavorites;
         if (currentCount > oldCount)
         {
             rtos_restoreIrqs(irq);
@@ -511,7 +526,7 @@ void RomBrowserController::ToggleFavoriteAtPath(const char* path)
         int foundIndex = -1;
         for (u32 i = 0; i < currentCount; i++)
         {
-            if (strcmp(settings.favorites[i].GetString(), path) == 0)
+            if (strcmp(favorites.favorites[i].GetString(), path) == 0)
             {
                 foundIndex = i;
                 break;
@@ -526,7 +541,7 @@ void RomBrowserController::ToggleFavoriteAtPath(const char* path)
             {
                 if (src != (u32)foundIndex)
                 {
-                    newFavorites[dst++] = settings.favorites[src];
+                    newFavorites[dst++] = favorites.favorites[src];
                 }
             }
             newCount = dst;
@@ -535,33 +550,33 @@ void RomBrowserController::ToggleFavoriteAtPath(const char* path)
         {
             for (u32 i = 0; i < currentCount; i++)
             {
-                newFavorites[i] = settings.favorites[i];
+                newFavorites[i] = favorites.favorites[i];
             }
             newFavorites[currentCount] = path;
             newCount = currentCount + 1;
         }
 
-        settings.favorites = newCount > 0 ? std::move(newFavorites) : nullptr;
-        settings.numberOfFavorites = newCount;
+        favorites.favorites = newCount > 0 ? std::move(newFavorites) : nullptr;
+        favorites.numberOfFavorites = newCount;
         rtos_restoreIrqs(irq);
         return;
     }
 }
 
 // Same shape as ToggleFavoriteAtPath() above, minus the add branch - used by the favorites
-// navigation prune to remove one confirmed-dead path from whatever settings.favorites
+// navigation prune to remove one confirmed-dead path from whatever favorites.favorites
 // currently is, rather than overwriting the whole array from a stale snapshot. A no-op if the
 // path is already gone (e.g. the user removed it themselves in the meantime).
 void RomBrowserController::RemoveFavoriteAtPath(const char* path)
 {
-    auto& settings = _appSettingsService->GetAppSettings();
+    auto& favorites = _favoritesService->GetFavorites();
 
     for (;;)
     {
         u32 oldCount;
         {
             u32 irq = rtos_disableIrqs();
-            oldCount = settings.numberOfFavorites;
+            oldCount = favorites.numberOfFavorites;
             rtos_restoreIrqs(irq);
         }
         if (oldCount == 0)
@@ -570,7 +585,7 @@ void RomBrowserController::RemoveFavoriteAtPath(const char* path)
         auto newFavorites = std::make_unique_for_overwrite<String<char, 256>[]>(oldCount);
 
         u32 irq = rtos_disableIrqs();
-        u32 currentCount = settings.numberOfFavorites;
+        u32 currentCount = favorites.numberOfFavorites;
         if (currentCount > oldCount)
         {
             rtos_restoreIrqs(irq);
@@ -580,7 +595,7 @@ void RomBrowserController::RemoveFavoriteAtPath(const char* path)
         int foundIndex = -1;
         for (u32 i = 0; i < currentCount; i++)
         {
-            if (strcmp(settings.favorites[i].GetString(), path) == 0)
+            if (strcmp(favorites.favorites[i].GetString(), path) == 0)
             {
                 foundIndex = i;
                 break;
@@ -597,11 +612,11 @@ void RomBrowserController::RemoveFavoriteAtPath(const char* path)
         {
             if (src != (u32)foundIndex)
             {
-                newFavorites[dst++] = settings.favorites[src];
+                newFavorites[dst++] = favorites.favorites[src];
             }
         }
-        settings.favorites = dst > 0 ? std::move(newFavorites) : nullptr;
-        settings.numberOfFavorites = dst;
+        favorites.favorites = dst > 0 ? std::move(newFavorites) : nullptr;
+        favorites.numberOfFavorites = dst;
         rtos_restoreIrqs(irq);
         return;
     }

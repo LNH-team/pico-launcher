@@ -2,6 +2,7 @@
 #include "common.h"
 #include <memory>
 #include "services/settings/IAppSettingsService.h"
+#include "services/favorites/IFavoritesService.h"
 #include "bgm/IBgmService.h"
 #include "services/process/IProcess.h"
 #include "gui/SimplePaletteManager.h"
@@ -32,7 +33,7 @@
 class alignas(32) App : public IProcess
 {
 public:
-    App(IAppSettingsService& appSettingsService, IBgmService& bgmService);
+    App(IAppSettingsService& appSettingsService, IFavoritesService& favoritesService, IBgmService& bgmService);
 
     void Run() override;
     void Exit() override;

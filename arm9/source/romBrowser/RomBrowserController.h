@@ -11,12 +11,13 @@
 #include "BannerRepository.h"
 #include "FileType/ExtensionFileTypeProvider.h"
 #include "services/settings/IAppSettingsService.h"
+#include "services/favorites/IFavoritesService.h"
 #include "cheats/ICheatRepository.h"
 
 class RomBrowserController : public IRomBrowserController
 {
 public:
-    RomBrowserController(IAppSettingsService* appSettingsService,
+    RomBrowserController(IAppSettingsService* appSettingsService, IFavoritesService* favoritesService,
         TaskQueueBase* ioTaskQueue, TaskQueueBase* bgTaskQueue);
 
     void NavigateUp() override
@@ -62,6 +63,7 @@ public:
 
 private:
     IAppSettingsService* _appSettingsService;
+    IFavoritesService* _favoritesService;
     TaskQueueBase* _ioTaskQueue;
     TaskQueueBase* _bgTaskQueue;
 
@@ -87,7 +89,11 @@ private:
     void HandleLaunchTrigger();
     void HandleChangeDisplayModeTrigger();
     void HandleGotoSettingsScreenTrigger();
-    void GetFileInfoPath(const FileInfo& fileInfo, char* pathBuffer, u32 bufferSize) const;
+    /// @brief Builds the full path of a browsed or favorites-view item into pathBuffer.
+    /// @return false when the path did not fit the buffer, in which case pathBuffer holds a
+    ///         truncated path that must not be used as a favorites key: a prefix can name a
+    ///         different file, so storing it would favorite the wrong item.
+    bool GetFileInfoPath(const FileInfo& fileInfo, char* pathBuffer, u32 bufferSize) const;
     void ToggleFavoriteAtPath(const char* path);
     void RemoveFavoriteAtPath(const char* path);
     void UpdateLastUsedFilepath();
