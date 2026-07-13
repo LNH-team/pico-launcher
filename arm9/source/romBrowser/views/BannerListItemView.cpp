@@ -72,19 +72,10 @@ void BannerListItemView::HandlePenUp(const Point& lastTouchPoint, FocusManager& 
 
 FavoriteBadgeVramToken BannerListItemView::UploadFavoriteBadgeGraphics(const VramContext& vramContext)
 {
-    return FavoriteBadge::UploadGraphics(vramContext);
+    return FavoriteBadgeRenderer::UploadGraphics(vramContext);
 }
 
 void BannerListItemView::DrawFavoriteBadge(GraphicsContext& graphicsContext) const
 {
-    if (!_viewModel->IsFavorite())
-    {
-        return;
-    }
-
-    Rectangle bounds = GetBounds();
-    int badgeX = bounds.GetRight() - 16;
-    int badgeY = bounds.GetBottom() - 16;
-
-    FavoriteBadge::Draw(graphicsContext, badgeX, badgeY, _favoriteBadgeVramOffset);
+    _favoriteBadgeRenderer.Draw(graphicsContext, GetBounds(), _viewModel->IsFavorite());
 }

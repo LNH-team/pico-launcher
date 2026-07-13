@@ -36,7 +36,12 @@ public:
 
     void SetFavoriteBadgeGraphics(const FavoriteBadgeVramToken& vramToken)
     {
-        _favoriteBadgeVramOffset = vramToken.GetVramOffset();
+        _favoriteBadgeRenderer.SetVramToken(vramToken);
+    }
+
+    void SetFavoriteBadgeColor(const Rgb<8, 8, 8>& color)
+    {
+        _favoriteBadgeRenderer.SetColor(color);
     }
 
     static FavoriteBadgeVramToken UploadFavoriteBadgeGraphics(const VramContext& vramContext);
@@ -111,7 +116,7 @@ protected:
     SharedPtr<LabelView> _secondLine;
     SharedPtr<LabelView> _thirdLine;
     RomBrowserItemInputHandler _inputHandler;
-    u32 _favoriteBadgeVramOffset = 0;
+    FavoriteBadgeRenderer _favoriteBadgeRenderer;
 
     BannerListItemView(std::unique_ptr<IRomBrowserItemViewModel> viewModel, SharedPtr<LabelView> firstLine,
         SharedPtr<LabelView> secondLine, SharedPtr<LabelView> thirdLine);
