@@ -48,7 +48,10 @@ CustomBannerListItemView::CustomBannerListItemView(std::unique_ptr<IRomBrowserIt
     , _texVramOffset(texVramOffset)
     , _plttVramOffset(plttVramOffset)
     , _selectedTexVramOffset(selectedTexVramOffset)
-    , _selectedPlttVramOffset(selectedPlttVramOffset) { }
+    , _selectedPlttVramOffset(selectedPlttVramOffset)
+{
+    SetFavoriteBadgeColor(FavoriteBadgeColor(false));
+}
 
 void CustomBannerListItemView::Draw(GraphicsContext& graphicsContext)
 {
