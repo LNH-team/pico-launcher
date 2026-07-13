@@ -26,6 +26,10 @@ private:
     const MaterialColorScheme* _materialColorScheme;
     u32 _bgVramOffset;
 
-    MaterialIconGridItemView(std::unique_ptr<IRomBrowserItemViewModel> viewModel, const MaterialColorScheme* materialColorScheme)
-        : IconGridItemView(std::move(viewModel)), _materialColorScheme(materialColorScheme) { }
+    MaterialIconGridItemView(std::unique_ptr<IRomBrowserItemViewModel> viewModel,
+        const MaterialColorScheme* materialColorScheme, bool darkTheme)
+        : IconGridItemView(std::move(viewModel)), _materialColorScheme(materialColorScheme)
+    {
+        SetFavoriteBadgeColor(FavoriteBadgeColor(darkTheme));
+    }
 };
