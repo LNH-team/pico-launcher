@@ -86,8 +86,13 @@ void RomBrowserController::Update()
         case RomBrowserState::Start:
         {
             LOG_DEBUG("RomBrowserState::Start\n");
+            const auto& defaultFolder = _appSettingsService->GetAppSettings().defaultFolder;
             const auto& lastUsed = _appSettingsService->GetAppSettings().lastUsedFilePath;
-            if (strlen(lastUsed.GetString()) != 0)
+            if (strlen(defaultFolder.GetString()) != 0)
+            {
+                NavigateToPath(defaultFolder.GetString());
+            }
+            else if (strlen(lastUsed.GetString()) != 0)
             {
                 NavigateToPath(lastUsed.GetString());
             }

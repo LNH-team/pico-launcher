@@ -10,6 +10,7 @@ public:
     String<char, 16> language = "english";
     String<char, 64> theme = "material";
     String<char, 256> lastUsedFilePath = "";
+    String<char, 256> defaultFolder = "";
     RomBrowserDisplaySettings romBrowserDisplaySettings;
 
     std::unique_ptr<FileAssociation[]> fileAssociations;
