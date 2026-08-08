@@ -5,6 +5,7 @@
 class SdFolder;
 class RomBrowserStateMachine;
 class RomBrowserViewModel;
+class StatusViewModel;
 class FileInfo;
 class TaskQueueBase;
 class ICoverRepository;
@@ -42,6 +43,10 @@ public:
     virtual const ICheatRepository& GetCheatRepository() const = 0;
 
     virtual const RomBrowserDisplaySettings& GetRomBrowserDisplaySettings() const = 0;
+
+    virtual ClockFormat GetClockFormat() const = 0;
+
+    virtual StatusViewModel* GetStatusViewModel() = 0;
 
     virtual void SetRomBrowserDisplaySettings(
         const RomBrowserDisplaySettings& romBrowserDisplaySettings) = 0;

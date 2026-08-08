@@ -13,6 +13,8 @@ class RomBrowserViewModel;
 class IThemeFileIconFactory;
 class FileRecyclerAdapter;
 class IRomBrowserItemViewModel;
+class StatusViewModel;
+class View;
 
 class IRomBrowserViewFactory
 {
@@ -32,6 +34,10 @@ public:
         int startButtonCount, int endButtonCount) const = 0;
 
     virtual SharedPtr<BannerView> CreateFileInfoView() const = 0;
+
+    /// @brief Creates the top-screen status overlay (clock + battery), or nullptr to render nothing.
+    /// @param viewModel The status view model driving clock/battery state (owned by RomBrowserViewModel).
+    virtual SharedPtr<View> CreateStatusView(StatusViewModel* viewModel) const = 0;
 
     virtual SharedPtr<RecyclerViewBase> CreateCoverFlowRecyclerView() const = 0;
 

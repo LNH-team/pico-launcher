@@ -4,6 +4,7 @@
 #include "../SdFolder.h"
 #include "../FileInfoManager.h"
 #include "../IRomBrowserController.h"
+#include "../status/StatusViewModel.h"
 
 class ICoverRepository;
 
@@ -24,6 +25,8 @@ public:
 
     constexpr u32 GetIconFrameCounter() const { return _iconFrameCounter; }
     void SetIconFrameCounter(u32 iconFrameCounter) { _iconFrameCounter = iconFrameCounter; }
+
+    StatusViewModel* GetStatusViewModel() { return _romBrowserController->GetStatusViewModel(); }
 
     void NavigateUp();
 

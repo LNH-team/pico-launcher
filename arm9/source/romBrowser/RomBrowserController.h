@@ -54,6 +54,13 @@ public:
         return _appSettingsService->GetAppSettings().romBrowserDisplaySettings;
     }
 
+    ClockFormat GetClockFormat() const override
+    {
+        return _appSettingsService->GetAppSettings().clockFormat;
+    }
+
+    StatusViewModel* GetStatusViewModel() override { return &_statusViewModel; }
+
     virtual const FileInfo& GetTriggerFileInfo() const override { return _triggerFileInfo; }
 
 private:
@@ -74,6 +81,7 @@ private:
     std::unique_ptr<IconRepository> _iconRepository;
     std::unique_ptr<BannerRepository> _bannerRepository;
     ExtensionFileTypeProvider _fileTypeProvider;
+    StatusViewModel _statusViewModel;
     std::unique_ptr<ICheatRepository> _cheatRepository;
 
     void HandleTrigger();

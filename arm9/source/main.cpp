@@ -25,10 +25,12 @@
 #include "NotoSansJP-Regular-10_nft2.h"
 #include "NotoSansJP-Medium-7_5_nft2.h"
 #include "NotoSansJP-Medium-10_nft2.h"
+#include "NotoSansJP-Medium-10-clock_nft2.h"
 #include "NotoSansJP-Medium-11_nft2.h"
 #include "gui/font/nitroFont2.h"
 #include "picoLoaderBootstrap.h"
 #include "rtcIpc.h"
+#include "statusIpc.h"
 
 ProcessManager gProcessManager;
 ILogger* gLogger;
@@ -166,6 +168,7 @@ int main(int argc, char* argv[])
     while (ipc_getArm7SyncBits() != 7);
 
     rtc_init();
+    status_init();
 
     if (argc >= 1)
     {
@@ -216,6 +219,7 @@ int main(int argc, char* argv[])
 
     nft2_unpack((nft2_header_t*)NotoSansJP_Regular_10_nft2);
     nft2_unpack((nft2_header_t*)NotoSansJP_Medium_10_nft2);
+    nft2_unpack((nft2_header_t*)NotoSansJP_Medium_10_clock_nft2);
     nft2_unpack((nft2_header_t*)NotoSansJP_Medium_11_nft2);
     nft2_unpack((nft2_header_t*)NotoSansJP_Medium_7_5_nft2);
 
