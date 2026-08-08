@@ -5,6 +5,38 @@
 #include "FileType/Folder/FolderFileType.h"
 #include "SdFolderFactory.h"
 
+static bool GlobMatch(const char* pat, const char* str)
+{
+    while (*pat && *str)
+    {
+        if (*pat == '*')
+        {
+            while (*pat == '*') pat++; // Skip consecutive wildcards
+            if (!*pat) return true; // Trailing * matches everything
+            while (*str)
+            {
+                if (GlobMatch(pat, str++)) return true;
+            }
+            return false;
+        }
+        if (*pat != '?' && tolower((unsigned char)*pat) != tolower((unsigned char)*str))
+            return false;
+        pat++; str++;
+    }
+    while (*pat == '*') pat++;
+    return !*pat && !*str;
+}
+
+static bool ShouldHide(const char* name, const char* const* patterns, int count)
+{
+    for (int i = 0; i < count; i++)
+    {
+        if (patterns[i] && GlobMatch(patterns[i], name)) return true;
+    }
+
+    return false;
+}
+
 std::unique_ptr<SdFolder> SdFolderFactory::CreateFromPath(const char* path) const
 {
     Directory directory;
@@ -22,6 +54,9 @@ std::unique_ptr<SdFolder> SdFolderFactory::CreateFromPath(const char* path) cons
 
         if (sdFileInfo->fname[0] == 0)
             break;
+
+        if (ShouldHide(sdFileInfo->fname, _hidePatterns, _hidePatternCount))
+            continue;
 
         if (count >= bufferSize)
         {

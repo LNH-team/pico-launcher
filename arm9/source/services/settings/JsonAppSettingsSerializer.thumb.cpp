@@ -7,7 +7,7 @@
 
 #pragma GCC optimize("Os")
 
-#define JSON_RESERVED_SIZE  2048
+#define JSON_RESERVED_SIZE  4096
 
 #define KEY_LANGUAGE                 "language"
 #define KEY_ROM_BROWSER_LAYOUT       "romBrowserLayout"
@@ -16,6 +16,7 @@
 #define KEY_LAST_USED_FILE_PATH      "lastUsedFilePath"
 #define KEY_FILE_ASSOCIATIONS        "fileAssociations"
 #define KEY_FILE_ASSOCIATIONS_APPLICATION_PATH  "appPath"
+#define KEY_HIDE_PATTERNS            "hidePatterns"
 
 static const char* serializeRomBrowserLayout(RomBrowserLayout romBrowserLayout)
 {
@@ -121,6 +122,32 @@ static void serializeFileAssociations(DynamicJsonDocument& json, const AppSettin
     }
 }
 
+static bool tryParseHidePatterns(const JsonArrayConst& json, AppSettings* appSettings)
+{
+    if (json.isNull())
+    {
+        return false;
+    }
+
+    appSettings->numberOfHidePatterns = 0;
+    for (auto item : json)
+    {
+        if (appSettings->numberOfHidePatterns >= AppSettings::MaxHidePatterns)
+            break;
+        const char* pat = item.as<const char*>();
+        if (pat)
+            appSettings->hidePatterns[appSettings->numberOfHidePatterns++] = pat;
+    }
+    return true;
+}
+
+static void serializeHidePatterns(DynamicJsonDocument& json, const AppSettings* appSettings)
+{
+    auto jsonObject = json[KEY_HIDE_PATTERNS].to<JsonArray>();
+    for (u32 i = 0; i < appSettings->numberOfHidePatterns; i++)
+        jsonObject.add(appSettings->hidePatterns[i].GetString());
+}
+
 static std::unique_ptr<u8[]> writeJson(const AppSettings* appSettings, u32& length)
 {
     DynamicJsonDocument json(JSON_RESERVED_SIZE);
@@ -130,6 +157,7 @@ static std::unique_ptr<u8[]> writeJson(const AppSettings* appSettings, u32& leng
     json[KEY_THEME] = appSettings->theme.GetString();
     json[KEY_LAST_USED_FILE_PATH] = appSettings->lastUsedFilePath.GetString();
     serializeFileAssociations(json, appSettings);
+    serializeHidePatterns(json, appSettings);
 
     u32 outputSize = measureJsonPretty(json);
     std::unique_ptr<u8[]> fileData(new(cache_align) u8[outputSize]);
@@ -182,6 +210,7 @@ static void readJson(AppSettings* appSettings, const JsonDocument& json)
     }
 
     tryParseFileAssociations(json[KEY_FILE_ASSOCIATIONS], appSettings);
+    tryParseHidePatterns(json[KEY_HIDE_PATTERNS], appSettings);
 }
 
 bool JsonAppSettingsSerializer::Deserialize(AppSettings* appSettings, const char* filePath) const

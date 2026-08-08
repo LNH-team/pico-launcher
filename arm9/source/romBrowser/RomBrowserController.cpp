@@ -189,7 +189,14 @@ void RomBrowserController::HandleNavigateTrigger()
             }
         }
         f_chdir(_navigatePath);
-        SdFolderFactory sdFolderFactory { &_fileTypeProvider };
+
+        const auto& appSettings = _appSettingsService->GetAppSettings();
+        const char* hidePatternPtrs[AppSettings::MaxHidePatterns];
+        for (u32 i = 0; i < appSettings.numberOfHidePatterns; i++)
+            hidePatternPtrs[i] = appSettings.hidePatterns[i].GetString();
+
+        SdFolderFactory sdFolderFactory { &_fileTypeProvider,
+            hidePatternPtrs, appSettings.numberOfHidePatterns };
         _newSdFolder = sdFolderFactory.CreateFromPath(".");
         u64 endTick = gTickCounter.GetValue();
         LOG_DEBUG("Loading files in folder took: %d us\n", (u32)TickCounter::TicksToMicroSeconds(endTick - startTick));
