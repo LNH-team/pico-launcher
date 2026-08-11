@@ -13,6 +13,7 @@
 #include "cheatSelector.h"
 #include "gui/DescendingStackVramManager.h"
 #include "CheatsBottomSheetView.h"
+#include "translate.h"
 
 #define TITLE_LABEL_X               20
 #define TITLE_LABEL_Y               16
@@ -52,8 +53,8 @@ CheatsBottomSheetView::CheatsBottomSheetView(SharedPtr<CheatsViewModel> viewMode
     , _fontRepository(fontRepository)
     , _focusManager(focusManager)
 {
-    _titleLabel->SetText(u"Cheats");
-    _secondaryLabel->SetText(u"No cheats found.");
+    _titleLabel->SetText(_(u"Cheats"));
+    _secondaryLabel->SetText(_(u"No cheats found."));
     _secondaryLabel->SetEllipsisStyle(LabelView::EllipsisStyle::Ellipsis);
     _descriptionLabel->SetEllipsisStyle(LabelView::EllipsisStyle::Marquee);
     _descriptionLabel->SetText(u"");

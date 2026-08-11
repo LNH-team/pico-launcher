@@ -6,6 +6,7 @@
 #include "themes/IFontRepository.h"
 #include "themes/material/MaterialColorScheme.h"
 #include "ThemeListTopView.h"
+#include "translate.h"
 
 ThemeListTopView::ThemeListTopView(SharedPtr<ThemeListViewModel> viewModel, const MaterialColorScheme* materialColorScheme,
     const IFontRepository* fontRepository)
@@ -13,7 +14,7 @@ ThemeListTopView::ThemeListTopView(SharedPtr<ThemeListViewModel> viewModel, cons
     , _noPreviewLabel(Label2DView::CreateShared(64, 16, 25, fontRepository->GetFont(FontType::Medium11)))
 {
     _noPreviewLabel->SetHorizontalAlignment(Alignment::Center);
-    _noPreviewLabel->SetText("No preview");
+    _noPreviewLabel->SetText(_(u"No preview"));
     _noPreviewLabel->SetPosition(128 - 32, 96 - 8);
     _noPreviewLabel->SetBackgroundColor(materialColorScheme->inverseOnSurface);
     _noPreviewLabel->SetForegroundColor(materialColorScheme->onSurfaceVariant);

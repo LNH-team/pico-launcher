@@ -21,6 +21,7 @@
 #include "themes/material/MaterialColorScheme.h"
 #include "themes/IFontRepository.h"
 #include "DisplaySettingsBottomSheetView.h"
+#include "translate.h"
 
 #define TITLE_LABEL_X       20
 #define TITLE_LABEL_Y       16
@@ -66,7 +67,7 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     , _sortingLabel(Label2DView::CreateShared(64, 16, 25, fontRepository->GetFont(FontType::Regular10)))
     , _materialColorScheme(materialColorScheme)
 {
-    _titleLabel->SetText(u"Display Settings");
+    _titleLabel->SetText(_(u"Display Settings"));
     AddChildTail(_titleLabel.GetPointer());
 
     _themeButton->SetAction([] (IconButtonView*, void* arg)
@@ -75,9 +76,9 @@ DisplaySettingsBottomSheetView::DisplaySettingsBottomSheetView(
     }, this);
     AddChildTail(_themeButton.GetPointer());
 
-    _layoutLabel->SetText(u"Layout");
+    _layoutLabel->SetText(_(u"Layout"));
     AddChildTail(_layoutLabel.GetPointer());
-    _sortingLabel->SetText(u"Sorting");
+    _sortingLabel->SetText(_(u"Sorting"));
     AddChildTail(_sortingLabel.GetPointer());
 
     for (auto& layoutOption : _layoutOptions)

@@ -1,0 +1,47 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-07-11 11:03+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: arm9/source/romBrowser/views/cheats/CheatsBottomSheetView.cpp:56
+#: arm9/source/romBrowser/views/NdsGameDetailsBottomSheetView.cpp:20
+msgid "Cheats"
+msgstr ""
+
+#: arm9/source/romBrowser/views/cheats/CheatsBottomSheetView.cpp:57
+msgid "No cheats found."
+msgstr ""
+
+#: arm9/source/romBrowser/views/DisplaySettingsBottomSheetView.cpp:70
+msgid "Display Settings"
+msgstr ""
+
+#: arm9/source/romBrowser/views/DisplaySettingsBottomSheetView.cpp:79
+msgid "Layout"
+msgstr ""
+
+#: arm9/source/romBrowser/views/DisplaySettingsBottomSheetView.cpp:81
+msgid "Sorting"
+msgstr ""
+
+#: arm9/source/romBrowser/views/NdsGameDetailsBottomSheetView.cpp:23
+msgid "Favorite"
+msgstr ""
+
+#: arm9/source/settings/views/ThemeListTopView.cpp:17
+msgid "No preview"
+msgstr ""

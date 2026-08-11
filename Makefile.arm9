@@ -18,6 +18,7 @@ INCLUDEDIRS	:= arm9/source common
 GFXDIRS		:= arm9/gfx
 BINDIRS		:= arm9/data
 AUDIODIRS	:=
+LOCALEDIRS	:= arm9/locale
 
 # Defines passed to all files
 # ---------------------------
@@ -79,6 +80,13 @@ ifneq ($(AUDIODIRS),)
         INCLUDEDIRS	+= $(SOUNDBANKDIR)
     endif
 endif
+ifneq ($(LOCALEDIRS),)
+	SOURCES_POT			:= $(LOCALEDIRS)/message.pot
+	SOURCES_PO			:= $(wildcard $(LOCALEDIRS)/*.po)
+	ifneq ($(SOURCES_PO),)
+		INCLUDEDIRS += $(LOCALEDIRS)
+	endif
+endif
 
 SOURCES_S	:= $(shell find -L $(SOURCEDIRS) -name "*.s")
 SOURCES_C	:= $(shell find -L $(SOURCEDIRS) -name "*.c")
@@ -131,11 +139,13 @@ LDFLAGS		:= $(ARCH) $(LIBDIRSFLAGS) -Wl,-Map,$(MAP),--gc-sections,--use-blx $(DE
 
 OBJS_ASSETS	:= $(addsuffix .o,$(addprefix $(BUILDDIR)/,$(SOURCES_BIN))) \
            $(addsuffix .o,$(addprefix $(BUILDDIR)/,$(SOURCES_NFT2))) \
-		   $(addsuffix .o,$(addprefix $(BUILDDIR)/,$(SOURCES_PNG)))
+		   $(addsuffix .o,$(addprefix $(BUILDDIR)/,$(SOURCES_PNG))) \
+		   $(addsuffix .o,$(addprefix $(BUILDDIR)/$(LOCALEDIRS)/,translate.c))
 
 HEADERS_ASSETS	:= $(patsubst %.bin,%_bin.h,$(addprefix $(BUILDDIR)/,$(SOURCES_BIN))) \
            $(patsubst %.nft2,%_nft2.h,$(addprefix $(BUILDDIR)/,$(SOURCES_NFT2))) \
-		   $(patsubst %.png,%.h,$(addprefix $(BUILDDIR)/,$(SOURCES_PNG)))
+		   $(patsubst %.png,%.h,$(addprefix $(BUILDDIR)/,$(SOURCES_PNG))) \
+		   $(LOCALEDIRS)/translate.h
 
 ifneq ($(SOURCES_AUDIO),)
     OBJS_ASSETS		+= $(SOUNDBANKDIR)/soundbank.c.o
@@ -231,6 +241,20 @@ $(SOUNDBANKDIR)/soundbank.c.o: $(SOUNDBANKDIR)/soundbank.h
 	@echo "  CC.9    soundbank_bin.c"
 	$(V)$(CC) $(CFLAGS) -MMD -MP -c -o $(SOUNDBANKDIR)/soundbank.c.o \
 		$(SOUNDBANKDIR)/soundbank_bin.c
+
+$(SOURCES_POT): $(SOURCES_C) $(SOURCES_CPP)
+	@echo "  XGETTEXT $@"
+	@xgettext --keyword=_ --output=$(LOCALEDIRS)/message.pot $(SOURCES_C) $(SOURCES_CPP)
+
+$(LOCALEDIRS)/%.po: $(SOURCES_POT)
+	@echo "  MSGMERGE $@"
+	@msgmerge --quiet --backup=off --update $@ $<
+
+$(BUILDDIR)/$(LOCALEDIRS)/translate.c.o: $(LOCALEDIRS)/gen_translations.py $(SOURCES_PO)
+	@echo "  GEN     $@"
+	@$(MKDIR) -p $(@D)
+	@python3 $(LOCALEDIRS)/gen_translations.py $(LOCALEDIRS) $(BUILDDIR)/$(LOCALEDIRS)/translate.c
+	$(V)$(CC) $(CFLAGS) -MMD -MP -c -o $@ $(BUILDDIR)/$(LOCALEDIRS)/translate.c
 
 # All assets must be built before the source code
 # -----------------------------------------------
