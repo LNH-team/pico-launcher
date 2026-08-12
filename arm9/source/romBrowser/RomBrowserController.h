@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <string.h>
 #include "core/SharedPtr.h"
 #include "SdFolder.h"
 #include "viewModels/RomBrowserViewModel.h"
@@ -22,7 +23,7 @@ public:
 
     void NavigateUp() override
     {
-        NavigateToPath("..");
+        NavigateToPath(strcmp(_navigatePath, ":favorites") == 0 ? "." : "..");
     }
 
     void NavigateToPath(const TCHAR* name) override;
