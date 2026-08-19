@@ -56,6 +56,15 @@ public:
 
     virtual const FileInfo& GetTriggerFileInfo() const override { return _triggerFileInfo; }
 
+    /// @brief Sets the style used for icon fallback covers.
+    /// @param mode Whether and how icon fallback covers are shown in coverflow.
+    /// @param backgroundColor The XBGR555 background color around the icon.
+    void SetIconCoverStyle(IconCoverMode mode, u16 backgroundColor)
+    {
+        _iconCoverMode = mode;
+        _iconCoverBackgroundColor = backgroundColor;
+    }
+
 private:
     IAppSettingsService* _appSettingsService;
     TaskQueueBase* _ioTaskQueue;
@@ -70,6 +79,8 @@ private:
     FileInfo _triggerFileInfo;
     QueueTask<void> _navigateTask;
     bool _saveSettingsPending = false;
+    IconCoverMode _iconCoverMode = IconCoverMode::Disabled;
+    u16 _iconCoverBackgroundColor = 0x7FFF;
     std::unique_ptr<CoverRepository> _coverRepository;
     std::unique_ptr<IconRepository> _iconRepository;
     std::unique_ptr<BannerRepository> _bannerRepository;

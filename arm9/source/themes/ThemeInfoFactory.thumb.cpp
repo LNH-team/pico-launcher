@@ -20,6 +20,8 @@
 #define KEY_COLOR_G         "g"
 #define KEY_COLOR_B         "b"
 #define KEY_DARK_THEME      "darkTheme"
+#define KEY_ICON_FALLBACK_COVER "iconFallbackCover"
+#define KEY_ICON_FALLBACK_COVER_COLOR "iconFallbackCoverColor"
 
 static bool tryParseThemeType(const char* themeTypeString, ThemeType& themeType)
 {
@@ -34,6 +36,19 @@ static bool tryParseThemeType(const char* themeTypeString, ThemeType& themeType)
         return false;
 
     return true;
+}
+
+static IconCoverMode parseIconCoverMode(const char* modeString)
+{
+    if (!modeString)
+        return IconCoverMode::Disabled;
+
+    if (!strcasecmp(modeString, "original"))
+        return IconCoverMode::Original;
+    else if (!strcasecmp(modeString, "large"))
+        return IconCoverMode::Large;
+    else
+        return IconCoverMode::Disabled;
 }
 
 static Rgb<8, 8, 8> parseColor(const JsonObjectConst& json, const Rgb<8, 8, 8>& defaultColor)
@@ -64,7 +79,9 @@ static std::unique_ptr<ThemeInfo> fromJson(const TCHAR* folderName, const JsonDo
         json[KEY_DESCRIPTION] | "",
         json[KEY_AUTHOR] | "",
         parseColor(json[KEY_PRIMARY_COLOR], Rgb<8, 8, 8>(0xFF, 0xFF, 0xFF)),
-        json[KEY_DARK_THEME] | false
+        json[KEY_DARK_THEME] | false,
+        parseIconCoverMode(json[KEY_ICON_FALLBACK_COVER].as<const char*>()),
+        parseColor(json[KEY_ICON_FALLBACK_COVER_COLOR], Rgb<8, 8, 8>(0xFF, 0xFF, 0xFF))
     );
 }
 

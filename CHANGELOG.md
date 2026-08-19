@@ -7,6 +7,7 @@
 - Support for custom NDS banners (custom titles, subtitles and animated icons) for games and folders - by @tasken
 - Theme selector
 - Support for custom folder covers via a cover.bmp file placed inside the folder - by @tasken
+- Theme option to show the icon of files and folders without a cover in coverflow - by @tasken
 
 ### Fixed
 - Top screen cover is now displayed/hidden correctly when placed partially or fully off-screen

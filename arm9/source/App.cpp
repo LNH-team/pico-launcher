@@ -96,6 +96,8 @@ void App::LoadTheme()
         themeInfo = themeInfoFactory.CreateFallbackTheme();
     }
     _theme = ThemeFactory().CreateFromThemeInfo(themeInfo.get());
+    _romBrowserController.SetIconCoverStyle(themeInfo->GetIconCoverMode(),
+        ColorConverter::ToXBGR555(Rgb<5, 5, 5>(themeInfo->GetIconCoverBackgroundColor())));
     themeInfo.reset();
     _theme->LoadRomBrowserResources(_mainVramContext, _subVramContext);
     _topBackground = _theme->CreateRomBrowserTopBackground();

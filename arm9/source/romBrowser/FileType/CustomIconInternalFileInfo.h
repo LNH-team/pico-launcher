@@ -23,6 +23,10 @@ public:
         return std::make_unique<BmpFileIcon>(_iconData);
     }
 
+    bool HasIconData() const override { return _iconData && _iconData->IsValid(); }
+    const u8* GetIconGfx() const override { return _iconData ? _iconData->GetGfx() : nullptr; }
+    const u16* GetIconPalette() const override { return _iconData ? _iconData->GetCoverPltt() : nullptr; }
+
 private:
     SharedPtr<BmpFileIconData> _iconData;
     std::unique_ptr<const InternalFileInfo> _wrapped;

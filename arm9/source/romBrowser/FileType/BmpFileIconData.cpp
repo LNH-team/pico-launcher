@@ -14,19 +14,21 @@ BmpFileIconData::BmpFileIconData(const FastFileRef& iconFileRef)
 
     memset(_iconGfx, 0, sizeof(_iconGfx));
     memset(_iconPltt, 0, sizeof(_iconPltt));
-    Load(std::move(file));
+    memset(_iconCoverPltt, 0, sizeof(_iconCoverPltt));
+    _isValid = Load(std::move(file));
     DC_FlushRange(_iconGfx, sizeof(_iconGfx));
     DC_FlushRange(_iconPltt, sizeof(_iconPltt));
+    DC_FlushRange(_iconCoverPltt, sizeof(_iconCoverPltt));
 }
 
-void BmpFileIconData::Load(std::unique_ptr<File> file)
+bool BmpFileIconData::Load(std::unique_ptr<File> file)
 {
     // BMP file header (14) + DIB header (40) + 16-color palette (64)
     u8 headerAndPalette[118];
     if (!file->ReadExact(headerAndPalette, sizeof(headerAndPalette)) ||
         !BmpHeader::Validate(headerAndPalette, 32, 32, 4))
     {
-        return;
+        return false;
     }
 
     u32 dataOffset = headerAndPalette[0xA] | (headerAndPalette[0xB] << 8) |
@@ -34,7 +36,7 @@ void BmpFileIconData::Load(std::unique_ptr<File> file)
 
     if (dataOffset < sizeof(headerAndPalette))
     {
-        return;
+        return false;
     }
 
     const bool topDown = BmpHeader::IsTopDown(headerAndPalette);
@@ -46,7 +48,9 @@ void BmpFileIconData::Load(std::unique_ptr<File> file)
         u32 g = *paletteData++;
         u32 r = *paletteData++;
         paletteData++;
-        _iconPltt[i] = ColorConverter::ToGBGR565(Rgb<8, 8, 8>(r, g, b));
+        Rgb<8, 8, 8> color(r, g, b);
+        _iconPltt[i] = ColorConverter::ToGBGR565(color);
+        _iconCoverPltt[i] = ColorConverter::ToXBGR555(Rgb<5, 5, 5>(color));
     }
 
     // Heap-allocate the staging buffer so it doesn't live on the task thread stack.
@@ -56,7 +60,8 @@ void BmpFileIconData::Load(std::unique_ptr<File> file)
         !file->ReadExact(rawPixelData.get(), GfxSize))
     {
         memset(_iconPltt, 0, sizeof(_iconPltt));
-        return;
+        memset(_iconCoverPltt, 0, sizeof(_iconCoverPltt));
+        return false;
     }
 
     // Convert BMP rows (bottom-up or top-down) to the DS tiled 4 bpp sprite format.
@@ -80,4 +85,6 @@ void BmpFileIconData::Load(std::unique_ptr<File> file)
             memcpy(&_iconGfx[(ty * 4 + tx) * 32 + py * 4], &val, 4);
         }
     }
+
+    return true;
 }

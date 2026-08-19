@@ -10,6 +10,8 @@ Each theme has a `theme.json` file with information about the theme.
 - **author** - Author of the theme.
 - **primaryColor** - Material Design 3 primary color to use. `r`, `g` and `b` are provided in range 0-255.
 - **darkTheme** - When `true`, a dark Material Design 3 palette will be used.
+- **iconFallbackCover** - Controls whether files and folders without a cover show their icon as the cover in coverflow mode. `"disabled"` (the default when omitted) shows the generic placeholder, `"original"` shows the icon at its original size and `"large"` shows the icon scaled up 3x.
+- **iconFallbackCoverColor** - Background color of the icon fallback cover around the icon. `r`, `g` and `b` are provided in range 0-255. Defaults to white. The transparent part of the icon itself is always shown as white.
 
 ### Example
 ```json

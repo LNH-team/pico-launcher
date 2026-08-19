@@ -150,7 +150,7 @@ void RomBrowserController::HandleNavigateTrigger()
     {
         if (!_coverRepository)
         {
-            _coverRepository = std::make_unique<CoverRepository>();
+            _coverRepository = std::make_unique<CoverRepository>(_iconCoverMode, _iconCoverBackgroundColor);
             _coverRepository->Initialize();
         }
         if (!_iconRepository)

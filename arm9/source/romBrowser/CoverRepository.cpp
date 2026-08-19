@@ -4,9 +4,13 @@
 #include "fat/Directory.h"
 #include "FileType/NullFileTypeProvider.h"
 #include "FileType/BmpFileCover.h"
+#include "FileType/RomIconCover.h"
 #include "FileType/InternalFileInfo.h"
 #include "SdFolderFactory.h"
 #include "CoverRepository.h"
+
+CoverRepository::CoverRepository(IconCoverMode iconCoverMode, u16 iconCoverBackgroundColor)
+    : _iconCoverMode(iconCoverMode), _iconCoverBackgroundColor(iconCoverBackgroundColor) { }
 
 void CoverRepository::Initialize()
 {
@@ -34,6 +38,14 @@ FileCover* CoverRepository::GetCoverForFile(const FileInfo& fileInfo, const Inte
                     return new BmpFileCover(FastFileRef(folderDir->GetFatFsDirectory(), &folderFileInfo));
                 }
             }
+        }
+
+        // Fall back to icon-based cover if icon data exists (e.g. icon.bmp override)
+        if (_iconCoverMode != IconCoverMode::Disabled && internalFileInfo && internalFileInfo->HasIconData())
+        {
+            return new RomIconCover(
+                internalFileInfo->GetIconGfx(), internalFileInfo->GetIconPalette(),
+                _iconCoverBackgroundColor, _iconCoverMode == IconCoverMode::Large);
         }
 
         return fileType->CreateFileCover(fileInfo.GetFileName());
@@ -75,6 +87,14 @@ FileCover* CoverRepository::GetCoverForFile(const FileInfo& fileInfo, const Inte
         {
             return cover;
         }
+    }
+
+    // Fall back to icon-based cover if icon data exists (for files)
+    if (_iconCoverMode != IconCoverMode::Disabled && internalFileInfo && internalFileInfo->HasIconData())
+    {
+        return new RomIconCover(
+            internalFileInfo->GetIconGfx(), internalFileInfo->GetIconPalette(),
+            _iconCoverBackgroundColor, _iconCoverMode == IconCoverMode::Large);
     }
 
     return fileType->CreateFileCover(fileInfo.GetFileName());

@@ -24,6 +24,18 @@ public:
     /// @brief Creates a cover based on the internal file information.
     /// @return A unique pointer to the created cover when successful, or \c nullptr otherwise.
     virtual FileCover* CreateGameCover() const { return nullptr; }
+
+    /// @brief Returns whether this file info contains raw icon data.
+    /// @return True when raw icon data is available, or false otherwise.
+    virtual bool HasIconData() const { return false; }
+
+    /// @brief Returns the raw 4 bpp tile graphics of the icon.
+    /// @return A pointer to the icon graphics if available, or \c nullptr otherwise.
+    virtual const u8* GetIconGfx() const { return nullptr; }
+
+    /// @brief Returns the 16-color XBGR555 palette of the icon for cover rendering.
+    /// @return A pointer to the icon palette if available, or \c nullptr otherwise.
+    virtual const u16* GetIconPalette() const { return nullptr; }
 };
 
 inline InternalFileInfo::~InternalFileInfo() { }

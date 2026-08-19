@@ -8,5 +8,11 @@
         "g": 217,
         "b": 255
     },
-    "darkTheme": false
+    "darkTheme": false,
+    "iconFallbackCover": "original",
+    "iconFallbackCoverColor": {
+        "r": 255,
+        "g": 255,
+        "b": 255
+    }
 }

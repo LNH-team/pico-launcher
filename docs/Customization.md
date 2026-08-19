@@ -68,8 +68,10 @@ Place a file named `cover.bmp` directly inside the folder you want to customise.
 - `/GBA Games/cover.bmp` - cover for the `GBA Games` folder
 
 ### Cover priority
-User cover (`/_pico/covers/user/`) > game code based cover (`/_pico/covers/nds/` or `/_pico/covers/gba/`) > generic placeholder.
-Folder covers (`cover.bmp`) are looked up independently and do not participate in the above priority chain.
+User cover (`/_pico/covers/user/`) > game code based cover (`/_pico/covers/nds/` or `/_pico/covers/gba/`) > icon fallback > generic placeholder.
+Folder covers (`cover.bmp`) are looked up independently and do not participate in the above priority chain: `cover.bmp` > icon fallback > generic placeholder.
+
+When a file or folder has no cover image but does have icon data (the internal banner of a DS rom, a custom icon or a custom banner), its icon can be shown as the cover in the coverflow display mode. This is controlled by the theme's `iconFallbackCover` setting (see [Themes](Themes.md)).
 
 ### Cover format
 Covers should be 8 bpp (256 colors) `.bmp` files of 128x96 pixels.

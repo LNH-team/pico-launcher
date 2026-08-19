@@ -13,6 +13,10 @@ public:
     const char16_t* GetGameTitle() const override;
     bool HasBanner() const { return _hasBanner; }
 
+    bool HasIconData() const override { return _hasBanner; }
+    const u8* GetIconGfx() const override { return _banner.iconGfx; }
+    const u16* GetIconPalette() const override { return _banner.iconPltt; }
+
 protected:
     bool _hasBanner = false;
     char _gameCode[5] = {};
