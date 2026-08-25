@@ -331,6 +331,8 @@ void App::HandleNavigateTrigger()
 {
     if (!_romBrowserBottomScreenView->IsAppBarFocused(_focusManager))
         _focusManager.Unfocus();
+    else
+        _focusListAfterFolderLoad = true;
 }
 
 void App::HandleFolderLoadDoneTrigger()
@@ -346,8 +348,9 @@ void App::HandleFolderLoadDoneTrigger()
         _theme->GetRomBrowserViewFactory());
     _romBrowserTopScreenView->InitVram(_subVramContext);
     _romBrowserBottomScreenView->RomBrowserViewModelInvalidated(_mainVramContext);
-    if (!_focusManager.GetCurrentFocus())
+    if (_focusListAfterFolderLoad || !_focusManager.GetCurrentFocus())
         _romBrowserBottomScreenView->Focus(_focusManager);
+    _focusListAfterFolderLoad = false;
 }
 
 void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)

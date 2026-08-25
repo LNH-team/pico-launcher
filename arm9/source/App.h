@@ -96,6 +96,12 @@ private:
     VramState _vramStateBeforeMakeBottomScreenView;
     VramState _vramStateAfterMakeBottomScreenView;
     bool _changeDisplayMode = false;
+    // Set when navigation starts while focus is on the app bar (the back arrow, or
+    // the fallback focus inside an empty folder), so the loaded folder moves the
+    // highlight onto the list. Focus stays on the button meanwhile - the app bar
+    // keeps drawing while the list is hidden - and is handed over once the new
+    // listing is ready. Consumed at FolderLoadDone.
+    bool _focusListAfterFolderLoad = false;
 
     ChipView::VramToken _chipViewVram;
     IconButton2DView::VramToken _iconButtonViewVram;
