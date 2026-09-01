@@ -278,10 +278,17 @@ void RomBrowserController::HandleNavigateTrigger()
             _newSdFolder = std::make_unique<SdFolder>(fileInfos, count);
             // Consume the startup restore's path, if any: it is set once, by the Start state,
             // and cleared here so re-entering the favorites list later in the session opens
-            // at the top. A favorite that was deleted or unfavorited in the meantime simply
-            // finds no match and leaves the selection where a fresh list starts.
-            _navigateFullPath = _pendingFavoriteSelectionPath[0] != 0 ? _pendingFavoriteSelectionPath : nullptr;
-            _pendingFavoriteSelectionPath[0] = 0;
+            // at the top. It is copied into its own buffer first - pointing _navigateFullPath
+            // straight at _pendingFavoriteSelectionPath would leave it aiming at the string
+            // the clear below truncates. A favorite that was deleted or unfavorited in the
+            // meantime simply finds no match and leaves the selection where a fresh list starts.
+            if (_pendingFavoriteSelectionPath[0] != 0)
+            {
+                StringUtil::Copy(_navigateFavoritePath, _pendingFavoriteSelectionPath,
+                    sizeof(_navigateFavoritePath) / sizeof(_navigateFavoritePath[0]));
+                _navigateFullPath = _navigateFavoritePath;
+                _pendingFavoriteSelectionPath[0] = 0;
+            }
             if (deadCount > 0)
             {
                 for (u32 i = 0; i < deadCount; i++)

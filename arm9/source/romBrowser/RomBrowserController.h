@@ -81,6 +81,10 @@ private:
     ///        navigation. Empty at every other time, so opening the favorites list by hand
     ///        during a session still lands at the top, exactly like entering a folder does.
     TCHAR _pendingFavoriteSelectionPath[256] = { 0 };
+    /// @brief Storage backing _navigateFullPath while a folder load is in flight. The
+    ///        pending path is copied here before it is cleared, so the pointer handed to the
+    ///        view model cannot be truncated by that clear.
+    TCHAR _navigateFavoritePath[256] = { 0 };
     FileInfo _triggerFileInfo;
     QueueTask<void> _navigateTask;
     bool _saveSettingsPending = false;
