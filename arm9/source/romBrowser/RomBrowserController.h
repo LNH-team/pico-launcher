@@ -74,6 +74,13 @@ private:
     RomBrowserStateMachine _stateMachine;
     TCHAR _navigatePath[256];
     TCHAR* _navigateFileName;
+    /// @brief Full path of the item to select once the folder finishes loading, or nullptr.
+    ///        Only the favorites view sets it - browsed folders select by file name.
+    const TCHAR* _navigateFullPath = nullptr;
+    /// @brief Full path handed over by the startup restore, consumed by the next favorites
+    ///        navigation. Empty at every other time, so opening the favorites list by hand
+    ///        during a session still lands at the top, exactly like entering a folder does.
+    TCHAR _pendingFavoriteSelectionPath[256] = { 0 };
     FileInfo _triggerFileInfo;
     QueueTask<void> _navigateTask;
     bool _saveSettingsPending = false;

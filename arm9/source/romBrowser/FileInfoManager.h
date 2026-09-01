@@ -39,6 +39,10 @@ public:
 
     int GetItemIndex(const char* fileName);
 
+    /// @brief Finds an item by its full path. Only favorites-view entries carry one, so this
+    ///        returns -1 for a normal browsed folder.
+    int GetItemIndexByFullPath(const char* fullPath);
+
     const FileInfo& GetItem(int index) const { return *_items[index]; }
     u32 GetItemCount() const { return _itemCount; }
 

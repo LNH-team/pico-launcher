@@ -11,7 +11,8 @@ class ICoverRepository;
 class RomBrowserViewModel
 {
 public:
-    RomBrowserViewModel(IRomBrowserController* romBrowserController, const char* initialSelectedFileName = nullptr);
+    RomBrowserViewModel(IRomBrowserController* romBrowserController,
+        const char* initialSelectedFileName = nullptr, const char* initialSelectedFullPath = nullptr);
 
     IRomBrowserController* GetRomBrowserController() const { return _romBrowserController; }
     FileInfoManager& GetFileInfoManager() const { return *_fileInfoManager; }

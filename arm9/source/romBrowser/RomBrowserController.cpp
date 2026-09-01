@@ -88,8 +88,20 @@ void RomBrowserController::Update()
         case RomBrowserState::Start:
         {
             LOG_DEBUG("RomBrowserState::Start\n");
-            const auto& lastUsed = _appSettingsService->GetAppSettings().lastUsedFilePath;
-            if (strlen(lastUsed.GetString()) != 0)
+            const auto& settings = _appSettingsService->GetAppSettings();
+            const auto& lastUsed = settings.lastUsedFilePath;
+            if (strcmp(lastUsed.GetString(), ":favorites") == 0)
+            {
+                // Restoring the favorites view. A regular folder restore gets its selection
+                // for free (lastUsedFilePath is the launched file's path, which
+                // HandleNavigateTrigger() splits into _navigateFileName); the favorites view
+                // has only the sentinel, so the launched path is carried over separately.
+                StringUtil::Copy(_pendingFavoriteSelectionPath,
+                    settings.lastUsedFavoriteFilePath.GetString(),
+                    sizeof(_pendingFavoriteSelectionPath) / sizeof(_pendingFavoriteSelectionPath[0]));
+                NavigateToPath(":favorites");
+            }
+            else if (strlen(lastUsed.GetString()) != 0)
             {
                 NavigateToPath(lastUsed.GetString());
             }
@@ -215,6 +227,7 @@ void RomBrowserController::HandleNavigateTrigger()
 
         u64 startTick = gTickCounter.GetValue();
         _navigateFileName = nullptr;
+        _navigateFullPath = nullptr;
         if (strcmp(_navigatePath, ":favorites") == 0)
         {
             auto& settings = _appSettingsService->GetAppSettings();
@@ -263,6 +276,12 @@ void RomBrowserController::HandleNavigateTrigger()
             }
 
             _newSdFolder = std::make_unique<SdFolder>(fileInfos, count);
+            // Consume the startup restore's path, if any: it is set once, by the Start state,
+            // and cleared here so re-entering the favorites list later in the session opens
+            // at the top. A favorite that was deleted or unfavorited in the meantime simply
+            // finds no match and leaves the selection where a fresh list starts.
+            _navigateFullPath = _pendingFavoriteSelectionPath[0] != 0 ? _pendingFavoriteSelectionPath : nullptr;
+            _pendingFavoriteSelectionPath[0] = 0;
             if (deadCount > 0)
             {
                 for (u32 i = 0; i < deadCount; i++)
@@ -316,7 +335,7 @@ void RomBrowserController::HandleFolderLoadDoneTrigger()
     LOG_DEBUG("RomBrowserStateTrigger::FolderLoadDone\n");
     _romBrowserViewModel.Reset();
     _sdFolder = std::move(_newSdFolder);
-    _romBrowserViewModel = SharedPtr<RomBrowserViewModel>::MakeShared(this, _navigateFileName);
+    _romBrowserViewModel = SharedPtr<RomBrowserViewModel>::MakeShared(this, _navigateFileName, _navigateFullPath);
 }
 
 void RomBrowserController::HandleLaunchTrigger()
