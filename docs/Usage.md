@@ -19,6 +19,11 @@ The back arrow on the top left of the bottom screen can also be used to go up to
 
 Touch input is also supported.
 
+## Favorites
+Press X to add or remove the selected game or folder from your favorites. The heart icon opens the favorites list; pressing it again returns to the previous folder.
+
+Favorites are stored in `/_pico/favorites.json`. Pico Launcher also remembers the last game launched from favorites and selects it the next time the favorites list is opened on startup.
+
 ## Settings menu
 The settings menu can be accessed by using the DPAD to move the selector to the cogwheel icon and pressing A. When in the settings menu, press the B button will to return to the file browser.
 

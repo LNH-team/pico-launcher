@@ -6,6 +6,7 @@
 - Support for custom BMP icons for games and folders - by @tasken
 - Support for custom NDS banners (custom titles, subtitles and animated icons) for games and folders - by @tasken
 - Theme selector
+- Favorite management - by @tasken
 
 ### Fixed
 - Top screen cover is now displayed/hidden correctly when placed partially or fully off-screen
