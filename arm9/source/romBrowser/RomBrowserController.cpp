@@ -376,7 +376,19 @@ void RomBrowserController::UpdateLastUsedFilepath()
         }
         strlcat(_navigatePath, _triggerFileInfo.GetFileName(), sizeof(_navigatePath));
     }
-    _appSettingsService->GetAppSettings().lastUsedFilePath = launchedFromFavorites ? ":favorites" : _navigatePath;
+    auto& settings = _appSettingsService->GetAppSettings();
+    if (launchedFromFavorites)
+    {
+        // The view to restore is the favorites list, and _navigatePath now holds the
+        // launched file's full path (set above) - which is what the favorites entries carry
+        // and match on, so the next boot can put the selection back on this game.
+        settings.lastUsedFilePath = ":favorites";
+        settings.lastUsedFavoriteFilePath = _navigatePath;
+    }
+    else
+    {
+        settings.lastUsedFilePath = _navigatePath;
+    }
     _appSettingsService->Save();
 }
 
