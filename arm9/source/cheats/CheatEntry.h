@@ -5,23 +5,27 @@ class CheatEntry
 {
 public:
     /// @brief Dummy empty constructor.
+    ///        Produces an invalid entry, used internally to signal that parsing malformed
+    ///        cheat data failed. See \see IsValid().
     CheatEntry()
-        : _isCheatCategory(false), _flagsPointer(nullptr), _cheatData(nullptr), _cheatDataLength(0) { }
+        : _isCheatCategory(false), _flagsPointer(nullptr), _cheatData(nullptr), _cheatDataLength(0)
+        , _isValid(false) { }
 
     /// @brief Constructor for a cheat.
     CheatEntry(const char* name, const char* description, u32* flagsPointer, const void* cheatData, u32 cheatDataLength)
         : _name(name), _description(description), _isCheatCategory(false), _flagsPointer(flagsPointer)
-        , _cheatData(cheatData), _cheatDataLength(cheatDataLength) { }
+        , _cheatData(cheatData), _cheatDataLength(cheatDataLength), _isValid(true) { }
 
     /// @brief Constructor for a category.
     CheatEntry(const char* name, const char* description, bool isMaxOneCheatActive, CheatEntry* subEntries, u32 numberOfSubEntries)
         : _name(name), _description(description), _isCheatCategory(true), _isMaxOneCheatActive(isMaxOneCheatActive)
-        , _subEntries(subEntries), _numberOfSubEntries(numberOfSubEntries) { }
+        , _subEntries(subEntries), _numberOfSubEntries(numberOfSubEntries), _isValid(true) { }
 
     CheatEntry(const CheatEntry& other) = delete;
 
     CheatEntry(CheatEntry&& other)
         : _isCheatCategory(false), _flagsPointer(nullptr), _cheatData(nullptr), _cheatDataLength(0)
+        , _isValid(false)
     {
         *this = std::move(other);
     }
@@ -66,6 +70,8 @@ public:
             _cheatDataLength = other._cheatDataLength;
             other._cheatDataLength = 0;
         }
+        _isValid = other._isValid;
+        other._isValid = false;
 
         return *this;
     }
@@ -140,6 +146,15 @@ public:
         return _isCheatCategory;
     }
 
+    /// @brief Indicates if this entry was parsed successfully from cheat data.
+    /// @return \c true when this entry is valid and safe to use, or \c false when it is a dummy
+    ///         entry produced when parsing malformed cheat data failed. Callers must not call
+    ///         \see GetIsCheatActive() or \see SetIsCheatActive() on an invalid entry.
+    bool IsValid() const
+    {
+        return _isValid;
+    }
+
     /// @brief Indicates if this entry is a cheat category in which only one cheat is allowed to be on at a time or not.
     /// @return \c true when this entry is a cheat category in which only one cheat is allowed
     ///         to be active at a time, or \c false otherwise.
@@ -187,4 +202,6 @@ private:
             u32 _numberOfSubEntries;
         };
     };
+
+    bool _isValid;
 };
