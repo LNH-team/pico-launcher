@@ -228,6 +228,7 @@ void RomBrowserController::HandleNavigateTrigger()
         u64 startTick = gTickCounter.GetValue();
         _navigateFileName = nullptr;
         _navigateFullPath = nullptr;
+        _navigateScrollOffset = 0;
         if (strcmp(_navigatePath, ":favorites") == 0)
         {
             auto& settings = _appSettingsService->GetAppSettings();
@@ -276,18 +277,19 @@ void RomBrowserController::HandleNavigateTrigger()
             }
 
             _newSdFolder = std::make_unique<SdFolder>(fileInfos, count);
-            // Consume the startup restore's path, if any: it is set once, by the Start state,
-            // and cleared here so re-entering the favorites list later in the session opens
-            // at the top. It is copied into its own buffer first - pointing _navigateFullPath
-            // straight at _pendingFavoriteSelectionPath would leave it aiming at the string
-            // the clear below truncates. A favorite that was deleted or unfavorited in the
-            // meantime simply finds no match and leaves the selection where a fresh list starts.
+            // Consume the pending restore path, if any. It is copied into its own buffer first -
+            // pointing _navigateFullPath straight at _pendingFavoriteSelectionPath would leave
+            // it aiming at the string the clear below truncates. A favorite that was deleted or
+            // unfavorited in the meantime simply finds no match and leaves the selection where a
+            // fresh list starts.
             if (_pendingFavoriteSelectionPath[0] != 0)
             {
                 StringUtil::Copy(_navigateFavoritePath, _pendingFavoriteSelectionPath,
                     sizeof(_navigateFavoritePath) / sizeof(_navigateFavoritePath[0]));
                 _navigateFullPath = _navigateFavoritePath;
                 _pendingFavoriteSelectionPath[0] = 0;
+                _navigateScrollOffset = _pendingFavoriteScrollOffset;
+                _pendingFavoriteScrollOffset = 0;
             }
             if (deadCount > 0)
             {
@@ -342,7 +344,8 @@ void RomBrowserController::HandleFolderLoadDoneTrigger()
     LOG_DEBUG("RomBrowserStateTrigger::FolderLoadDone\n");
     _romBrowserViewModel.Reset();
     _sdFolder = std::move(_newSdFolder);
-    _romBrowserViewModel = SharedPtr<RomBrowserViewModel>::MakeShared(this, _navigateFileName, _navigateFullPath);
+    _romBrowserViewModel = SharedPtr<RomBrowserViewModel>::MakeShared(
+        this, _navigateFileName, _navigateFullPath, _navigateScrollOffset);
 }
 
 void RomBrowserController::HandleLaunchTrigger()
@@ -497,6 +500,7 @@ void RomBrowserController::ToggleFavorite(const FileInfo& fileInfo)
         // needs no filesystem call and can run directly on the calling thread. This also
         // keeps it synchronous with the favorites-view "remove then refresh" flow in
         // RomBrowserItemViewModel::ToggleFavorite(), which re-navigates right after.
+        PreserveFavoriteSelectionAfterRemoval(fileInfo);
         ToggleFavoriteAtPath(fileInfo.GetFullPath());
         _ioTaskQueue->Enqueue([this] (const vu8& cancelRequested)
         {
@@ -526,6 +530,41 @@ void RomBrowserController::ToggleFavorite(const FileInfo& fileInfo)
         _favoritesService->Save();
         return TaskResult<void>::Completed();
     });
+}
+
+void RomBrowserController::PreserveFavoriteSelectionAfterRemoval(const FileInfo& fileInfo)
+{
+    if (strcmp(_navigatePath, ":favorites") != 0 || !_romBrowserViewModel.IsValid() ||
+        fileInfo.GetFullPath() == nullptr)
+    {
+        return;
+    }
+
+    _pendingFavoriteSelectionPath[0] = 0;
+    _pendingFavoriteScrollOffset = 0;
+
+    auto& fileInfoManager = _romBrowserViewModel->GetFileInfoManager();
+    int removedIndex = fileInfoManager.GetItemIndexByFullPath(fileInfo.GetFullPath());
+    if (removedIndex < 0)
+    {
+        return;
+    }
+
+    _pendingFavoriteScrollOffset = _romBrowserViewModel->GetScrollOffset();
+
+    int itemCount = fileInfoManager.GetItemCount();
+    int nextIndex = removedIndex + 1 < itemCount ? removedIndex + 1 : removedIndex - 1;
+    if (nextIndex < 0)
+    {
+        return;
+    }
+
+    const char* nextPath = fileInfoManager.GetItem(nextIndex).GetFullPath();
+    if (nextPath)
+    {
+        StringUtil::Copy(_pendingFavoriteSelectionPath, nextPath,
+            sizeof(_pendingFavoriteSelectionPath) / sizeof(_pendingFavoriteSelectionPath[0]));
+    }
 }
 
 // ToggleFavoriteAtPath() can run on the main thread (favorites-view toggles, see

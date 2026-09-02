@@ -44,7 +44,8 @@ RomBrowserView::RomBrowserView(
 void RomBrowserView::InitVram(const VramContext& vramContext)
 {
     _fileRecyclerAdapter->InitVram(vramContext); // first initialize the shared vram for the items
-    _fileGridView->SetAdapter(_fileRecyclerAdapter, _viewModel->GetSelectedItem()); // set the adapter of the recycler
+    _fileGridView->SetAdapter(_fileRecyclerAdapter,
+        _viewModel->GetSelectedItem(), _viewModel->GetScrollOffset()); // set the adapter of the recycler
     _fileGridView->InitVram(vramContext); // init the vram for the recycler and its items
     _emptyStateLabel->InitVram(vramContext);
 }
@@ -71,6 +72,7 @@ void RomBrowserView::Update()
     {
         _fileGridView->Update();
         _viewModel->SetSelectedItem(_fileGridView->GetSelectedItem());
+        _viewModel->SetScrollOffset(_fileGridView->GetScrollOffset());
     }
 }
 

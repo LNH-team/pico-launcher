@@ -4,8 +4,10 @@
 #include "RomBrowserViewModel.h"
 
 RomBrowserViewModel::RomBrowserViewModel(IRomBrowserController* romBrowserController,
-    const char* initialSelectedFileName, const char* initialSelectedFullPath)
+    const char* initialSelectedFileName, const char* initialSelectedFullPath,
+    int initialScrollOffset)
     : _romBrowserController(romBrowserController)
+    , _scrollOffset(initialScrollOffset)
 {
     SdFolderFilterSortParams filterSortParams;
     switch (romBrowserController->GetRomBrowserDisplaySettings().sortMode)

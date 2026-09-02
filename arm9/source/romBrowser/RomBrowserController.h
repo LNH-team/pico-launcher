@@ -77,14 +77,16 @@ private:
     /// @brief Full path of the item to select once the folder finishes loading, or nullptr.
     ///        Only the favorites view sets it - browsed folders select by file name.
     const TCHAR* _navigateFullPath = nullptr;
-    /// @brief Full path handed over by the startup restore, consumed by the next favorites
-    ///        navigation. Empty at every other time, so opening the favorites list by hand
-    ///        during a session still lands at the top, exactly like entering a folder does.
+    /// @brief Full path handed over by a favorites restore, consumed by the next favorites
+    ///        navigation. Empty when opening the favorites list by hand, so a regular open
+    ///        still lands at the top, exactly like entering a folder does.
     TCHAR _pendingFavoriteSelectionPath[256] = { 0 };
     /// @brief Storage backing _navigateFullPath while a folder load is in flight. The
     ///        pending path is copied here before it is cleared, so the pointer handed to the
     ///        view model cannot be truncated by that clear.
     TCHAR _navigateFavoritePath[256] = { 0 };
+    int _pendingFavoriteScrollOffset = 0;
+    int _navigateScrollOffset = 0;
     FileInfo _triggerFileInfo;
     QueueTask<void> _navigateTask;
     bool _saveSettingsPending = false;
@@ -106,6 +108,7 @@ private:
     ///         truncated path that must not be used as a favorites key: a prefix can name a
     ///         different file, so storing it would favorite the wrong item.
     bool GetFileInfoPath(const FileInfo& fileInfo, char* pathBuffer, u32 bufferSize) const;
+    void PreserveFavoriteSelectionAfterRemoval(const FileInfo& fileInfo);
     void ToggleFavoriteAtPath(const char* path);
     void RemoveFavoriteAtPath(const char* path);
     void UpdateLastUsedFilepath();

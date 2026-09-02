@@ -17,7 +17,8 @@ void CoverFlowRecyclerViewBase::InitVram(const VramContext& vramContext)
     }
 }
 
-void CoverFlowRecyclerViewBase::SetAdapter(SharedPtr<const RecyclerAdapter> adapter, int initialSelectedIndex)
+void CoverFlowRecyclerViewBase::SetAdapter(SharedPtr<const RecyclerAdapter> adapter,
+    int initialSelectedIndex, int initialScrollOffset)
 {
     if (_adapter)
     {

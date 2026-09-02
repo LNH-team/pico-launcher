@@ -25,7 +25,8 @@ public:
 
     ~RecyclerView();
 
-    void SetAdapter(SharedPtr<const RecyclerAdapter> adapter, int initialSelectedIndex = 0) override;
+    void SetAdapter(SharedPtr<const RecyclerAdapter> adapter,
+        int initialSelectedIndex = 0, int initialScrollOffset = 0) override;
     void InitVram(const VramContext& vramContext) override;
     void Update() override;
     void Draw(GraphicsContext& graphicsContext) override;
@@ -58,6 +59,11 @@ public:
     int GetSelectedItem() const override
     {
         return _selectedItem ? _selectedItem->itemIdx : -1;
+    }
+
+    int GetScrollOffset() const override
+    {
+        return _scrollOffsetAnimator.GetValue();
     }
 
     constexpr Mode GetMode() const { return _mode; }

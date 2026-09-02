@@ -8,7 +8,8 @@ public:
     ~CoverFlowRecyclerViewBase() override;
 
     void InitVram(const VramContext& vramContext) override;
-    void SetAdapter(SharedPtr<const RecyclerAdapter> adapter, int initialSelectedIndex = 0) override;
+    void SetAdapter(SharedPtr<const RecyclerAdapter> adapter,
+        int initialSelectedIndex = 0, int initialScrollOffset = 0) override;
     SharedPtr<View> MoveFocus(const SharedPtr<View>& currentFocus, FocusMoveDirection direction, View* source) override;
 
     Rectangle GetBounds() const override
@@ -31,6 +32,11 @@ public:
     int GetSelectedItem() const override
     {
         return _selectedItem ? _selectedItem->itemIdx : -1;
+    }
+
+    int GetScrollOffset() const override
+    {
+        return GetSelectedItem();
     }
 
 protected:

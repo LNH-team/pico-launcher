@@ -9,9 +9,11 @@
 class RecyclerViewBase : public View
 {
 public:
-    virtual void SetAdapter(SharedPtr<const RecyclerAdapter> adapter, int initialSelectedIndex = 0) = 0;
+    virtual void SetAdapter(SharedPtr<const RecyclerAdapter> adapter,
+        int initialSelectedIndex = 0, int initialScrollOffset = 0) = 0;
     virtual void Focus(FocusManager& focusManager) = 0;
     virtual int GetSelectedItem() const = 0;
+    virtual int GetScrollOffset() const = 0;
 
 protected:
     SharedPtr<const RecyclerAdapter> _adapter;
