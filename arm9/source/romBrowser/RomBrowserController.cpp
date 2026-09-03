@@ -259,7 +259,8 @@ void RomBrowserController::HandleNavigateTrigger()
             {
                 const char* favPath = favoritesSnapshot[i].GetString();
                 FILINFO fileInfo;
-                if (f_stat(favPath, &fileInfo) == FR_OK)
+                FRESULT statResult = f_stat(favPath, &fileInfo);
+                if (statResult == FR_OK)
                 {
                     const char* fileName = strrchr(favPath, '/');
                     if (fileName)
@@ -270,9 +271,15 @@ void RomBrowserController::HandleNavigateTrigger()
                     auto fileType = _fileTypeProvider.GetFileType(fileName);
                     fileInfos[count++] = new FileInfo(fileName, fileType, FastFileRef(fs, &fileInfo), fileInfo.fattrib, favPath);
                 }
-                else
+                else if (statResult == FR_NO_FILE || statResult == FR_NO_PATH)
                 {
                     deadPaths[deadCount++] = favPath;
+                }
+                else
+                {
+                    // A temporary storage error does not prove the item was deleted. Omit it
+                    // from this view, but retain the favorite so a later reload can recover it.
+                    LOG_ERROR("Couldn't check favorite path: %s (%d)\n", favPath, statResult);
                 }
             }
 
@@ -633,9 +640,13 @@ void RomBrowserController::ToggleFavoriteAtPath(const char* path)
             newCount = currentCount + 1;
         }
 
+        // Move the old allocation out while the array/count pair is protected, then let it
+        // be freed after IRQs are restored.
+        auto oldFavorites = std::move(favorites.favorites);
         favorites.favorites = newCount > 0 ? std::move(newFavorites) : nullptr;
         favorites.numberOfFavorites = newCount;
         rtos_restoreIrqs(irq);
+        oldFavorites.reset();
         return;
     }
 }
@@ -692,9 +703,13 @@ void RomBrowserController::RemoveFavoriteAtPath(const char* path)
                 newFavorites[dst++] = favorites.favorites[src];
             }
         }
+        // Move the old allocation out while the array/count pair is protected, then let it
+        // be freed after IRQs are restored.
+        auto oldFavorites = std::move(favorites.favorites);
         favorites.favorites = dst > 0 ? std::move(newFavorites) : nullptr;
         favorites.numberOfFavorites = dst;
         rtos_restoreIrqs(irq);
+        oldFavorites.reset();
         return;
     }
 }

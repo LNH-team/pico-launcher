@@ -176,9 +176,12 @@ FavoritesDeserializeResult JsonFavoritesSerializer::Deserialize(AppFavorites* ap
     }
 
     const auto file = std::make_unique<File>();
-    if (file->Open(filePath, FA_READ | FA_OPEN_EXISTING) != FR_OK)
+    FRESULT openResult = file->Open(filePath, FA_READ | FA_OPEN_EXISTING);
+    if (openResult != FR_OK)
     {
-        return FavoritesDeserializeResult::NotFound;
+        return openResult == FR_NO_FILE || openResult == FR_NO_PATH
+            ? FavoritesDeserializeResult::NotFound
+            : FavoritesDeserializeResult::Error;
     }
 
     u32 fileSize = file->GetSize();
@@ -195,8 +198,7 @@ FavoritesDeserializeResult JsonFavoritesSerializer::Deserialize(AppFavorites* ap
     std::unique_ptr<u8[]> fileData(new(cache_align) u8[fileSize]);
     u8* fileDataPtr = fileData.get();
 
-    u32 bytesRead = 0;
-    if (file->Read(fileDataPtr, fileSize, bytesRead) != FR_OK)
+    if (!file->ReadExact(fileDataPtr, fileSize))
     {
         return FavoritesDeserializeResult::Error;
     }
