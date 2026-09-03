@@ -92,6 +92,29 @@ void RomBrowserTopScreenView::Update()
     ViewContainer::Update();
 }
 
+void RomBrowserTopScreenView::MirrorToMainEngine() const
+{
+    // Same numbers as VBlank puts on the sub engine, aimed at the main one.
+    int x0 = std::clamp(_coverPosition.x, 0, 256);
+    int x1 = std::clamp(_coverPosition.x + 106, 0, 256);
+    int y0 = std::clamp(_coverPosition.y, 0, 192);
+    int y1 = std::clamp(_coverPosition.y + 96, 0, 192);
+    if (!_showCover || !_selectedFileCover.IsValid() || !_selectedFileCover->IsActualCover() ||
+        x0 >= x1 || y0 >= y1)
+    {
+        // No cover on screen, so nothing to restate: the mirrored display
+        // control already has this background and its window switched off.
+        return;
+    }
+    REG_BG3PA = 0x100;
+    REG_BG3PB = 0;
+    REG_BG3PC = 0;
+    REG_BG3PD = -0x100;
+    REG_BG3X = (-_coverPosition.x) << 8;
+    REG_BG3Y = (96 + _coverPosition.y - 1) << 8;
+    gfx_setWindow0(x0, y0, x1, y1);
+}
+
 void RomBrowserTopScreenView::VBlank()
 {
     ViewContainer::VBlank();

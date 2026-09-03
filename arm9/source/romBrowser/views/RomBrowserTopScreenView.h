@@ -18,6 +18,13 @@ public:
     void Update() override;
     void VBlank() override;
 
+    /// @brief Writes the cover's affine matrix and clip window to the MAIN
+    ///        engine, for the one frame a screenshot borrows that engine to draw
+    ///        this screen. Those registers cannot be read back, so they cannot
+    ///        be copied across - only the view that computes them can restate
+    ///        them.
+    void MirrorToMainEngine() const;
+
     Rectangle GetBounds() const override
     {
         return Rectangle(0, 0, 256, 192);

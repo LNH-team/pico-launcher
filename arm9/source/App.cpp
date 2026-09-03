@@ -41,6 +41,7 @@ App::App(IAppSettingsService& appSettingsService, IBgmService& bgmService)
     , _texturePaletteVram((vu16*)0x6880000)
     , _mainVramContext(nullptr, &_mainObjVram, &_textureVram, &_texturePaletteVram)
     , _subVramContext(nullptr, &_subObjVram, nullptr, nullptr)
+    , _screenshot(&_ioTaskQueue, &_mainObjVram, &_mainObjDialogVram, &_subObjVram)
     , _appSettingsService(appSettingsService)
     , _bgmService(bgmService)
     , _inputProvider(&_keyInputSource, &_touchInputSource)
@@ -191,7 +192,6 @@ void App::Run()
 
 void App::MainLoop()
 {
-    bool fadeIn = true;
     int fadeWaitFrames = SPLASH_FRAMES;
     while (true)
     {
@@ -209,7 +209,7 @@ void App::MainLoop()
                 break;
             }
         }
-        else if (fadeIn)
+        else if (_fadeIn)
         {
             if (fadeWaitFrames)
             {
@@ -222,7 +222,7 @@ void App::MainLoop()
                 bool fadeComplete = _fadeAnimator.Update();
                 if (fadeComplete)
                 {
-                    fadeIn = false;
+                    _fadeIn = false;
                     REG_BLDCNT_SUB = 0;
                     REG_DISPCNT_SUB &= ~(1 << 9);
                     REG_MASTER_BRIGHT = 0;
@@ -377,6 +377,10 @@ void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)
 
 void App::Update()
 {
+    // Copying the captured frame out of vram is far too long for vblank, so it
+    // happens here, in the visible period.
+    _screenshot.Update();
+
     const auto& stateMachine = _romBrowserController.GetStateMachine();
     _romBrowserController.Update();
     auto curState = stateMachine.GetCurrentState();
@@ -468,6 +472,9 @@ void App::Draw()
 void App::VBlank()
 {
     dma_ntrStopDirect(0); // stop hblank dma
+    // Arms a pending bottom screen capture for the frame whose sprites go up a
+    // few lines down, so the saved image is the one the player asked for.
+    _screenshot.VBlankBegin();
     _inputProvider.Sample();
     _inputRepeater.Update();
     _mainOam.Apply(GFX_OAM_MAIN);
@@ -480,7 +487,13 @@ void App::VBlank()
         rtos_enableIrqMask(RTOS_IRQ_VCOUNT);
         _vcountIrqStarted = true;
     }
-    _mainObjPltt.VBlank();
+    // Left alone from the moment the top half is queued until the mirror is
+    // handed back, which is wider than the frame the palette is actually the
+    // other screen's - on the first of those frames nothing has been mirrored
+    // yet, since that happens further down this same function. Wider on
+    // purpose, for the reason in Draw: too narrow writes into a saved image.
+    if (!_screenshot.IsMirroringMainEngine())
+        _mainObjPltt.VBlank();
 
     if (_topBackground)
         _topBackground->VBlank();
@@ -489,13 +502,29 @@ void App::VBlank()
 
     _dialogPresenter.VBlank();
 
-    if (_romBrowserBottomScreenViewModel.IsRomBrowserVisible())
+    // While a screenshot borrows sub background vram, the top screen view has
+    // to sit out: it uploads the selected cover there and marks it done, so an
+    // upload during those frames would be lost for good. Skipping means it
+    // simply retries once the block is back.
+    if (_romBrowserBottomScreenViewModel.IsRomBrowserVisible() && !_screenshot.IsBusy())
     {
         _romBrowserTopScreenView->VBlank();
     }
     _romBrowserBottomScreenView->VBlank();
 
     _vblankTextureLoader.VBlank();
+
+    // Mirroring the sub engine onto the main one has to be the last word on the
+    // frame: it needs this frame's sub sprites uploaded, and every register it
+    // copies would otherwise be written over again below. The cover's matrix and
+    // window cannot be read back off the sub engine, so the view that computes
+    // them restates them in between.
+    if (_screenshot.MirrorSubEngineIfPending())
+    {
+        if (_romBrowserTopScreenView)
+            _romBrowserTopScreenView->MirrorToMainEngine();
+        _screenshot.ArmMirroredCapture();
+    }
 }
 
 void App::StoreVramState(VramState& vramState) const
@@ -516,6 +545,49 @@ void App::RestoreVramState(const VramState& vramState)
 
 void App::HandleInput()
 {
+    // Hold START to save both screens. One key rather than one per screen, and
+    // not SELECT: the dsi changes its brightness with SELECT and the volume
+    // buttons, and those are not readable in ds mode, so a player adjusting
+    // brightness would be taking screenshots without asking for any. START does
+    // nothing on any model of the family while software is running.
+    //
+    // The hold has to begin here: counting only once the key has been seen up
+    // means a hold that started before the launcher did cannot be read as a
+    // request, whatever it is held for. Counting frames of Current() rather
+    // than using Triggered() keeps one hold to one shot.
+    //
+    // What named this case was the 3ds, where holding START from the home menu
+    // is how a ds game is started at its native resolution. Whether the key can
+    // still be down by the time this runs is left open on purpose: it was not
+    // reproducible on the console it was tried on, which restarts rather than
+    // reaching the launcher if START is never released, and one console is not
+    // evidence about the rest. The guard is cheap and it also covers the cases
+    // that do not need that question answered - a key that sticks, a thumb
+    // resting on it, arriving here from another launcher.
+    //
+    // And no frames are counted while the opening fade is running, because that
+    // fade writes master brightness every frame, after this - the same register
+    // the capture blacks the bottom screen out with. A capture that started in
+    // there would have its blackout overwritten every frame, and worse, would
+    // save a half faded brightness and put it back once the fade had stopped
+    // writing: the bottom screen would then stay dimmed for the rest of the
+    // session, with nothing left to correct it.
+    //
+    // The test sits after the armed one on purpose. Suppressing the count is
+    // not the same as arming: doing it in the branch above would mark a key
+    // that is still held as armed, which is exactly what that branch exists to
+    // prevent.
+    if (!_inputRepeater.Current(InputKey::Start))
+    {
+        _screenshotHoldFrames = 0;
+        _screenshotHoldArmed = true;
+    }
+    else if (_screenshotHoldArmed && !_fadeIn &&
+        ++_screenshotHoldFrames == kScreenshotHoldFrames)
+    {
+        _screenshot.RequestBothScreens();
+    }
+
     _focusManager.Update(_inputRepeater);
     Point touchPoint;
     if (_inputRepeater.Triggered(InputKey::Touch) &&
