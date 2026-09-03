@@ -127,6 +127,12 @@ void App::Run()
 
     LoadTheme();
 
+    // Made before the vram states are stored, so the texture behind its text is
+    // part of what a display mode change restores instead of being dropped by it.
+    _toast = ToastView::CreateShared(&_theme->GetMaterialColorScheme(),
+        _theme->GetFontRepository(), &_vblankTextureLoader);
+    _toast->InitVram(_mainVramContext);
+
     _ioTaskQueue.StartThread(1, _ioTaskThreadStack, sizeof(_ioTaskThreadStack));
     _bgTaskQueue.StartThread(2, _bgTaskThreadStack, sizeof(_bgTaskThreadStack));
 
@@ -381,6 +387,28 @@ void App::Update()
     // happens here, in the visible period.
     _screenshot.Update();
 
+    // The io thread is what finishes a capture, so the answer turns up a few
+    // frames after the shutter. Saying so only once it is on the card means the
+    // message is true, and it also puts it safely outside the picture.
+    if (_toast)
+    {
+        switch (Screenshot::TakeResult())
+        {
+            case Screenshot::Result::Saved:
+                _toast->Show("Screenshot saved");
+                break;
+            case Screenshot::Result::Failed:
+                _toast->Show("Couldn't save the screenshot");
+                break;
+            case Screenshot::Result::Busy:
+                _toast->Show("Still saving the last one");
+                break;
+            case Screenshot::Result::None:
+                break;
+        }
+        _toast->Update();
+    }
+
     const auto& stateMachine = _romBrowserController.GetStateMachine();
     _romBrowserController.Update();
     auto curState = stateMachine.GetCurrentState();
@@ -464,6 +492,23 @@ void App::Draw()
 
     _dialogPresenter.Draw(mainGraphicsContext);
 
+    // Last, so nothing the browser draws afterwards can land on top of it. And
+    // not at all while a screenshot has this engine: on the frame it is actually
+    // mirrored, anything of ours drawn here would end up in that picture instead
+    // of on this one.
+    //
+    // The test is deliberately wider than that one frame - it is true from the
+    // moment the top half is queued until the mirror is handed back. Being too
+    // wide costs a frame or two of a message that is inside the capture's flash
+    // anyway; being too narrow puts the message inside a saved screenshot.
+    if (_toast)
+    {
+        if (_screenshot.IsMirroringMainEngine())
+            _toast->Suppress();
+        else
+            _toast->Draw(mainGraphicsContext);
+    }
+
     _mainObjPltt.EndOfFrame();
 
     Gx::SwapBuffers(GX_XLU_SORT_MANUAL, GX_DEPTH_MODE_Z);
@@ -501,6 +546,12 @@ void App::VBlank()
         _bottomBackground->VBlank();
 
     _dialogPresenter.VBlank();
+
+    // Above the mirroring below, and it has to stay there: this writes the main
+    // engine's window and display control registers, which from the next
+    // statement on belong to the capture.
+    if (_toast)
+        _toast->VBlank();
 
     // While a screenshot borrows sub background vram, the top screen view has
     // to sit out: it uploads the selected cover there and marks it done, so an

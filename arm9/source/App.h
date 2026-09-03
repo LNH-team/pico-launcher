@@ -30,6 +30,7 @@
 #include "themes/ITheme.h"
 #include "animation/Animator.h"
 #include "Screenshot.h"
+#include "gui/views/ToastView.h"
 
 class alignas(32) App : public IProcess
 {
@@ -82,6 +83,7 @@ private:
     /// False until START has been seen up, so a hold that started before the
     /// launcher did cannot count as a request.
     bool _screenshotHoldArmed = false;
+    SharedPtr<ToastView> _toast;
 
     std::unique_ptr<ITheme> _theme;
     std::unique_ptr<IThemeBackground> _topBackground;
