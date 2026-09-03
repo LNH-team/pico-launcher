@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- Screenshots of both screens, saved to /_pico/screenshots by holding START - by @rasalopa
 - Support for custom BMP icons for games and folders - by @tasken
 - Support for custom NDS banners (custom titles, subtitles and animated icons) for games and folders - by @tasken
 - Theme selector
