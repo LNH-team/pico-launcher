@@ -30,6 +30,10 @@ void Label3DView::UpdateTileBuffer()
 {
     _vblankTextureLoader->CancelLoad(_textureLoadRequest);
     LabelView::UpdateTileBuffer();
+    // The 2d label promotes this when its sprites go up; nothing promoted it
+    // here, so GetStringWidth() read zero forever on a 3d label. The texture
+    // lands one frame later than the number, which no caller can tell apart.
+    _stringWidth = _newStringWidth;
     _textureLoadRequest = VBlankTextureLoadRequest(_tileBuffer.get(), _tileBufferSize,
         _texVramOffset, nullptr, 0, 0, nullptr, nullptr);
     _vblankTextureLoader->RequestLoad(_textureLoadRequest);
@@ -42,22 +46,22 @@ void Label3DView::Draw(GraphicsContext& graphicsContext)
 
     Gx::MtxIdentity();
     Gx::PolygonAttr(GX_LIGHTMASK_NONE, GX_POLYGON_MODE_MODULATE, GX_DISPLAY_MODE_FRONT,
-        false, false, false, GX_DEPTH_FUNC_LESS, false, 31, graphicsContext.GetPolygonId());
+        false, false, false, GX_DEPTH_FUNC_LESS, false, _alpha, graphicsContext.GetPolygonId());
     Gx::TexImageParam(_texVramOffset >> 3, false, false, false, false, (GxTexSize)(std::bit_width(_actualWidth) - 4),
         GX_TEXSIZE_1024, GX_TEXFMT_A5I3, false, GX_TEXGEN_NONE);
     graphicsContext.GetRgb6Palette()->ApplyColor(Rgb<6, 6, 6>(_foregroundColor));
     Gx::Begin(GX_PRIMITIVE_QUAD);
     Gx::TexCoord(0, 0);
     REG_GX_VTX_16 = GX_VTX_PACK(_position.x << 6, _position.y << 3);
-    REG_GX_VTX_16 = (200) << 6;
+    REG_GX_VTX_16 = _depth << 6;
     Gx::TexCoord(0, (int)_height);
     REG_GX_VTX_16 = GX_VTX_PACK(_position.x << 6, (_position.y + _height) << 3);
-    REG_GX_VTX_16 = (200) << 6;
+    REG_GX_VTX_16 = _depth << 6;
     Gx::TexCoord((int)_width, (int)_height);
     REG_GX_VTX_16 = GX_VTX_PACK((_position.x + _width) << 6, (_position.y + _height) << 3);
-    REG_GX_VTX_16 = (200) << 6;
+    REG_GX_VTX_16 = _depth << 6;
     Gx::TexCoord((int)_width, 0);
     REG_GX_VTX_16 = GX_VTX_PACK((_position.x + _width) << 6, _position.y << 3);
-    REG_GX_VTX_16 = (200) << 6;
+    REG_GX_VTX_16 = _depth << 6;
     Gx::End();
 }

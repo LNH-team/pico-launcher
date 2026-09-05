@@ -13,6 +13,7 @@ From here you can browse your SD card to launch homebrew and games.
 - B: Go to the parent folder or close a menu.
 - L and R: Scroll quickly when there are many items in a folder.
 - Y: Open the cheats panel (see [Cheats](Cheats.md)).
+- START (hold): Save a screenshot of both screens (see [Screenshots](#screenshots)).
 
 The back arrow on the top left of the bottom screen can also be used to go up to the parent folder.
 
@@ -39,6 +40,19 @@ Currently, the only settings available are the display mode, and the sorting mod
         <td><img src="./images/Coverflow.png"/></td>
     </tr>
 </table>
+
+## Screenshots
+Holding START for about half a second saves both screens to `/_pico/screenshots` on your SD card, as BMP files.
+
+Each hold writes two files that share a number: `shotNNN_bot.bmp` for the bottom screen and `shotNNN_top.bmp` for the top one. The number is the lowest one neither screen has taken yet, so a pair is always the two halves of one press. Up to 1000 pairs fit in the folder.
+
+A short message appears at the bottom of the screen once the files are on the card. It confirms the write rather than the button press, so if something goes wrong - a full folder, or a card that cannot be written to - it says that instead.
+
+A few things worth knowing:
+- The two screens are recorded a couple of frames apart. The console can only capture one screen at a time, so during a fast animation the two halves of a pair will not match exactly.
+- The screen flashes while the picture is taken. That is the capture, not a fault.
+- The shortcut works in the file browser and in the settings menu. It does not work in the theme selector, which is a separate screen with its own input handling.
+- The hold has to begin while Pico Launcher is running, so a button that was already held down when it started is not read as a request.
 
 ## Settings
 Settings are stored on your SD card in `/_pico/settings.json`. They can be edited with any text editor. The following settings are available:
