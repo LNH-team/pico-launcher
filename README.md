@@ -12,8 +12,7 @@ This repository contains Pico Launcher, which is a front-end for [Pico Loader](h
     - Banner list
     - Coverflow
 - [File associations](docs/FileAssociations.md)
-- [Covers](docs/Covers.md)
-- [Custom Icons & Banners](docs/Customization.md)
+- [Custom Icons, Banners & Covers](docs/Customization.md)
 - [Material Design 3 and custom themes](docs/Themes.md)
 - Support for background music (see [Themes](docs/Themes.md))
 - Support for cheats (See [Cheats](docs/Cheats.md))
