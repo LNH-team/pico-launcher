@@ -12,6 +12,7 @@
 #include "carouselMask.h"
 #include "animation/Interpolator.h"
 #include "gui/input/InputProvider.h"
+#include "MaterialCoverView.h"
 #include "CarouselRecyclerView.h"
 
 #define COVER_SPACING           4
@@ -62,7 +63,7 @@ void CarouselRecyclerView::Update()
                 ReleaseRange(rangeEndIndex, _curRangeStart + _curRangeLength);
         }
 
-        BindRange(rangeStartIndex, rangeEndIndex);
+        BindRange(rangeStartIndex, rangeEndIndex, _scrollAnimator.GetValue().Int());
 
         _curRangeStart = rangeStartIndex;
         _curRangeLength = rangeEndIndex - rangeStartIndex;
@@ -77,6 +78,10 @@ void CarouselRecyclerView::Update()
 
 void CarouselRecyclerView::Draw(GraphicsContext& graphicsContext)
 {
+    int selectedCoverX = 0;
+    int selectedCoverWidth = 0;
+    bool selectedCoverVisible = false;
+
     for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
     {
         fix32<12> x = (_viewPoolEx[i].xPosition + 0.5).Int();
@@ -91,7 +96,7 @@ void CarouselRecyclerView::Draw(GraphicsContext& graphicsContext)
         {
             right = 256 - HORIZONTAL_PADDING;
         }
-        if (left != right)
+        if (left < right)
         {
             graphicsContext.SetPolygonId(i);
             Gx::MtxIdentity();
@@ -103,10 +108,23 @@ void CarouselRecyclerView::Draw(GraphicsContext& graphicsContext)
             _viewPool[i].view->Draw(graphicsContext);
 
             RenderRoundedCorners(graphicsContext, x, width);
+
+            if (&_viewPool[i] == _selectedItem)
+            {
+                selectedCoverX = left.Int();
+                selectedCoverWidth = (right - left).Int();
+                selectedCoverVisible = true;
+            }
         }
     }
 
     Gx::MtxIdentity();
+
+    if (_selectedItem && selectedCoverVisible)
+    {
+        static_cast<MaterialCoverView*>(_selectedItem->view.GetPointer())->DrawFavoriteBadge(
+            graphicsContext, Rectangle(selectedCoverX, Y_OFFSET, selectedCoverWidth, COVER_HEIGHT));
+    }
 }
 
 void CarouselRecyclerView::RenderCoverMask(GraphicsContext& graphicsContext, fix32<12> left, fix32<12> right) const
@@ -208,10 +226,6 @@ void CarouselRecyclerView::HandlePenDown(const Point& touchPoint, FocusManager& 
         _hasScrollStarted = false;
         _penDownScrollOffset = _scrollAnimator.GetValue();
 
-        if (_itemCount > 0)
-        {
-            _selectedItem->view->HandlePenDown(touchPoint, focusManager);
-        }
         for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
         {
             auto bounds = _viewPool[i].view->GetBounds();
@@ -236,7 +250,8 @@ void CarouselRecyclerView::HandlePenMove(const Point& touchPoint, FocusManager& 
         for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
         {
             _viewPool[i].view->HandlePenMove(touchPoint, focusManager);
-            if (focusManager.GetCurrentFocus().GetPointer() == _viewPool[i].view.GetPointer())
+            if (_selectedItem != &_viewPool[i] &&
+                focusManager.GetCurrentFocus().GetPointer() == _viewPool[i].view.GetPointer())
             {
                 SetSelectedItem(_viewPool[i].itemIdx, false);
             }
@@ -293,13 +308,15 @@ void CarouselRecyclerView::HandlePenUp(const Point& lastTouchPoint, FocusManager
     for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
     {
         _viewPool[i].view->HandlePenUp(lastTouchPoint, focusManager);
-        if (focusManager.GetCurrentFocus().GetPointer() == _viewPool[i].view.GetPointer())
+        if (_selectedItem != &_viewPool[i] &&
+            focusManager.GetCurrentFocus().GetPointer() == _viewPool[i].view.GetPointer())
         {
             SetSelectedItem(_viewPool[i].itemIdx, false);
         }
     }
 
     _penDown = false;
+    _hasScrollStarted = false;
 }
 
 void CarouselRecyclerView::SetSelectedItem(int itemIdx, bool initial)
@@ -315,7 +332,7 @@ void CarouselRecyclerView::SetSelectedItem(int itemIdx, bool initial)
     {
         _scrollAnimator = Animator<fix32<12>>(itemIdx);
     }
-    else
+    else if (_scrollAnimator.GetValue() != fix32<12>(itemIdx))
     {
         _scrollAnimator.Goto(itemIdx, md::sys::motion::duration::medium4, &md::sys::motion::easing::standard);
     }

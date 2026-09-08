@@ -1,5 +1,6 @@
 #pragma once
 #include "../FileRecyclerAdapter.h"
+#include "../views/FavoriteBadge.h"
 
 class IRomBrowserViewFactory;
 class VBlankTextureLoader;
@@ -28,6 +29,7 @@ private:
     const IRomBrowserViewFactory* _romBrowserViewFactory;
     VBlankTextureLoader* _vblankTextureLoader;
     const ICoverRepository* _coverRepository;
+    FavoriteBadgeVramToken _favoriteBadgeVramToken;
 
     TaskResult<void> BindView(SharedPtr<View> view, int index,
         const InternalFileInfo* internalFileInfo, const vu8& cancelRequested) const override;

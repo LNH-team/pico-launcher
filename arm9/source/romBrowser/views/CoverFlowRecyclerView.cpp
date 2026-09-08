@@ -8,6 +8,7 @@
 #include "gui/input/InputProvider.h"
 #include "core/math/SinTable.h"
 #include "romBrowser/FileType/FileCover.h"
+#include "CoverView.h"
 #include "CoverFlowRecyclerView.h"
 
 #define COVER_SPACING       6
@@ -38,7 +39,7 @@ void CoverFlowRecyclerView::Update()
                 ReleaseRange(rangeEndIndex, _curRangeStart + _curRangeLength);
         }
 
-        BindRange(rangeStartIndex, rangeEndIndex);
+        BindRange(rangeStartIndex, rangeEndIndex, _scrollAnimator.GetValue().Int());
 
         _curRangeStart = rangeStartIndex;
         _curRangeLength = rangeEndIndex - rangeStartIndex;
@@ -109,6 +110,11 @@ void CoverFlowRecyclerView::Draw(GraphicsContext& graphicsContext)
     Gx::MtxMode(GX_MTX_MODE_PROJECTION);
     Gx::MtxPop(1);
     Gx::MtxMode(GX_MTX_MODE_POSITION_VECTOR);
+
+    if (_selectedItem && !_hasScrollStarted && _scrollAnimator.IsFinished())
+    {
+        static_cast<CoverView*>(_selectedItem->view.GetPointer())->DrawFavoriteBadge(graphicsContext);
+    }
 }
 
 bool CoverFlowRecyclerView::HandleInput(const InputProvider& inputProvider, FocusManager& focusManager)
@@ -135,10 +141,15 @@ void CoverFlowRecyclerView::HandlePenDown(const Point& touchPoint, FocusManager&
         _penDownPosition = touchPoint;
         _hasScrollStarted = false;
         _penDownScrollOffset = _scrollAnimator.GetValue();
+        _penDownItemIndex = -1;
 
         if (_itemCount > 0)
         {
-            _selectedItem->view->HandlePenDown(touchPoint, focusManager);
+            if (auto touchedItem = GetTouchedItem(touchPoint))
+            {
+                _penDownItemIndex = touchedItem->itemIdx;
+                touchedItem->view->HandlePenDown(touchPoint, focusManager);
+            }
         }
     }
 }
@@ -152,9 +163,15 @@ void CoverFlowRecyclerView::HandlePenMove(const Point& touchPoint, FocusManager&
 
     if (!_hasScrollStarted)
     {
-        if (_itemCount > 0)
+        auto touchedItem = GetViewPoolEntryByItemIndex(_penDownItemIndex);
+        if (touchedItem)
         {
-            _selectedItem->view->HandlePenMove(touchPoint, focusManager);
+            touchedItem->view->HandlePenMove(touchPoint, focusManager);
+            if (_selectedItem != touchedItem &&
+                focusManager.GetCurrentFocus().GetPointer() == touchedItem->view.GetPointer())
+            {
+                SetSelectedItem(touchedItem->itemIdx, false);
+            }
         }
 
         int dx = touchPoint.x - _penDownPosition.x;
@@ -171,10 +188,11 @@ void CoverFlowRecyclerView::HandlePenMove(const Point& touchPoint, FocusManager&
                 _penDown = false; //wrong direction drag, so cancel it
             }
 
-            if (_itemCount > 0)
+            if (touchedItem)
             {
-                _selectedItem->view->HandlePenUp(Point(-1, -1), focusManager);
+                touchedItem->view->HandlePenUp(Point(-1, -1), focusManager);
             }
+            _penDownItemIndex = -1;
         }
     }
     else
@@ -204,13 +222,25 @@ void CoverFlowRecyclerView::HandlePenUp(const Point& lastTouchPoint, FocusManage
         SetSelectedItem((_scrollAnimator.GetValue() + 0.5).Int(), false);
     }
 
-    if (_itemCount > 0)
+    auto touchedItem = GetViewPoolEntryByItemIndex(_penDownItemIndex);
+    if (touchedItem)
     {
-        _selectedItem->view->HandlePenUp(lastTouchPoint, focusManager);
+        touchedItem->view->HandlePenUp(lastTouchPoint, focusManager);
+        if (_selectedItem != touchedItem &&
+            focusManager.GetCurrentFocus().GetPointer() == touchedItem->view.GetPointer())
+        {
+            SetSelectedItem(touchedItem->itemIdx, false);
+        }
+    }
+
+    if (_hasScrollStarted && _selectedItem)
+    {
         focusManager.Focus(_selectedItem->view);
     }
 
     _penDown = false;
+    _hasScrollStarted = false;
+    _penDownItemIndex = -1;
 }
 
 void CoverFlowRecyclerView::SetSelectedItem(int itemIdx, bool initial)
@@ -226,10 +256,30 @@ void CoverFlowRecyclerView::SetSelectedItem(int itemIdx, bool initial)
     {
         _scrollAnimator = Animator<fix32<12>>(itemIdx);
     }
-    else
+    else if (_scrollAnimator.GetValue() != fix32<12>(itemIdx))
     {
         _scrollAnimator.Goto(itemIdx, md::sys::motion::duration::medium4, &md::sys::motion::easing::standard);
     }
+}
+
+CoverFlowRecyclerViewBase::ViewPoolEntry* CoverFlowRecyclerView::GetTouchedItem(
+    const Point& touchPoint)
+{
+    ViewPoolEntry* closestItem = nullptr;
+    fix32<12> closestDistance = 0;
+    for (u32 i = _viewPoolFreeCount; i < _viewPool.size(); i++)
+    {
+        if (!_viewPool[i].view->GetBounds().Contains(touchPoint))
+            continue;
+
+        fix32<12> distance = (_viewPool[i].itemIdx - _scrollAnimator.GetValue()).Abs();
+        if (!closestItem || distance < closestDistance)
+        {
+            closestItem = &_viewPool[i];
+            closestDistance = distance;
+        }
+    }
+    return closestItem;
 }
 
 void CoverFlowRecyclerView::UpdateItemPosition(int viewPoolIndex)

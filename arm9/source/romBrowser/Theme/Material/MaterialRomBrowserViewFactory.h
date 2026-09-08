@@ -63,7 +63,8 @@ public:
     {
         return SharedPtr<MaterialCoverFlowFileRecyclerAdapter>::MakeShared(viewModel->GetRomBrowserController(),
             &viewModel->GetFileInfoManager(), viewModel->GetIoTaskQueue(),
-            themeFileIconFactory, this, vblankTextureLoader, &viewModel->GetCoverRepository());
+            themeFileIconFactory, this, vblankTextureLoader, &viewModel->GetCoverRepository(),
+            _darkTheme);
     }
 
     Point GetTopCoverPosition() const override

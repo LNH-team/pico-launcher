@@ -119,15 +119,25 @@ CoverFlowRecyclerViewBase::ViewPoolEntry* CoverFlowRecyclerViewBase::BindViewPoo
     return &entry;
 }
 
-void CoverFlowRecyclerViewBase::BindRange(int start, int end)
+void CoverFlowRecyclerViewBase::BindRange(int start, int end, int center)
 {
-    for (int i = start; i < end; i++)
+    auto bindIfNeeded = [this, start, end] (int itemIdx)
     {
-        if (_selectedItem && _selectedItem->itemIdx == i)
-            continue;
-        if (_curRangeLength != 0 && _curRangeStart <= i && i < _curRangeStart + _curRangeLength)
-            continue;
-        BindViewPoolEntry(i);
+        if (itemIdx < start || itemIdx >= end)
+            return;
+        if (_selectedItem && _selectedItem->itemIdx == itemIdx)
+            return;
+        if (_curRangeLength != 0 &&
+            _curRangeStart <= itemIdx && itemIdx < _curRangeStart + _curRangeLength)
+            return;
+        BindViewPoolEntry(itemIdx);
+    };
+
+    for (int offset = 0; center + offset < end || center - offset >= start; offset++)
+    {
+        bindIfNeeded(center + offset);
+        if (offset > 0)
+            bindIfNeeded(center - offset);
     }
 }
 

@@ -13,6 +13,8 @@
 - Top screen cover is now displayed/hidden correctly when placed partially or fully off-screen
 - DSi banners with missing DSi part now fall back to the DS icon
 - Game-code cover lookup no longer searches on a stale buffer when a file has no game code
+- Favorite badges now follow the selected cover in coverflow
+- Coverflow prioritizes nearby cover loading and supports selecting side covers by touch
 
 ## [v1.3.0] - 18 Apr 2026
 

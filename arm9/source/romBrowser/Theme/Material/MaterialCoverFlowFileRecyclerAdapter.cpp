@@ -17,13 +17,15 @@ void MaterialCoverFlowFileRecyclerAdapter::GetViewSize(int& width, int& height) 
 SharedPtr<View> MaterialCoverFlowFileRecyclerAdapter::CreateView() const
 {
     return MaterialCoverView::CreateShared(
-        std::make_unique<RomBrowserItemViewModel>(_romBrowserController), _vblankTextureLoader);
+        std::make_unique<RomBrowserItemViewModel>(_romBrowserController), _vblankTextureLoader,
+        _darkTheme);
 }
 
 TaskResult<void> MaterialCoverFlowFileRecyclerAdapter::BindView(SharedPtr<View> view, int index,
     const InternalFileInfo* internalFileInfo, const vu8& cancelRequested) const
 {
     auto coverView = static_cast<MaterialCoverView*>(view.GetPointer());
+    coverView->SetFavoriteBadgeGraphics(_favoriteBadgeVramToken);
     coverView->GetViewModel().SetIndex(index);
     auto cover = _fileInfoManager->GetFileCover(index);
     if (cancelRequested)
@@ -52,8 +54,14 @@ void MaterialCoverFlowFileRecyclerAdapter::ReleaseView(SharedPtr<View> view, int
 {
     LOG_DEBUG("Releasing %d\n", index);
     auto coverView = static_cast<MaterialCoverView*>(view.GetPointer());
+    coverView->CancelPen();
     coverView->ClearCover();
     coverView->GetViewModel().SetIndex(-1);
     coverView->GetViewModel().CancelQueueTask();
     _fileInfoManager->ReleaseFileInfo(index);
+}
+
+void MaterialCoverFlowFileRecyclerAdapter::InitVram(const VramContext& vramContext)
+{
+    _favoriteBadgeVramToken = FavoriteBadgeRenderer::UploadGraphics(vramContext);
 }

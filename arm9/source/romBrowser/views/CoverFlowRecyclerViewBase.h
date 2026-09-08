@@ -55,7 +55,7 @@ protected:
 
     ViewPoolEntry* GetViewPoolEntryByItemIndex(int itemIdx);
     ViewPoolEntry* BindViewPoolEntry(int itemIdx);
-    void BindRange(int start, int end);
+    void BindRange(int start, int end, int center);
     void ReleaseViewPoolEntry(int itemIdx);
     void ReleaseRange(int start, int end);
     virtual void SetSelectedItem(int itemIdx, bool initial);
