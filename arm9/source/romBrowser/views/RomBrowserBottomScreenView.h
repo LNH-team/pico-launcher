@@ -10,6 +10,8 @@
 
 class IRomBrowserViewFactory;
 class VBlankTextureLoader;
+class IFontRepository;
+class MaterialColorScheme;
 
 class RomBrowserBottomScreenView : public View
 {
@@ -57,11 +59,15 @@ private:
     SharedPtr<RomBrowserAppBarView> _romBrowserAppBarView;
     SharedPtr<RomBrowserView> _romBrowserView;
     VBlankTextureLoader* _vblankTextureLoader;
+    const IFontRepository* _fontRepository;
+    const MaterialColorScheme* _materialColorScheme;
 
     RomBrowserBottomScreenView(
         RomBrowserBottomScreenViewModel* viewModel,
         const RomBrowserDisplayMode* displayMode,
         const IThemeFileIconFactory* themeFileIconFactory,
         const IRomBrowserViewFactory* romBrowserViewFactory,
-        VBlankTextureLoader* vblankTextureLoader);
+        VBlankTextureLoader* vblankTextureLoader,
+        const IFontRepository* fontRepository,
+        const MaterialColorScheme* materialColorScheme);
 };

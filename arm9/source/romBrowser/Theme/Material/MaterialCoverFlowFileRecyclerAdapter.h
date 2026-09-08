@@ -1,5 +1,6 @@
 #pragma once
 #include "romBrowser/FileRecyclerAdapter.h"
+#include "romBrowser/views/FavoriteBadge.h"
 
 class IRomBrowserViewFactory;
 class VBlankTextureLoader;
@@ -12,20 +13,25 @@ public:
         TaskQueueBase* taskQueue, const IThemeFileIconFactory* themeFileIconFactory,
         const IRomBrowserViewFactory* romBrowserViewFactory,
         VBlankTextureLoader* vblankTextureLoader,
-        const ICoverRepository* coverRepository)
+        const ICoverRepository* coverRepository, bool darkTheme)
         : FileRecyclerAdapter(romBrowserController, fileInfoManager, taskQueue, themeFileIconFactory)
         , _romBrowserViewFactory(romBrowserViewFactory)
         , _vblankTextureLoader(vblankTextureLoader)
-        , _coverRepository(coverRepository) { }
+        , _coverRepository(coverRepository)
+        , _darkTheme(darkTheme) { }
 
     void GetViewSize(int& width, int& height) const override;
     SharedPtr<View> CreateView() const override;
     void ReleaseView(SharedPtr<View> view, int index) const override;
 
+    void InitVram(const VramContext& vramContext) override;
+
 private:
     const IRomBrowserViewFactory* _romBrowserViewFactory;
     VBlankTextureLoader* _vblankTextureLoader;
     const ICoverRepository* _coverRepository;
+    bool _darkTheme;
+    FavoriteBadgeVramToken _favoriteBadgeVramToken;
 
     TaskResult<void> BindView(SharedPtr<View> view, int index,
         const InternalFileInfo* internalFileInfo, const vu8& cancelRequested) const override;

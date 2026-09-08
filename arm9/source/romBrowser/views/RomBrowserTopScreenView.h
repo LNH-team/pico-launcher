@@ -29,7 +29,10 @@ private:
     SharedPtr<BannerView> _fileInfoView;
     std::unique_ptr<FileIcon> _selectedFileIcon;
     SharedPtr<FileCover> _selectedFileCover;
-    int _lastSelectedItem = -1;
+    // -2 (not -1) so it can never collide with GetSelectedItem()'s own "-1 = no selection"
+    // value - a fresh view opened into an already-empty list must still run its first Update()
+    // to actively clear the screen, instead of "-1 == -1" reading as "nothing changed".
+    int _lastSelectedItem = -2;
     bool _iconGraphicsUploaded = false;
     bool _coverGraphicsUploaded = false;
     bool _showCover;

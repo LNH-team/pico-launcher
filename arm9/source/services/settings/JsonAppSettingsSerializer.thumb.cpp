@@ -7,13 +7,14 @@
 
 #pragma GCC optimize("Os")
 
-#define JSON_RESERVED_SIZE  2048
+#define JSON_RESERVED_SIZE  4096
 
 #define KEY_LANGUAGE                 "language"
 #define KEY_ROM_BROWSER_LAYOUT       "romBrowserLayout"
 #define KEY_ROM_BROWSER_SORT_MODE    "romBrowserSortMode"
 #define KEY_THEME                    "theme"
 #define KEY_LAST_USED_FILE_PATH      "lastUsedFilePath"
+#define KEY_LAST_USED_FAVORITE_FILE_PATH  "lastUsedFavoriteFilePath"
 #define KEY_FILE_ASSOCIATIONS        "fileAssociations"
 #define KEY_FILE_ASSOCIATIONS_APPLICATION_PATH  "appPath"
 
@@ -123,12 +124,15 @@ static void serializeFileAssociations(DynamicJsonDocument& json, const AppSettin
 
 static std::unique_ptr<u8[]> writeJson(const AppSettings* appSettings, u32& length)
 {
-    DynamicJsonDocument json(JSON_RESERVED_SIZE);
+    size_t capacity = JSON_RESERVED_SIZE
+        + JSON_OBJECT_SIZE(appSettings->numberOfFileAssociations);
+    DynamicJsonDocument json(capacity);
     json[KEY_LANGUAGE] = appSettings->language.GetString();
     json[KEY_ROM_BROWSER_LAYOUT] = serializeRomBrowserLayout(appSettings->romBrowserDisplaySettings.layout);
     json[KEY_ROM_BROWSER_SORT_MODE] = serializeRomBrowserSortMode(appSettings->romBrowserDisplaySettings.sortMode);
     json[KEY_THEME] = appSettings->theme.GetString();
     json[KEY_LAST_USED_FILE_PATH] = appSettings->lastUsedFilePath.GetString();
+    json[KEY_LAST_USED_FAVORITE_FILE_PATH] = appSettings->lastUsedFavoriteFilePath.GetString();
     serializeFileAssociations(json, appSettings);
 
     u32 outputSize = measureJsonPretty(json);
@@ -167,6 +171,8 @@ static void readJson(AppSettings* appSettings, const JsonDocument& json)
     appSettings->language = json[KEY_LANGUAGE] | appSettings->language.GetString();
     appSettings->theme = json[KEY_THEME] | appSettings->theme.GetString();
     appSettings->lastUsedFilePath = json[KEY_LAST_USED_FILE_PATH] | appSettings->lastUsedFilePath.GetString();
+    appSettings->lastUsedFavoriteFilePath =
+        json[KEY_LAST_USED_FAVORITE_FILE_PATH] | appSettings->lastUsedFavoriteFilePath.GetString();
 
     RomBrowserLayout romBrowserLayout;
     if (tryParseRomBrowserLayout(json[KEY_ROM_BROWSER_LAYOUT].as<const char*>(),
@@ -184,28 +190,32 @@ static void readJson(AppSettings* appSettings, const JsonDocument& json)
     tryParseFileAssociations(json[KEY_FILE_ASSOCIATIONS], appSettings);
 }
 
-bool JsonAppSettingsSerializer::Deserialize(AppSettings* appSettings, const char* filePath) const
+DeserializeResult JsonAppSettingsSerializer::Deserialize(AppSettings* appSettings, const char* filePath) const
 {
     const auto file = std::make_unique<File>();
     if (file->Open(filePath, FA_READ | FA_OPEN_EXISTING) != FR_OK)
-        return false;
+        return DeserializeResult::NotFound;
 
     u32 fileSize = file->GetSize();
     if (fileSize == 0)
-        return false;
+        return DeserializeResult::Error;
 
     std::unique_ptr<u8[]> fileData(new(cache_align) u8[fileSize]);
     u8* fileDataPtr = fileData.get();
 
     u32 bytesRead = 0;
     if (file->Read(fileDataPtr, fileSize, bytesRead) != FR_OK)
-        return false;
+        return DeserializeResult::Error;
 
-    DynamicJsonDocument json(JSON_RESERVED_SIZE);
+    // fileDataPtr is a mutable u8* (not const), so ArduinoJson already parses it in place
+    // (zero-copy: it stores pointers into this buffer rather than duplicating strings), so
+    // the pool only needs to cover structural overhead, not the file's string content - this
+    // is comfortably covered by the file's own size plus a fixed floor for that overhead.
+    DynamicJsonDocument json(fileSize + JSON_RESERVED_SIZE);
     if (deserializeJson(json, fileDataPtr, fileSize) != DeserializationError::Ok)
-        return false;
+        return DeserializeResult::Error;
 
     readJson(appSettings, json);
 
-    return true;
+    return DeserializeResult::Success;
 }

@@ -21,7 +21,13 @@ public:
     {
         NoToggle,
         ToggleUnselected,
-        ToggleSelected
+        ToggleSelected,
+        // Dedicated "this toggle is on" look for the favorite button specifically - distinct
+        // from ToggleSelected/ToggleUnselected, which DisplaySettingsBottomSheetView's Tonal
+        // option toggles already use for their own "picked vs not" pair (colored vs muted
+        // capsule). Reusing either of those for the favorite button couples its look to an
+        // unrelated component's semantics.
+        ToggleActive
     };
 
     void SetIconVramOffset(u32 vramOffset) { _iconVramOffset = vramOffset; }
@@ -42,6 +48,11 @@ public:
         _state = state;
     }
 
+    void SetDisabled(bool disabled)
+    {
+        _disabled = disabled;
+    }
+
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
     void HandlePenDown(const Point& touchPoint, FocusManager& focusManager) override;
     void HandlePenMove(const Point& touchPoint, FocusManager& focusManager) override;
@@ -56,6 +67,7 @@ protected:
     State _state;
     const MaterialColorScheme* _materialColorScheme;
     bool _penDown = false;
+    bool _disabled = false;
 
     IconButtonView(Type type, State state,
         md::sys::color backgroundColor, const MaterialColorScheme* materialColorScheme)

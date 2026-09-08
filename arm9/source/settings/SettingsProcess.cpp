@@ -33,7 +33,6 @@ void SettingsProcess::Run()
     InitVramMapping();
     gx_init();
 
-    _chipViewVram = ChipView::UploadGraphics(_mainObjVram);
     _iconButtonViewVram = IconButton2DView::UploadGraphics(_mainObjVram);
 
     mem_setVramEMapping(MEM_VRAM_E_LCDC);

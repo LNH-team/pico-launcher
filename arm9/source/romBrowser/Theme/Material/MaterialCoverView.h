@@ -4,6 +4,7 @@
 #include "romBrowser/FileType/FileCover.h"
 #include "gui/VBlankTextureLoader.h"
 #include "romBrowser/viewModels/IRomBrowserItemViewModel.h"
+#include "romBrowser/views/FavoriteBadge.h"
 #include "romBrowser/views/RomBrowserItemInputHandler.h"
 
 class MaterialCoverView : public View
@@ -45,6 +46,15 @@ public:
 
     void UploadCoverGraphics();
 
+    void SetFavoriteBadgeGraphics(const FavoriteBadgeVramToken& vramToken)
+    {
+        _favoriteBadgeRenderer.SetVramToken(vramToken);
+    }
+
+    void DrawFavoriteBadge(GraphicsContext& graphicsContext, const Rectangle& bounds) const;
+
+    void CancelPen() { _inputHandler.CancelPen(); }
+
     IRomBrowserItemViewModel& GetViewModel() const
     {
         return *_viewModel;
@@ -57,9 +67,14 @@ private:
     VBlankTextureLoadRequest _textureLoadRequest;
     u32 _texVramOffset = 0;
     u32 _plttVramOffset = 0;
+    FavoriteBadgeRenderer _favoriteBadgeRenderer;
     RomBrowserItemInputHandler _inputHandler;
 
-    MaterialCoverView(std::unique_ptr<IRomBrowserItemViewModel> viewModel, VBlankTextureLoader* vblankTextureLoader)
+    MaterialCoverView(std::unique_ptr<IRomBrowserItemViewModel> viewModel,
+        VBlankTextureLoader* vblankTextureLoader, bool darkTheme)
         : _viewModel(std::move(viewModel)), _vblankTextureLoader(vblankTextureLoader)
-        , _inputHandler(this, _viewModel.get()) { }
+        , _inputHandler(this, _viewModel.get())
+    {
+        _favoriteBadgeRenderer.SetColor(FavoriteBadgeColor(darkTheme));
+    }
 };

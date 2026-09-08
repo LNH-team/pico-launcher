@@ -50,6 +50,12 @@ void MaterialCoverView::Draw(GraphicsContext& graphicsContext)
     }
 }
 
+void MaterialCoverView::DrawFavoriteBadge(
+    GraphicsContext& graphicsContext, const Rectangle& bounds) const
+{
+    _favoriteBadgeRenderer.Draw(graphicsContext, bounds, _viewModel->IsFavorite());
+}
+
 bool MaterialCoverView::HandleInput(const InputProvider& inputProvider, FocusManager& focusManager)
 {
     return _inputHandler.HandleInput(inputProvider, focusManager)

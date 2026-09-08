@@ -3,8 +3,11 @@
 #include "romBrowser/FileType/Nds/NdsFileType.h"
 #include "RomBrowserViewModel.h"
 
-RomBrowserViewModel::RomBrowserViewModel(IRomBrowserController* romBrowserController, const char* initialSelectedFileName)
+RomBrowserViewModel::RomBrowserViewModel(IRomBrowserController* romBrowserController,
+    const char* initialSelectedFileName, const char* initialSelectedFullPath,
+    int initialScrollOffset)
     : _romBrowserController(romBrowserController)
+    , _scrollOffset(initialScrollOffset)
 {
     SdFolderFilterSortParams filterSortParams;
     switch (romBrowserController->GetRomBrowserDisplaySettings().sortMode)
@@ -38,7 +41,11 @@ RomBrowserViewModel::RomBrowserViewModel(IRomBrowserController* romBrowserContro
     _fileInfoManager = std::make_unique<FileInfoManager>(std::move(sortedFilteredFiles),
         filteredCount, _romBrowserController->GetCoverRepository(), _romBrowserController->GetIconRepository(),
         _romBrowserController->GetBannerRepository());
-    _selectedItem = _fileInfoManager->GetItemIndex(initialSelectedFileName);
+    // A full path (favorites view) identifies exactly one entry, so it wins when present;
+    // browsed folders have no paths on their items and select by file name as before.
+    _selectedItem = initialSelectedFullPath != nullptr
+        ? _fileInfoManager->GetItemIndexByFullPath(initialSelectedFullPath)
+        : _fileInfoManager->GetItemIndex(initialSelectedFileName);
 }
 
 void RomBrowserViewModel::NavigateUp()

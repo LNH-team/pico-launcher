@@ -1,5 +1,6 @@
 #include "common.h"
 #include <algorithm>
+#include <string.h>
 #include <libtwl/mem/memVram.h>
 #include <libtwl/gfx/gfx.h>
 #include <libtwl/gfx/gfxOam.h>
@@ -15,11 +16,9 @@
 #include "core/math/ColorConverter.h"
 #include "core/math/RgbMixer.h"
 #include "gui/GraphicsContext.h"
-#include "romBrowser/views/ChipView.h"
 #include "picoLoaderBootstrap.h"
 #include "romBrowser/DisplayMode/RomBrowserDisplayModeFactory.h"
 #include "romBrowser/Theme/Material/MaterialThemeFileIconFactory.h"
-#include "romBrowser/views/NdsGameDetailsBottomSheetView.h"
 #include "romBrowser/views/cheats/CheatsBottomSheetView.h"
 #include "romBrowser/views/DisplaySettingsBottomSheetView.h"
 #include "bgm/AudioStreamPlayer.h"
@@ -32,7 +31,7 @@
 
 #define SPLASH_FRAMES       44
 
-App::App(IAppSettingsService& appSettingsService, IBgmService& bgmService)
+App::App(IAppSettingsService& appSettingsService, IFavoritesService& favoritesService, IBgmService& bgmService)
     : _mainObjPltt(GFX_PLTT_OBJ_MAIN)
     , _mainObjVram(GFX_OBJ_MAIN)
     , _mainObjDialogVram(GFX_OBJ_MAIN, 128 * 1024)
@@ -47,7 +46,7 @@ App::App(IAppSettingsService& appSettingsService, IBgmService& bgmService)
     , _inputRepeater(&_inputProvider,
         InputKey::DpadLeft | InputKey::DpadRight | InputKey::DpadUp | InputKey::DpadDown | InputKey::L | InputKey::R,
         25, 8)
-    , _romBrowserController(&appSettingsService, &_ioTaskQueue, &_bgTaskQueue)
+    , _romBrowserController(&appSettingsService, &favoritesService, &_ioTaskQueue, &_bgTaskQueue)
     , _displaySettingsBottomSheetViewModel(&_romBrowserController)
     , _romBrowserBottomScreenViewModel(&_romBrowserController)
     , _dialogPresenter(&_focusManager, &_mainObjDialogVram) { }
@@ -115,7 +114,6 @@ void App::Run()
     DisplaySplashScreen();
     gx_init();
 
-    _chipViewVram = ChipView::UploadGraphics(_mainObjVram);
     _iconButtonViewVram = IconButton2DView::UploadGraphics(_mainObjVram);
 
     mem_setVramEMapping(MEM_VRAM_E_LCDC);
@@ -137,7 +135,9 @@ void App::Run()
             _romBrowserController.GetRomBrowserDisplaySettings().layout),
         _theme->GetThemeFileIconFactory(),
         _theme->GetRomBrowserViewFactory(),
-        &_vblankTextureLoader);
+        &_vblankTextureLoader,
+        _theme->GetFontRepository(),
+        &_theme->GetMaterialColorScheme());
     _romBrowserBottomScreenView->InitVram(_mainVramContext);
 
     StoreVramState(_vramStateAfterMakeBottomScreenView);
@@ -294,15 +294,15 @@ void App::HandleTrigger(RomBrowserStateTrigger trigger, RomBrowserState newState
 
 void App::HandleShowGameInfoTrigger()
 {
-    // auto gameInfoDialog = std::make_unique<NdsGameDetailsBottomSheetView>(
-    //     &_romBrowserController, &_theme->GetMaterialColorScheme(), _theme->GetFontRepository());
-    // gameInfoDialog->SetGraphics(_chipViewVram);
-    // _dialogPresenter.ShowDialog(std::move(gameInfoDialog));
-
-    auto cheatsViewModel = SharedPtr<CheatsViewModel>::MakeShared(_romBrowserController.GetTriggerFileInfo(), &_romBrowserController);
-    auto cheatsDialog = CheatsBottomSheetView::CreateShared(
-        std::move(cheatsViewModel), &_theme->GetMaterialColorScheme(), _theme->GetFontRepository(), &_focusManager);
-    _dialogPresenter.ShowDialog(std::move(cheatsDialog));
+    bool isNds = strcmp(_romBrowserController.GetTriggerFileInfo().GetFileType()->GetShortName(), "nds") == 0;
+    if (isNds)
+    {
+        auto cheatsViewModel = SharedPtr<CheatsViewModel>::MakeShared(_romBrowserController.GetTriggerFileInfo(), &_romBrowserController);
+        auto cheatsDialog = CheatsBottomSheetView::CreateShared(
+            std::move(cheatsViewModel),
+            &_theme->GetMaterialColorScheme(), _theme->GetFontRepository(), &_focusManager);
+        _dialogPresenter.ShowDialog(std::move(cheatsDialog));
+    }
 }
 
 void App::HandleHideGameInfoTrigger()
@@ -361,7 +361,9 @@ void App::HandleChangeDisplayModeTrigger(RomBrowserState newState)
         displayMode,
         _theme->GetThemeFileIconFactory(),
         _theme->GetRomBrowserViewFactory(),
-        &_vblankTextureLoader);
+        &_vblankTextureLoader,
+        _theme->GetFontRepository(),
+        &_theme->GetMaterialColorScheme());
     _romBrowserBottomScreenView->InitVram(_mainVramContext);
     StoreVramState(_vramStateAfterMakeBottomScreenView);
     _romBrowserTopScreenView = RomBrowserTopScreenView::CreateShared(

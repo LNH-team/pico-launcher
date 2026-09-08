@@ -44,8 +44,24 @@ void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
 void RomBrowserTopScreenView::Update()
 {
     int selectedItem = _viewModel->GetSelectedItem();
-    if (selectedItem != _lastSelectedItem && selectedItem >= 0)
+    // selectedItem is -1 whenever nothing matched on navigation (FileInfoManager::GetItemIndex()'s
+    // not-found case, e.g. an empty folder or an empty favorites list). _lastSelectedItem defaults
+    // to -2 specifically so this can't collide with that -1 on a freshly-built view (App.cpp
+    // rebuilds this view on every navigation, including re-navigating into :favorites after
+    // unfavoriting the last item shown there) - otherwise "-1 == -1" reads as "nothing changed"
+    // and the screen never gets cleared, leaving the previous selection's icon/title on screen.
+    if (selectedItem != _lastSelectedItem)
     {
+        if (selectedItem < 0)
+        {
+            _fileInfoView->SetIcon(nullptr);
+            _fileInfoView->SetFileNameAsync(_viewModel->GetBgTaskQueue(), "", true);
+            _selectedFileCover.Reset();
+            _lastSelectedItem = selectedItem;
+            ViewContainer::Update();
+            return;
+        }
+
         auto& fileInfoManager = _viewModel->GetFileInfoManager();
         // GetInternalFileInfo() covers both game banners and custom icon overrides (the
         // latter apply to any file type, including folders), so check it directly instead

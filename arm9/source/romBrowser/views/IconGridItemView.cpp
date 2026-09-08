@@ -2,6 +2,13 @@
 #include "gui/IVramManager.h"
 #include "gui/VramContext.h"
 #include "gui/input/InputProvider.h"
+#include "gui/GraphicsContext.h"
+#include "gui/OamManager.h"
+#include "gui/OamBuilder.h"
+#include "gui/PaletteManager.h"
+#include "gui/palette/GradientPalette.h"
+#include "core/math/Rgb.h"
+#include "smallHeartIconFilled.h"
 #include "IconGridItemView.h"
 
 void IconGridItemView::InitVram(const VramContext& vramContext)
@@ -43,4 +50,14 @@ void IconGridItemView::HandlePenMove(const Point& touchPoint, FocusManager& focu
 void IconGridItemView::HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager)
 {
     _inputHandler.HandlePenUp(lastTouchPoint, focusManager);
+}
+
+FavoriteBadgeVramToken IconGridItemView::UploadFavoriteBadgeGraphics(const VramContext& vramContext)
+{
+    return FavoriteBadgeRenderer::UploadGraphics(vramContext);
+}
+
+void IconGridItemView::DrawFavoriteBadge(GraphicsContext& graphicsContext) const
+{
+    _favoriteBadgeRenderer.Draw(graphicsContext, GetBounds(), _viewModel->IsFavorite());
 }

@@ -29,5 +29,5 @@ private:
     u32 _bgVramOffset;
 
     MaterialBannerListItemView(std::unique_ptr<IRomBrowserItemViewModel> viewModel,
-        const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository);
+        const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository, bool darkTheme);
 };

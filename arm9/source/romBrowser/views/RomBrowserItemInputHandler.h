@@ -17,6 +17,8 @@ public:
     void HandlePenMove(const Point& touchPoint, FocusManager& focusManager);
     void HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager);
 
+    void CancelPen() { _penDown = false; }
+
     bool IsPenDown() const { return _penDown; }
 
 private:

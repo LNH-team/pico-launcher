@@ -23,6 +23,7 @@ public:
 private:
     const IRomBrowserViewFactory* _romBrowserViewFactory;
     IconGridItemView::VramToken _iconGridItemViewGraphics;
+    FavoriteBadgeVramToken _favoriteBadgeVramToken;
 
     TaskResult<void> BindView(SharedPtr<View> view, int index,
         const InternalFileInfo* internalFileInfo, const vu8& cancelRequested) const override;

@@ -2,6 +2,7 @@
 #include "common.h"
 #include <memory>
 #include "services/settings/IAppSettingsService.h"
+#include "services/favorites/IFavoritesService.h"
 #include "bgm/IBgmService.h"
 #include "services/process/IProcess.h"
 #include "gui/SimplePaletteManager.h"
@@ -24,7 +25,6 @@
 #include "romBrowser/views/RomBrowserBottomScreenView.h"
 #include "romBrowser/views/RomBrowserTopScreenView.h"
 #include "romBrowser/views/IconButton2DView.h"
-#include "romBrowser/views/ChipView.h"
 #include "romBrowser/RomBrowserController.h"
 #include "DialogPresenter.h"
 #include "themes/ITheme.h"
@@ -33,7 +33,7 @@
 class alignas(32) App : public IProcess
 {
 public:
-    App(IAppSettingsService& appSettingsService, IBgmService& bgmService);
+    App(IAppSettingsService& appSettingsService, IFavoritesService& favoritesService, IBgmService& bgmService);
 
     void Run() override;
     void Exit() override;
@@ -97,7 +97,6 @@ private:
     VramState _vramStateAfterMakeBottomScreenView;
     bool _changeDisplayMode = false;
 
-    ChipView::VramToken _chipViewVram;
     IconButton2DView::VramToken _iconButtonViewVram;
 
     bool _vcountIrqStarted = false;
