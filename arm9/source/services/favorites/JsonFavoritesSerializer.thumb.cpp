@@ -161,18 +161,36 @@ FavoritesDeserializeResult JsonFavoritesSerializer::Deserialize(AppFavorites* ap
     // that failed to parse: only the former is safe to discard.
     bool promotedTempFile = false;
     FILINFO tempFileInfo;
-    if (f_stat(tempPath, &tempFileInfo) == FR_OK)
+    FRESULT tempStatResult = f_stat(tempPath, &tempFileInfo);
+    if (tempStatResult == FR_OK)
     {
         FILINFO liveFileInfo;
-        if (f_stat(filePath, &liveFileInfo) == FR_OK)
+        FRESULT liveStatResult = f_stat(filePath, &liveFileInfo);
+        if (liveStatResult == FR_OK)
         {
             f_unlink(tempPath);
         }
-        else if (f_rename(tempPath, filePath) == FR_OK)
+        else if (liveStatResult == FR_NO_FILE || liveStatResult == FR_NO_PATH)
         {
+            if (f_rename(tempPath, filePath) != FR_OK)
+            {
+                // The complete temp file is all that remains after an interrupted swap. Do
+                // not report this as a first run: JsonFavoritesService would save an empty
+                // list and truncate the only recoverable copy.
+                LOG_ERROR("Couldn't recover interrupted favorites save\n");
+                return FavoritesDeserializeResult::Error;
+            }
             promotedTempFile = true;
             LOG_WARNING("Recovered favorites from an interrupted save\n");
         }
+        else
+        {
+            return FavoritesDeserializeResult::Error;
+        }
+    }
+    else if (tempStatResult != FR_NO_FILE && tempStatResult != FR_NO_PATH)
+    {
+        return FavoritesDeserializeResult::Error;
     }
 
     const auto file = std::make_unique<File>();
