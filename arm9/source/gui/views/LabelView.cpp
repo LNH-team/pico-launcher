@@ -103,6 +103,21 @@ void LabelView::UpdateTileBuffer()
     {
         _newStringWidth = 0;
     }
+
+    // The buffer now reflects the current ellipsis style, so there is no more
+    // pending work for Update() to do. Clearing this here (rather than only in
+    // Update(), after the fact) matters because SetEllipsisStyle()+SetText()/
+    // SetTextAsync() are called back-to-back from the banner list's background
+    // IO task while binding a row. If we left the flag set, the next frame's
+    // Update() (main thread) would redundantly call UpdateTileBuffer() again on
+    // this same LabelView - and by then the row may already have been recycled
+    // and be mid-bind for a *different* item on the IO thread, so the two
+    // unsynchronized UpdateTileBuffer() calls race on the same _textBuffer/
+    // _tileBuffer, producing blank or wrong-looking list rows. Every caller of
+    // SetEllipsisStyle() in this codebase immediately follows it with a
+    // SetText()/SetTextAsync() call, so the render this function just did is
+    // already up to date - there is nothing left for Update() to redo.
+    _ellipsisStyleChanged = false;
 }
 
 QueueTask<void> LabelView::UpdateTileBufferAsync(TaskQueueBase* taskQueue)

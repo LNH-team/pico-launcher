@@ -28,6 +28,11 @@ void BannerListFileRecyclerAdapter::BindView(SharedPtr<View> view, int index) co
 TaskResult<void> BannerListFileRecyclerAdapter::BindView(SharedPtr<View> view, int index,
     const InternalFileInfo* internalFileInfo, const vu8& cancelRequested) const
 {
+    if (cancelRequested)
+    {
+        return TaskResult<void>::Canceled();
+    }
+
     auto listItemView = static_cast<BannerListItemView*>(view.GetPointer());
     listItemView->GetViewModel().SetIndex(index);
     const auto& fileInfo = _fileInfoManager->GetItem(index);

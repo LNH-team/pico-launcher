@@ -33,10 +33,15 @@ public:
 
     void DisposeQueueTaskWhenComplete() override
     {
-        if (_queueTask.GetTask().IsCompleted())
+        if (_queueTask.IsValid() && _queueTask.GetTask().IsCompleted())
         {
             _queueTask.Dispose();
         }
+    }
+
+    bool IsQueueTaskPending() const override
+    {
+        return _queueTask.IsValid() && !_queueTask.GetTask().IsCompleted();
     }
 
     const ThemeInfoManager::ExtraThemeInfo* GetExtraThemeInfo() const
