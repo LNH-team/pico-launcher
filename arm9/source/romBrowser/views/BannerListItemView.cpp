@@ -21,6 +21,25 @@ void BannerListItemView::Update()
 {
     _viewModel->DisposeQueueTaskWhenComplete();
 
+    // While this row's background load task is still pending, its completion
+    // will call SetGameTitle()/SetFileName() - which render straight into
+    // _firstLine/_secondLine/_thirdLine's text buffers - from the IO thread.
+    // Marquee scrolling (below, via ViewContainer::Update() -> LabelView::
+    // Update()) re-renders those same buffers every frame from the *main*
+    // thread with no locking, so letting it run while the load is still in
+    // flight races the IO thread and produces blank/garbled or wrong text -
+    // most visibly on the focused row, since that's the one marquee applies
+    // to. Skip it for this frame; once the load task completes it'll pick up
+    // normally on the next one.
+    if (_viewModel->IsQueueTaskPending())
+    {
+        if (_icon)
+        {
+            _icon->Update();
+        }
+        return;
+    }
+
     if (IsFocused())
     {
         _firstLine->SetEllipsisStyle(LabelView::EllipsisStyle::Marquee);

@@ -9,6 +9,7 @@
 - Support for custom folder covers via a cover.bmp file placed inside the folder - by @tasken
 
 ### Fixed
+- Banner list rows no longer race with their background load task, which could write a title into a row that had already been recycled
 - Top screen cover is now displayed/hidden correctly when placed partially or fully off-screen
 - DSi banners with missing DSi part now fall back to the DS icon
 - Game-code cover lookup no longer searches on a stale buffer when a file has no game code

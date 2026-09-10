@@ -28,6 +28,11 @@ public:
         if (_task)
         {
             _task->RequestCancel();
+            // RequestCancel() only sets a flag - a task that is already Running on the
+            // IO thread keeps executing until its next cancellation check. Block here
+            // until it actually reaches Canceled/Completed before we let the caller
+            // treat whatever it was touching (a view, a FileInfoManager slot) as free.
+            _task->Wait();
             Dispose();
         }
     }
