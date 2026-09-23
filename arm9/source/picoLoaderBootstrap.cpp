@@ -22,6 +22,7 @@ static pload_params_t sLoadParams;
 static char sLauncherPath[256] alignas(32);
 static PicoLoaderBootDrive sBootDrive;
 static const pload_cheats_t* sCheatData = nullptr;
+static u16 sGameLanguage = PLOAD_GAME_LANGUAGE_AUTO;
 
 pload_params_t* pload_getLoadParams()
 {
@@ -41,6 +42,11 @@ void pload_setLauncherPath(const char* launcherPath)
 void pload_setCheatData(const pload_cheats_t* cheatData)
 {
     sCheatData = cheatData;
+}
+
+void pload_setGameLanguage(u16 gameLanguage)
+{
+    sGameLanguage = gameLanguage;
 }
 
 void pload_start()
@@ -101,6 +107,10 @@ void pload_start()
     if (header->apiVersion >= 3)
     {
         header->v3.cheats = sCheatData;
+    }
+    if (header->apiVersion >= 4)
+    {
+        header->v4.gameLanguage = sGameLanguage;
     }
     mem_setVramCMapping(MEM_VRAM_C_ARM7_00000);
     mem_setVramDMapping(MEM_VRAM_D_ARM7_20000);

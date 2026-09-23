@@ -13,6 +13,7 @@
 #define KEY_ROM_BROWSER_LAYOUT       "romBrowserLayout"
 #define KEY_ROM_BROWSER_SORT_MODE    "romBrowserSortMode"
 #define KEY_THEME                    "theme"
+#define KEY_GAME_LANGUAGE            "gameLanguage"
 #define KEY_LAST_USED_FILE_PATH      "lastUsedFilePath"
 #define KEY_FILE_ASSOCIATIONS        "fileAssociations"
 #define KEY_FILE_ASSOCIATIONS_APPLICATION_PATH  "appPath"
@@ -91,6 +92,57 @@ static bool tryParseRomBrowserSortMode(
     return true;
 }
 
+/// @brief Game language names in settings.json, indexed by \see PicoLoaderGameLanguage.
+static const char* const sGameLanguageNames[] =
+{
+    "japanese",
+    "english",
+    "french",
+    "german",
+    "italian",
+    "spanish",
+    "chinese",
+    "korean"
+};
+static_assert(sizeof(sGameLanguageNames) / sizeof(sGameLanguageNames[0]) == PLOAD_GAME_LANGUAGE_KOREAN + 1);
+
+static const char* serializeGameLanguage(PicoLoaderGameLanguage gameLanguage)
+{
+    if (gameLanguage <= PLOAD_GAME_LANGUAGE_KOREAN)
+    {
+        return sGameLanguageNames[gameLanguage];
+    }
+    else
+    {
+        return "auto";
+    }
+}
+
+static bool tryParseGameLanguage(const char* gameLanguageString, PicoLoaderGameLanguage& gameLanguage)
+{
+    if (!gameLanguageString)
+    {
+        return false;
+    }
+
+    if (!strcasecmp(gameLanguageString, "auto"))
+    {
+        gameLanguage = PLOAD_GAME_LANGUAGE_AUTO;
+        return true;
+    }
+
+    for (u32 i = 0; i < sizeof(sGameLanguageNames) / sizeof(sGameLanguageNames[0]); i++)
+    {
+        if (!strcasecmp(gameLanguageString, sGameLanguageNames[i]))
+        {
+            gameLanguage = (PicoLoaderGameLanguage)i;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static bool tryParseFileAssociations(const JsonObjectConst& json, AppSettings* appSettings)
 {
     if (json.isNull())
@@ -128,6 +180,7 @@ static std::unique_ptr<u8[]> writeJson(const AppSettings* appSettings, u32& leng
     json[KEY_ROM_BROWSER_LAYOUT] = serializeRomBrowserLayout(appSettings->romBrowserDisplaySettings.layout);
     json[KEY_ROM_BROWSER_SORT_MODE] = serializeRomBrowserSortMode(appSettings->romBrowserDisplaySettings.sortMode);
     json[KEY_THEME] = appSettings->theme.GetString();
+    json[KEY_GAME_LANGUAGE] = serializeGameLanguage(appSettings->gameLanguage);
     json[KEY_LAST_USED_FILE_PATH] = appSettings->lastUsedFilePath.GetString();
     serializeFileAssociations(json, appSettings);
 
@@ -179,6 +232,11 @@ static void readJson(AppSettings* appSettings, const JsonDocument& json)
             romBrowserSortMode))
     {
         appSettings->romBrowserDisplaySettings.sortMode = romBrowserSortMode;
+    }
+    PicoLoaderGameLanguage gameLanguage;
+    if (tryParseGameLanguage(json[KEY_GAME_LANGUAGE].as<const char*>(), gameLanguage))
+    {
+        appSettings->gameLanguage = gameLanguage;
     }
 
     tryParseFileAssociations(json[KEY_FILE_ASSOCIATIONS], appSettings);

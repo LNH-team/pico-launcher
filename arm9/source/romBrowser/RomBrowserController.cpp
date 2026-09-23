@@ -247,6 +247,7 @@ void RomBrowserController::SetPicoLoaderParams() const
     loadParams->savePath[0] = 0;
     loadParams->arguments[0] = 0;
     loadParams->argumentsLength = 0;
+    pload_setGameLanguage(_appSettingsService->GetAppSettings().gameLanguage);
     if (_triggerFileInfo.GetFileType()->TrySetLaunchParameters(loadParams, _navigatePath))
     {
         gProcessManager.Goto<PicoLoaderProcess>();
