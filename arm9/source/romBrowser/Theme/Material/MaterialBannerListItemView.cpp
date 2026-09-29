@@ -19,12 +19,15 @@
 #include "MaterialBannerListItemView.h"
 
 MaterialBannerListItemView::MaterialBannerListItemView(std::unique_ptr<IRomBrowserItemViewModel> viewModel,
-    const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository)
+    const MaterialColorScheme* materialColorScheme, const IFontRepository* fontRepository, bool darkTheme)
     : BannerListItemView(std::move(viewModel),
         Label2DView::CreateShared(152, 16, 128, fontRepository->GetFont(FontType::Medium10)),
         Label2DView::CreateShared(152, 16, 128, fontRepository->GetFont(FontType::Regular10)),
         Label2DView::CreateShared(152, 16, 128, fontRepository->GetFont(FontType::Regular10)))
-    , _materialColorScheme(materialColorScheme) { }
+    , _materialColorScheme(materialColorScheme)
+{
+    SetFavoriteBadgeColor(FavoriteBadgeColor(darkTheme));
+}
 
 void MaterialBannerListItemView::Draw(GraphicsContext& graphicsContext)
 {
@@ -122,6 +125,8 @@ void MaterialBannerListItemView::Draw(GraphicsContext& graphicsContext)
         _icon->SetPosition(6 + _position.x, 6 + _position.y);
         _icon->Draw(graphicsContext, frontColor);
     }
+
+    DrawFavoriteBadge(graphicsContext);
 }
 
 BannerListItemView::VramToken MaterialBannerListItemView::UploadGraphics(const VramContext& vramContext)

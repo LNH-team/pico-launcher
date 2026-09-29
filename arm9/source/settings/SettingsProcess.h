@@ -14,7 +14,6 @@
 #include "gui/input/PadInputSource.h"
 #include "gui/input/SampledInputProvider.h"
 #include "gui/input/TouchInputSource.h"
-#include "romBrowser/views/ChipView.h"
 #include "romBrowser/views/IconButton2DView.h"
 #include "settings/views/ThemeListTopView.h"
 #include "settings/views/ThemeListBottomView.h"
@@ -64,7 +63,6 @@ private:
 
     FocusManager _focusManager;
 
-    ChipView::VramToken _chipViewVram;
     IconButton2DView::VramToken _iconButtonViewVram;
 
     bool _vcountIrqStarted = false;

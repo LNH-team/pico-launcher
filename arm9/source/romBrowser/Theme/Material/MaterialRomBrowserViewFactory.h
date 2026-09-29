@@ -15,12 +15,12 @@ class MaterialRomBrowserViewFactory : public IRomBrowserViewFactory
 {
 public:
     MaterialRomBrowserViewFactory(const MaterialColorScheme* materialColorScheme,
-        const IFontRepository* fontRepository)
-        : _materialColorScheme(materialColorScheme), _fontRepository(fontRepository) { }
+        const IFontRepository* fontRepository, bool darkTheme)
+        : _materialColorScheme(materialColorScheme), _fontRepository(fontRepository), _darkTheme(darkTheme) { }
 
     SharedPtr<IconGridItemView> CreateIconGridItemView(std::unique_ptr<IRomBrowserItemViewModel> viewModel) const override
     {
-        return MaterialIconGridItemView::CreateShared(std::move(viewModel), _materialColorScheme);
+        return MaterialIconGridItemView::CreateShared(std::move(viewModel), _materialColorScheme, _darkTheme);
     }
 
     IconGridItemView::VramToken UploadIconGridItemViewGraphics(
@@ -32,7 +32,7 @@ public:
     SharedPtr<BannerListItemView> CreateBannerListItemView(std::unique_ptr<IRomBrowserItemViewModel> viewModel,
         VBlankTextureLoader* vblankTextureLoader) const override
     {
-        return MaterialBannerListItemView::CreateShared(std::move(viewModel), _materialColorScheme, _fontRepository);
+        return MaterialBannerListItemView::CreateShared(std::move(viewModel), _materialColorScheme, _fontRepository, _darkTheme);
     }
 
     BannerListItemView::VramToken UploadBannerListItemViewGraphics(
@@ -63,7 +63,8 @@ public:
     {
         return SharedPtr<MaterialCoverFlowFileRecyclerAdapter>::MakeShared(viewModel->GetRomBrowserController(),
             &viewModel->GetFileInfoManager(), viewModel->GetIoTaskQueue(),
-            themeFileIconFactory, this, vblankTextureLoader, &viewModel->GetCoverRepository());
+            themeFileIconFactory, this, vblankTextureLoader, &viewModel->GetCoverRepository(),
+            _darkTheme);
     }
 
     Point GetTopCoverPosition() const override
@@ -74,4 +75,5 @@ public:
 private:
     const MaterialColorScheme* _materialColorScheme;
     const IFontRepository* _fontRepository;
+    bool _darkTheme;
 };

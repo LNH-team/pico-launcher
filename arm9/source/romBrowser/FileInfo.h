@@ -10,7 +10,8 @@ class FileInfo
 public:
     FileInfo() { }
     FileInfo(const FileInfo& fileInfo);
-    FileInfo(const TCHAR* fileName, const FileType* type, const FastFileRef& fastFileRef, u8 attributes);
+    FileInfo(const TCHAR* fileName, const FileType* type, const FastFileRef& fastFileRef, u8 attributes,
+        const TCHAR* fullPath = nullptr);
 
     FileInfo &operator=(FileInfo&& rhs)
     {
@@ -19,6 +20,8 @@ public:
             _name = std::move(rhs._name);
             _type = rhs._type;
             _fastFileRef = rhs._fastFileRef;
+            _attributes = rhs._attributes;
+            _fullPath = std::move(rhs._fullPath);
         }
 
         return *this;
@@ -27,6 +30,11 @@ public:
     const TCHAR* GetFileName() const { return _name.get(); }
     const FileType* GetFileType() const { return _type; }
     u32 GetFileSize() const { return _fastFileRef.GetFileSize(); }
+
+    /// @brief Gets the full path of this file, if it was constructed with one
+    ///        (currently only true for synthetic entries in the favorites list).
+    ///        Returns nullptr otherwise.
+    const TCHAR* GetFullPath() const { return _fullPath.get(); }
 
     InternalFileInfo* CreateInternalFileInfo() const
     {
@@ -44,4 +52,5 @@ private:
     const FileType* _type;
     FastFileRef _fastFileRef;
     u8 _attributes;
+    std::unique_ptr<TCHAR[]> _fullPath;
 };

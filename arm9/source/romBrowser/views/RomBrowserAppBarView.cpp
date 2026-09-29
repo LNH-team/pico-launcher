@@ -5,6 +5,7 @@
 #include "backIcon.h"
 #include "settingsIcon.h"
 #include "heartIcon.h"
+#include "smallHeartIconFilled.h"
 #include "recentIcon.h"
 #include "hGridIcon.h"
 #include "vGridIcon.h"
@@ -20,17 +21,49 @@ RomBrowserAppBarView::RomBrowserAppBarView(
     const IRomBrowserViewFactory* romBrowserViewFactory)
     : _viewModel(viewModel)
 {
-    _appBarView = displayMode.CreateAppBarView(romBrowserViewFactory, 1, 1);
+    _appBarView = displayMode.CreateAppBarView(romBrowserViewFactory, 1, 2);
     AddChildTail(_appBarView.GetPointer());
 
     _appBarView->SetButtonAction(APP_BAR_BUTTON_BACK, [] (IconButtonView* sender, void* arg)
     {
         ((RomBrowserAppBarViewModel*)arg)->NavigateUp();
     }, _viewModel);
+    _appBarView->SetButtonAction(APP_BAR_BUTTON_FAVORITE, [] (IconButtonView* sender, void* arg)
+    {
+        ((RomBrowserAppBarViewModel*)arg)->ToggleFavoritesView();
+    }, _viewModel);
     _appBarView->SetButtonAction(APP_BAR_BUTTON_DISPLAY_SETTINGS, [] (IconButtonView* sender, void* arg)
     {
         ((RomBrowserAppBarViewModel*)arg)->ShowDisplaySettings();
     }, _viewModel);
+}
+
+void RomBrowserAppBarView::Update()
+{
+    bool isAtRoot = _viewModel->IsAtRoot();
+    if (isAtRoot != _lastIsAtRoot)
+    {
+        _lastIsAtRoot = isAtRoot;
+        _appBarView->SetButtonDisabled(APP_BAR_BUTTON_BACK, isAtRoot);
+    }
+    int isFavoritesView = _viewModel->IsFavoritesView() ? 1 : 0;
+    if (isFavoritesView != _lastIsFavoritesView)
+    {
+        _lastIsFavoritesView = isFavoritesView;
+        // NoToggle for "not favorites" matches the Back/DisplaySettings buttons on both themes.
+        // ToggleActive is a state dedicated to this button (see IconButtonView::State) so its
+        // "favorited" look doesn't depend on borrowing a state meant for something else.
+        _appBarView->SetButtonState(APP_BAR_BUTTON_FAVORITE, isFavoritesView
+            ? IconButtonView::State::ToggleActive
+            : IconButtonView::State::NoToggle);
+        // The icon switches with the state: outline heart while browsing, filled
+        // heart while the favorites view is active. InitVram() applies the icon
+        // for the current state itself, so a pre-InitVram Update() is harmless.
+        _appBarView->SetButtonIcon(APP_BAR_BUTTON_FAVORITE, isFavoritesView
+            ? _heartIconFilledVramOffset
+            : _heartIconVramOffset);
+    }
+    ViewContainer::Update();
 }
 
 void RomBrowserAppBarView::InitVram(const VramContext& vramContext)
@@ -52,9 +85,16 @@ void RomBrowserAppBarView::InitVram(const VramContext& vramContext)
         // dma_ntrCopy32(3, settingsIconTiles, objVramManager->GetVramAddress(settingsIconVramOffset), settingsIconTilesLen);
         // _appBarView->SetButtonIcon(APP_BAR_BUTTON_SETTINGS, settingsIconVramOffset);
 
-        // u32 heartIconVramOffset = objVramManager->Alloc(heartIconTilesLen);
-        // dma_ntrCopy32(3, heartIconTiles, objVramManager->GetVramAddress(heartIconVramOffset), heartIconTilesLen);
-        // _appBarView->SetButtonIcon(APP_BAR_BUTTON_FAVORITE, heartIconVramOffset);
+        _heartIconVramOffset = objVramManager->Alloc(heartIconTilesLen);
+        dma_ntrCopy32(3, heartIconTiles, objVramManager->GetVramAddress(_heartIconVramOffset), heartIconTilesLen);
+
+        _heartIconFilledVramOffset = objVramManager->Alloc(smallHeartIconFilledTilesLen);
+        dma_ntrCopy32(3, smallHeartIconFilledTiles,
+            objVramManager->GetVramAddress(_heartIconFilledVramOffset), smallHeartIconFilledTilesLen);
+
+        _appBarView->SetButtonIcon(APP_BAR_BUTTON_FAVORITE, _lastIsFavoritesView == 1
+            ? _heartIconFilledVramOffset
+            : _heartIconVramOffset);
 
         // u32 recentIconVramOffset = objVramManager->Alloc(recentIconTilesLen);
         // dma_ntrCopy32(3, recentIconTiles, objVramManager->GetVramAddress(recentIconVramOffset), recentIconTilesLen);

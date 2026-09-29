@@ -11,7 +11,9 @@ class ICoverRepository;
 class RomBrowserViewModel
 {
 public:
-    RomBrowserViewModel(IRomBrowserController* romBrowserController, const char* initialSelectedFileName = nullptr);
+    RomBrowserViewModel(IRomBrowserController* romBrowserController,
+        const char* initialSelectedFileName = nullptr, const char* initialSelectedFullPath = nullptr,
+        int initialScrollOffset = 0);
 
     IRomBrowserController* GetRomBrowserController() const { return _romBrowserController; }
     FileInfoManager& GetFileInfoManager() const { return *_fileInfoManager; }
@@ -21,6 +23,8 @@ public:
 
     constexpr int GetSelectedItem() const { return _selectedItem; }
     void SetSelectedItem(int selectedItem) { _selectedItem = selectedItem; }
+    constexpr int GetScrollOffset() const { return _scrollOffset; }
+    void SetScrollOffset(int scrollOffset) { _scrollOffset = scrollOffset; }
 
     constexpr u32 GetIconFrameCounter() const { return _iconFrameCounter; }
     void SetIconFrameCounter(u32 iconFrameCounter) { _iconFrameCounter = iconFrameCounter; }
@@ -31,5 +35,6 @@ private:
     IRomBrowserController* _romBrowserController;
     std::unique_ptr<FileInfoManager> _fileInfoManager;
     int _selectedItem = -1;
+    int _scrollOffset = 0;
     u32 _iconFrameCounter = 0;
 };

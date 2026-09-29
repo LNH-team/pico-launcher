@@ -100,6 +100,11 @@ void CoverView::UploadCoverGraphics()
     }
 }
 
+void CoverView::DrawFavoriteBadge(GraphicsContext& graphicsContext) const
+{
+    _favoriteBadgeRenderer.Draw(graphicsContext, GetBounds(), _viewModel->IsFavorite());
+}
+
 bool CoverView::HandleInput(const InputProvider& inputProvider, FocusManager& focusManager)
 {
     return _inputHandler.HandleInput(inputProvider, focusManager)

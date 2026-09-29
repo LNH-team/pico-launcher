@@ -12,11 +12,17 @@ From here you can browse your SD card to launch homebrew and games.
 - A: Open a folder, or to launch a homebrew or game.
 - B: Go to the parent folder or close a menu.
 - L and R: Scroll quickly when there are many items in a folder.
+- X: Add or remove the selected item from your favorites.
 - Y: Open the cheats panel (see [Cheats](Cheats.md)).
 
-The back arrow on the top left of the bottom screen can also be used to go up to the parent folder.
+The back arrow on the top left of the bottom screen can also be used to go up to the parent folder. The heart icon on the top right of the bottom screen opens your favorites.
 
 Touch input is also supported.
+
+## Favorites
+Press X to add or remove the selected game or folder from your favorites. The heart icon opens the favorites list; pressing it again returns to the previous folder.
+
+Favorites are stored in `/_pico/favorites.json`. Pico Launcher also remembers the last game launched from favorites and selects it the next time the favorites list is opened on startup.
 
 ## Settings menu
 The settings menu can be accessed by using the DPAD to move the selector to the cogwheel icon and pressing A. When in the settings menu, press the B button will to return to the file browser.
@@ -47,4 +53,5 @@ Settings are stored on your SD card in `/_pico/settings.json`. They can be edite
 - `romBrowserSortMode` - Specified if folder contents should be sorted from A to Z (`NameAscending`), or from Z to A (`NameDescending`). This setting can be changed from within Pico Launcher.
 - `theme`: Specifies the folder name of the theme to use. If the theme cannot be found, a default fallback theme will be used.
 - `lastUsedFilePath` - Specifies the path of the most recently launched homebrew or game, such that it can be selected the next time Pico Launcher is started. It is automatically updated by Pico Launcher.
+- `lastUsedFavoriteFilePath` - Specifies the path of the most recently launched homebrew or game that was launched from the favorites list, such that it can be selected the next time Pico Launcher is started in that list. It is automatically updated by Pico Launcher.
 - `fileAssociations` - See [FileAssociations.md](/docs/FileAssociations.md) for information about how to use this setting.

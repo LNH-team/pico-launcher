@@ -27,7 +27,8 @@ RecyclerView::~RecyclerView()
     }
 }
 
-void RecyclerView::SetAdapter(SharedPtr<const RecyclerAdapter> adapter, int initialSelectedIndex)
+void RecyclerView::SetAdapter(SharedPtr<const RecyclerAdapter> adapter,
+    int initialSelectedIndex, int initialScrollOffset)
 {
     if (_adapter)
     {
@@ -89,6 +90,7 @@ void RecyclerView::SetAdapter(SharedPtr<const RecyclerAdapter> adapter, int init
     {
         initialSelectedIndex = 0;
     }
+    SetScrollOffset(initialScrollOffset, false);
     EnsureVisible(initialSelectedIndex, false);
 
     if (_itemCount > 0)

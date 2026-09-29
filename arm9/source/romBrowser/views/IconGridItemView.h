@@ -4,8 +4,11 @@
 #include "gui/views/View.h"
 #include "../FileType/FileIcon.h"
 #include "RomBrowserItemInputHandler.h"
+#include "FavoriteBadge.h"
 
 class MaterialColorScheme;
+class GraphicsContext;
+class VramContext;
 
 class IconGridItemView : public View
 {
@@ -50,6 +53,18 @@ public:
 
     virtual void SetGraphics(const VramToken& vramToken) { }
 
+    void SetFavoriteBadgeGraphics(const FavoriteBadgeVramToken& vramToken)
+    {
+        _favoriteBadgeRenderer.SetVramToken(vramToken);
+    }
+
+    void SetFavoriteBadgeColor(const Rgb<8, 8, 8>& color)
+    {
+        _favoriteBadgeRenderer.SetColor(color);
+    }
+
+    static FavoriteBadgeVramToken UploadFavoriteBadgeGraphics(const VramContext& vramContext);
+
     IRomBrowserItemViewModel& GetViewModel() const
     {
         return *_viewModel;
@@ -60,8 +75,11 @@ protected:
     std::unique_ptr<FileIcon> _icon;
     vu16* _iconVram;
     u32 _iconVramOffset;
+    FavoriteBadgeRenderer _favoriteBadgeRenderer;
     RomBrowserItemInputHandler _inputHandler;
 
     explicit IconGridItemView(std::unique_ptr<IRomBrowserItemViewModel> viewModel)
         : _viewModel(std::move(viewModel)), _inputHandler(this, _viewModel.get()) { }
+
+    void DrawFavoriteBadge(GraphicsContext& graphicsContext) const;
 };

@@ -19,6 +19,11 @@ bool RomBrowserItemInputHandler::HandleInput(const InputProvider& inputProvider,
         _viewModel->ShowGameInfo();
         return true;
     }
+    else if (inputProvider.Triggered(InputKey::X))
+    {
+        _viewModel->ToggleFavorite();
+        return true;
+    }
     else
     {
         return false;

@@ -84,3 +84,23 @@ int FileInfoManager::GetItemIndex(const char* fileName)
     }
     return -1;
 }
+
+int FileInfoManager::GetItemIndexByFullPath(const char* fullPath)
+{
+    if (fullPath == nullptr || fullPath[0] == 0)
+    {
+        return -1;
+    }
+    for (u32 i = 0; i < _itemCount; i++)
+    {
+        const char* itemFullPath = _items[i]->GetFullPath();
+        // Matching on the path rather than the file name matters here: two favorites living
+        // in different folders can share a name, and the name match would pick whichever
+        // sorted first.
+        if (itemFullPath != nullptr && strcmp(fullPath, itemFullPath) == 0)
+        {
+            return i;
+        }
+    }
+    return -1;
+}

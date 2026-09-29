@@ -4,6 +4,10 @@
 #include "../FileType/FileIcon.h"
 #include "romBrowser/viewModels/IRomBrowserItemViewModel.h"
 #include "RomBrowserItemInputHandler.h"
+#include "FavoriteBadge.h"
+
+class GraphicsContext;
+class VramContext;
 
 class BannerListItemView : public BannerView
 {
@@ -29,6 +33,18 @@ public:
     void HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager) override;
 
     virtual void SetGraphics(const VramToken& vramToken) { }
+
+    void SetFavoriteBadgeGraphics(const FavoriteBadgeVramToken& vramToken)
+    {
+        _favoriteBadgeRenderer.SetVramToken(vramToken);
+    }
+
+    void SetFavoriteBadgeColor(const Rgb<8, 8, 8>& color)
+    {
+        _favoriteBadgeRenderer.SetColor(color);
+    }
+
+    static FavoriteBadgeVramToken UploadFavoriteBadgeGraphics(const VramContext& vramContext);
 
     void SetFirstLineAsync(TaskQueueBase* taskQueue, const char* firstLine, bool ellipsis) override
     {
@@ -100,7 +116,10 @@ protected:
     SharedPtr<LabelView> _secondLine;
     SharedPtr<LabelView> _thirdLine;
     RomBrowserItemInputHandler _inputHandler;
+    FavoriteBadgeRenderer _favoriteBadgeRenderer;
 
     BannerListItemView(std::unique_ptr<IRomBrowserItemViewModel> viewModel, SharedPtr<LabelView> firstLine,
         SharedPtr<LabelView> secondLine, SharedPtr<LabelView> thirdLine);
+
+    void DrawFavoriteBadge(GraphicsContext& graphicsContext) const;
 };

@@ -29,12 +29,14 @@ private:
     bool _penDown = false;
     Point _penDownPosition = Point(0, 0);
     bool _hasScrollStarted = false;
+    int _penDownItemIndex = -1;
     fix32<12> _penDownScrollOffset = 0;
 
     explicit CoverFlowRecyclerView() { }
 
     void SetSelectedItem(int itemIdx, bool initial) override;
 
+    ViewPoolEntry* GetTouchedItem(const Point& touchPoint);
     void UpdateItemPosition(int viewPoolIndex);
 
     void SwapViewPoolEntry(int indexA, int indexB) override

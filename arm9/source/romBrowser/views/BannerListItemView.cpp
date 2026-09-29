@@ -1,7 +1,14 @@
 #include "common.h"
 #include "gui/IVramManager.h"
+#include "gui/VramContext.h"
 #include "gui/GraphicsContext.h"
 #include "gui/input/InputProvider.h"
+#include "gui/OamManager.h"
+#include "gui/OamBuilder.h"
+#include "gui/PaletteManager.h"
+#include "gui/palette/GradientPalette.h"
+#include "core/math/Rgb.h"
+#include "smallHeartIconFilled.h"
 #include "BannerListItemView.h"
 
 BannerListItemView::BannerListItemView(std::unique_ptr<IRomBrowserItemViewModel> viewModel,
@@ -61,4 +68,14 @@ void BannerListItemView::HandlePenMove(const Point& touchPoint, FocusManager& fo
 void BannerListItemView::HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager)
 {
     _inputHandler.HandlePenUp(lastTouchPoint, focusManager);
+}
+
+FavoriteBadgeVramToken BannerListItemView::UploadFavoriteBadgeGraphics(const VramContext& vramContext)
+{
+    return FavoriteBadgeRenderer::UploadGraphics(vramContext);
+}
+
+void BannerListItemView::DrawFavoriteBadge(GraphicsContext& graphicsContext) const
+{
+    _favoriteBadgeRenderer.Draw(graphicsContext, GetBounds(), _viewModel->IsFavorite());
 }

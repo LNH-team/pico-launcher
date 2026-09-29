@@ -5,6 +5,7 @@
 #include "../FileType/FileCover.h"
 #include "gui/VBlankTextureLoader.h"
 #include "romBrowser/viewModels/IRomBrowserItemViewModel.h"
+#include "FavoriteBadge.h"
 #include "RomBrowserItemInputHandler.h"
 
 class CoverView : public View
@@ -46,6 +47,15 @@ public:
 
     void UploadCoverGraphics();
 
+    void SetFavoriteBadgeGraphics(const FavoriteBadgeVramToken& vramToken)
+    {
+        _favoriteBadgeRenderer.SetVramToken(vramToken);
+    }
+
+    void DrawFavoriteBadge(GraphicsContext& graphicsContext) const;
+
+    void CancelPen() { _inputHandler.CancelPen(); }
+
     IRomBrowserItemViewModel& GetViewModel() const
     {
         return *_viewModel;
@@ -58,6 +68,7 @@ private:
     VBlankTextureLoadRequest _textureLoadRequest;
     u32 _texVramOffset = 0;
     u32 _plttVramOffset = 0;
+    FavoriteBadgeRenderer _favoriteBadgeRenderer;
     RomBrowserItemInputHandler _inputHandler;
 
     CoverView(std::unique_ptr<IRomBrowserItemViewModel> viewModel, VBlankTextureLoader* vblankTextureLoader)

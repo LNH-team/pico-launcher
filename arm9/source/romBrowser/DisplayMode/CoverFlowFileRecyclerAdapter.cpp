@@ -24,6 +24,7 @@ TaskResult<void> CoverFlowFileRecyclerAdapter::BindView(SharedPtr<View> view, in
     const InternalFileInfo* internalFileInfo, const vu8& cancelRequested) const
 {
     auto coverView = static_cast<CoverView*>(view.GetPointer());
+    coverView->SetFavoriteBadgeGraphics(_favoriteBadgeVramToken);
     coverView->GetViewModel().SetIndex(index);
     auto cover = _fileInfoManager->GetFileCover(index);
     if (cancelRequested)
@@ -52,6 +53,7 @@ void CoverFlowFileRecyclerAdapter::ReleaseView(SharedPtr<View> view, int index) 
 {
     LOG_DEBUG("Releasing %d\n", index);
     auto coverView = static_cast<CoverView*>(view.GetPointer());
+    coverView->CancelPen();
     coverView->ClearCover();
     coverView->GetViewModel().SetIndex(-1);
     coverView->GetViewModel().CancelQueueTask();
@@ -60,5 +62,5 @@ void CoverFlowFileRecyclerAdapter::ReleaseView(SharedPtr<View> view, int index) 
 
 void CoverFlowFileRecyclerAdapter::InitVram(const VramContext& vramContext)
 {
-    // _iconGridItemViewGraphics = _romBrowserViewFactory->UploadIconGridItemViewGraphics(vramManager);
+    _favoriteBadgeVramToken = FavoriteBadgeRenderer::UploadGraphics(vramContext);
 }

@@ -48,7 +48,10 @@ CustomBannerListItemView::CustomBannerListItemView(std::unique_ptr<IRomBrowserIt
     , _texVramOffset(texVramOffset)
     , _plttVramOffset(plttVramOffset)
     , _selectedTexVramOffset(selectedTexVramOffset)
-    , _selectedPlttVramOffset(selectedPlttVramOffset) { }
+    , _selectedPlttVramOffset(selectedPlttVramOffset)
+{
+    SetFavoriteBadgeColor(FavoriteBadgeColor(false));
+}
 
 void CustomBannerListItemView::Draw(GraphicsContext& graphicsContext)
 {
@@ -122,4 +125,6 @@ void CustomBannerListItemView::Draw(GraphicsContext& graphicsContext)
         _icon->SetPosition(6 + _position.x, 6 + _position.y);
         _icon->Draw(graphicsContext, _customThemeInfo->bannerListIconInfo.GetBlendColor());
     }
+
+    DrawFavoriteBadge(graphicsContext);
 }

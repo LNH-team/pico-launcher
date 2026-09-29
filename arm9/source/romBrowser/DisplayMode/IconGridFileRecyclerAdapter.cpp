@@ -21,6 +21,7 @@ void IconGridFileRecyclerAdapter::BindView(SharedPtr<View> view, int index) cons
 {
     auto iconGridItemView = static_cast<IconGridItemView*>(view.GetPointer());
     iconGridItemView->SetGraphics(_iconGridItemViewGraphics);
+    iconGridItemView->SetFavoriteBadgeGraphics(_favoriteBadgeVramToken);
     FileRecyclerAdapter::BindView(view, index);
 }
 
@@ -75,4 +76,5 @@ void IconGridFileRecyclerAdapter::ReleaseView(SharedPtr<View> view, int index) c
 void IconGridFileRecyclerAdapter::InitVram(const VramContext& vramContext)
 {
     _iconGridItemViewGraphics = _romBrowserViewFactory->UploadIconGridItemViewGraphics(vramContext);
+    _favoriteBadgeVramToken = IconGridItemView::UploadFavoriteBadgeGraphics(vramContext);
 }

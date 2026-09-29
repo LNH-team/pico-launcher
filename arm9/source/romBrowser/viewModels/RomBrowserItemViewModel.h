@@ -11,11 +11,13 @@ public:
 
     void Activate() override;
     void ShowGameInfo() override;
+    void ToggleFavorite() override;
 
-    void SetIndex(int index) override
-    {
-        _index = index;
-    }
+    // Cached on SetIndex() (runs on _ioTaskQueue, same as icon loading) so Draw(),
+    // which runs on the render thread every frame, never touches the SD card.
+    bool IsFavorite() const override;
+
+    void SetIndex(int index) override;
 
     void SetQueueTask(QueueTask<void> queueTask) override
     {
@@ -37,6 +39,7 @@ public:
 
 private:
     int _index = -1;
+    volatile bool _isFavorite = false;
     QueueTask<void> _queueTask;
 
     IRomBrowserController* _romBrowserController;
