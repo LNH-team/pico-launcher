@@ -21,7 +21,12 @@ public:
 
     bool IsActualCover() const override { return true; }
 
+    /// @brief Returns whether the BMP file was loaded successfully.
+    /// @return True when the cover was loaded, or false when the file was invalid or could not be read.
+    bool IsValid() const { return _isValid; }
+
 private:
     u8 _coverBuffer[128 * 96] alignas(32);
     u16 _palette[256] alignas(32);
+    bool _isValid = false;
 };

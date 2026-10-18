@@ -38,7 +38,28 @@ struct BmpHeader
             && (u32)std::abs(GetHeight(bmpHeader)) == expectedHeight
             && bpp == expectedBpp
             && comp == 0
-            && (clrUsed == 0 || clrUsed == (1u << expectedBpp));
+            && clrUsed <= (1u << expectedBpp);
+    }
+
+    /// @brief Returns the number of palette entries stored in the BMP file.
+    /// @param bmpHeader The raw BMP buffer.
+    /// @return The number of palette entries.
+    /// @note Call only after Validate() succeeds.
+    static u32 GetPaletteColorCount(const u8* bmpHeader)
+    {
+        u32 bpp     = bmpHeader[0x1C] | (bmpHeader[0x1D] << 8);
+        u32 clrUsed = bmpHeader[0x2E] | (bmpHeader[0x2F] << 8) | (bmpHeader[0x30] << 16) | (bmpHeader[0x31] << 24);
+        return clrUsed == 0 ? (1u << bpp) : clrUsed;
+    }
+
+    /// @brief Returns the file offset of the pixel data, or 0 when the offset overlaps the palette.
+    /// @param bmpHeader The raw BMP buffer.
+    /// @return The pixel data offset, or 0 when invalid.
+    /// @note Call only after Validate() succeeds.
+    static u32 GetDataOffset(const u8* bmpHeader)
+    {
+        u32 dataOffset = bmpHeader[0xA] | (bmpHeader[0xB] << 8) | (bmpHeader[0xC] << 16) | (bmpHeader[0xD] << 24);
+        return dataOffset < 0x36 + GetPaletteColorCount(bmpHeader) * 4 ? 0 : dataOffset;
     }
 
     /// @brief Returns \c true if the BMP stores rows top-to-bottom (negative biHeight).

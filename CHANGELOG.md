@@ -12,6 +12,7 @@
 - Top screen cover is now displayed/hidden correctly when placed partially or fully off-screen
 - DSi banners with missing DSi part now fall back to the DS icon
 - Game-code cover lookup no longer searches on a stale buffer when a file has no game code
+- Custom covers with fewer than 256 palette colors are displayed again, and invalid cover files now fall back to the next cover source instead of showing garbage
 
 ## [v1.3.0] - 18 Apr 2026
 

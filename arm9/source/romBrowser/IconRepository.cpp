@@ -7,6 +7,16 @@
 #include "SdFolderFactory.h"
 #include "IconRepository.h"
 
+static SharedPtr<BmpFileIconData> loadBmpIcon(const FastFileRef& iconFileRef)
+{
+    auto iconData = SharedPtr<BmpFileIconData>::MakeShared(iconFileRef);
+    if (!iconData->IsValid())
+    {
+        return nullptr;
+    }
+    return iconData;
+}
+
 void IconRepository::Initialize()
 {
     InitializeFolders("/_pico/icons/");
@@ -30,8 +40,7 @@ SharedPtr<BmpFileIconData> IconRepository::GetIconForFile(const FileInfo& fileIn
             {
                 if (!(folderFileInfo.fattrib & AM_DIR) && !strcasecmp(folderFileInfo.fname, "icon.bmp"))
                 {
-                    return SharedPtr<BmpFileIconData>::MakeShared(
-                        FastFileRef(folderDir->GetFatFsDirectory(), &folderFileInfo));
+                    return loadBmpIcon(FastFileRef(folderDir->GetFatFsDirectory(), &folderFileInfo));
                 }
             }
         }
@@ -39,27 +48,35 @@ SharedPtr<BmpFileIconData> IconRepository::GetIconForFile(const FileInfo& fileIn
         return nullptr;
     }
 
-    const FileInfo* iconFile = nullptr;
-
     // Try to get an icon based on the filename in the user folder
     if (_userFolder)
     {
         mini_snprintf(nameBuffer, sizeof(nameBuffer), "%s.bmp", fileInfo.GetFileName());
-        iconFile = _userFolder->BinarySearch(nameBuffer);
+        const auto* iconFile = _userFolder->BinarySearch(nameBuffer);
+        if (iconFile)
+        {
+            auto iconData = loadBmpIcon(iconFile->GetFastFileRef());
+            if (iconData)
+            {
+                return iconData;
+            }
+        }
     }
 
     // Try to get an icon based on an internal game code
-    if (!iconFile && gameCode)
+    if (gameCode)
     {
         const auto* iconFolder = GetFileTypeFolder(fileType->GetShortName());
         if (iconFolder)
         {
             mini_snprintf(nameBuffer, sizeof(nameBuffer), "%s.bmp", gameCode);
-            iconFile = iconFolder->BinarySearch(nameBuffer);
+            const auto* iconFile = iconFolder->BinarySearch(nameBuffer);
+            if (iconFile)
+            {
+                return loadBmpIcon(iconFile->GetFastFileRef());
+            }
         }
     }
 
-    return iconFile
-        ? SharedPtr<BmpFileIconData>::MakeShared(iconFile->GetFastFileRef())
-        : nullptr;
+    return nullptr;
 }

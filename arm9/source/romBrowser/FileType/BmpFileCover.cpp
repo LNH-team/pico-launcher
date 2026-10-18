@@ -19,10 +19,19 @@ BmpFileCover::BmpFileCover(const FastFileRef& coverFileRef)
         return;
     }
 
-    u32 dataOffset = _coverBuffer[0xA] | (_coverBuffer[0xB] << 8) | (_coverBuffer[0xC] << 16) | (_coverBuffer[0xD] << 24);
+    u32 dataOffset = BmpHeader::GetDataOffset(_coverBuffer);
+    if (dataOffset == 0)
+    {
+        return;
+    }
 
+    const bool topDown = BmpHeader::IsTopDown(_coverBuffer);
+
+    // Only the used palette entries are stored
+    u32 colorCount = BmpHeader::GetPaletteColorCount(_coverBuffer);
+    memset(_palette, 0, sizeof(_palette));
     u8* paletteData32 = &_coverBuffer[0x36];
-    for (u32 i = 0; i < 256; i++)
+    for (u32 i = 0; i < colorCount; i++)
     {
         u32 b = *paletteData32++;
         u32 g = *paletteData32++;
@@ -39,8 +48,23 @@ BmpFileCover::BmpFileCover(const FastFileRef& coverFileRef)
 
     file->Close();
 
+    // Flip top-down bitmaps to bottom-up
+    if (topDown)
+    {
+        u8 rowBuffer[128];
+        for (u32 y = 0; y < 96 / 2; y++)
+        {
+            u8* topRow = &_coverBuffer[y * 128];
+            u8* bottomRow = &_coverBuffer[(95 - y) * 128];
+            memcpy(rowBuffer, topRow, 128);
+            memcpy(topRow, bottomRow, 128);
+            memcpy(bottomRow, rowBuffer, 128);
+        }
+    }
+
     DC_FlushRange(_coverBuffer, sizeof(_coverBuffer));
     DC_FlushRange(_palette, sizeof(_palette));
+    _isValid = true;
 }
 
 void BmpFileCover::Upload2DCoverBitmap(void* destination) const

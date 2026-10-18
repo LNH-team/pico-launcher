@@ -29,18 +29,18 @@ void BmpFileIconData::Load(std::unique_ptr<File> file)
         return;
     }
 
-    u32 dataOffset = headerAndPalette[0xA] | (headerAndPalette[0xB] << 8) |
-        (headerAndPalette[0xC] << 16) | (headerAndPalette[0xD] << 24);
-
-    if (dataOffset < sizeof(headerAndPalette))
+    u32 dataOffset = BmpHeader::GetDataOffset(headerAndPalette);
+    if (dataOffset == 0)
     {
         return;
     }
 
     const bool topDown = BmpHeader::IsTopDown(headerAndPalette);
 
+    // Only the used palette entries are stored
+    u32 colorCount = BmpHeader::GetPaletteColorCount(headerAndPalette);
     const u8* paletteData = &headerAndPalette[0x36];
-    for (u32 i = 0; i < 16; i++)
+    for (u32 i = 0; i < colorCount; i++)
     {
         u32 b = *paletteData++;
         u32 g = *paletteData++;
@@ -80,4 +80,6 @@ void BmpFileIconData::Load(std::unique_ptr<File> file)
             memcpy(&_iconGfx[(ty * 4 + tx) * 32 + py * 4], &val, 4);
         }
     }
+
+    _isValid = true;
 }

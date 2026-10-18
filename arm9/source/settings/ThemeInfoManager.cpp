@@ -38,8 +38,12 @@ void ThemeInfoManager::LoadThemeIcon(SharedPtr<ExtraThemeInfo>& extraThemeInfo)
         {
             if (!(folderFileInfo.fattrib & AM_DIR) && !strcasecmp(folderFileInfo.fname, "icon.bmp"))
             {
-                extraThemeInfo->iconData = SharedPtr<BmpFileIconData>::MakeShared(
+                auto iconData = SharedPtr<BmpFileIconData>::MakeShared(
                     FastFileRef(folderDir->GetFatFsDirectory(), &folderFileInfo));
+                if (iconData->IsValid())
+                {
+                    extraThemeInfo->iconData = std::move(iconData);
+                }
                 break;
             }
         }
