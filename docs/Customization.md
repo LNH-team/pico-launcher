@@ -79,3 +79,19 @@ Only the top-left 106x96 pixels are used. The remaining part on the right is pad
 Note how the black part on the right is not used.
 
 ![Cover example](images/CoverExample.bmp)
+
+## Clock format
+You can choose whether the status bar clock uses a 24-hour or 12-hour format.
+
+To change it, edit `/_pico/settings.json` and set `clockFormat` to one of these values:
+- `"24h"` - 24-hour clock (default)
+- `"12h"` - 12-hour clock with `AM`/`PM`
+
+Example:
+```json
+{
+    "clockFormat": "12h"
+}
+```
+
+Currently, only Material themes show the status bar clock, so custom themes ignore this setting for now.

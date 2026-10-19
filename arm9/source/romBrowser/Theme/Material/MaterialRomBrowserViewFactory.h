@@ -2,6 +2,7 @@
 #include "MaterialIconGridItemView.h"
 #include "MaterialBannerListItemView.h"
 #include "MaterialFileInfoCardView.h"
+#include "MaterialStatusView.h"
 #include "../IRomBrowserViewFactory.h"
 #include "romBrowser/viewModels/RomBrowserViewModel.h"
 #include "CarouselRecyclerView.h"
@@ -50,6 +51,11 @@ public:
     SharedPtr<BannerView> CreateFileInfoView() const override
     {
         return MaterialFileInfoCardView::CreateShared(_materialColorScheme, _fontRepository);
+    }
+
+    SharedPtr<View> CreateStatusView(StatusViewModel* viewModel) const override
+    {
+        return MaterialStatusView::CreateShared(viewModel, _materialColorScheme, _fontRepository);
     }
 
     SharedPtr<RecyclerViewBase> CreateCoverFlowRecyclerView() const override

@@ -27,6 +27,7 @@
 #include "ipcServices/DldiIpcService.h"
 #include "ipcServices/SoundIpcService.h"
 #include "ipcServices/RtcIpcService.h"
+#include "ipcServices/StatusIpcService.h"
 #include "ExitMode.h"
 #include "Arm7State.h"
 #include "mmc/tmio.h"
@@ -40,8 +41,11 @@ static DsiSdIpcService sDsiSdIpcService;
 static DldiIpcService sDldiIpcService;
 static SoundIpcService sSoundIpcService;
 static RtcIpcService sRtcIpcService;
+static StatusIpcService sStatusIpcService;
 
 ILogger* gLogger = &sThreadSafeLogger;
+rtos_mutex_t gI2cMutex;
+rtos_mutex_t gSpiMutex;
 
 static rtos_event_t sVCountEvent;
 static ExitMode sExitMode;
@@ -67,7 +71,9 @@ static void checkMcuIrq(void)
         if (mem_swapByte(false, &sMcuIrqFlag))
         {
             // check the irq mask
+            rtos_lockMutex(&gI2cMutex);
             u32 irqMask = mcu_getIrqMask();
+            rtos_unlockMutex(&gI2cMutex);
             if (irqMask & MCU_IRQ_RESET)
             {
                 // power button was released
@@ -114,14 +120,17 @@ static void initializeArm7()
     rtos_initIrq();
     rtos_startMainThread();
     ipc_initFifoSystem();
+    rtos_createMutex(&gI2cMutex);
+    rtos_createMutex(&gSpiMutex);
 
     clearSoundRegisters();
 
+    rtos_lockMutex(&gSpiMutex);
     pmic_setAmplifierEnable(true);
+    rtos_unlockMutex(&gSpiMutex);
     sys_setSoundPower(true);
 
     readUserSettings();
-    pmic_setPowerLedBlink(PMIC_CONTROL_POWER_LED_BLINK_NONE);
 
     sio_setGpioSiIrq(false);
     sio_setGpioMode(RCNT0_L_MODE_GPIO);
@@ -141,6 +150,7 @@ static void initializeArm7()
     snd_setMasterEnable(true);
     sSoundIpcService.Start();
     sRtcIpcService.Start();
+    sStatusIpcService.Start();
 
     initializeVCountIrq();
 
@@ -179,13 +189,17 @@ static bool performExit(ExitMode exitMode)
     {
         case ExitMode::Reset:
         {
+            rtos_lockMutex(&gI2cMutex);
             mcu_setWarmBootFlag(true);
             mcu_hardReset();
+            rtos_unlockMutex(&gI2cMutex);
             break;
         }
         case ExitMode::PowerOff:
         {
+            rtos_lockMutex(&gSpiMutex);
             pmic_shutdown();
+            rtos_unlockMutex(&gSpiMutex);
             break;
         }
         case ExitMode::PicoLoader:

@@ -52,6 +52,12 @@ public:
         return CustomFileInfoView::CreateShared(_customThemeInfo, _fontRepository);
     }
 
+    // The clock + battery status overlay is a Material-only feature; custom themes render nothing.
+    SharedPtr<View> CreateStatusView(StatusViewModel* viewModel) const override
+    {
+        return nullptr;
+    }
+
     SharedPtr<RecyclerViewBase> CreateCoverFlowRecyclerView() const override
     {
         return CoverFlowRecyclerView::CreateShared();

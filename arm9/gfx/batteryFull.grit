@@ -1,0 +1,7 @@
+# tile format
+-gt
+
+# graphics bit depth is 4 (16 color)
+-gB4
+
+-p!

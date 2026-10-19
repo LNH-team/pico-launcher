@@ -52,6 +52,12 @@ App::App(IAppSettingsService& appSettingsService, IBgmService& bgmService)
     , _romBrowserBottomScreenViewModel(&_romBrowserController)
     , _dialogPresenter(&_focusManager, &_mainObjDialogVram) { }
 
+App::~App()
+{
+    _ioTaskQueue.StopThread();
+    _bgTaskQueue.StopThread();
+}
+
 void App::InitVramMapping() const
 {
     mem_setVramAMapping(MEM_VRAM_AB_TEX_SLOT_1);

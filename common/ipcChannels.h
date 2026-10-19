@@ -5,3 +5,4 @@
 #define IPC_CHANNEL_LOADER  18
 #define IPC_CHANNEL_SOUND   19
 #define IPC_CHANNEL_RTC     20
+#define IPC_CHANNEL_STATUS  21

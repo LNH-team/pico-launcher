@@ -34,6 +34,7 @@ class alignas(32) App : public IProcess
 {
 public:
     App(IAppSettingsService& appSettingsService, IBgmService& bgmService);
+    ~App() override;
 
     void Run() override;
     void Exit() override;

@@ -42,11 +42,15 @@ extern "C" libnds_touchMeasurementFilterResult libnds_touchMeasurementFilter(u16
 
 void touch_init()
 {
+    rtos_lockMutex(&gSpiMutex);
     touchInit();
+    rtos_unlockMutex(&gSpiMutex);
 }
 
 bool touch_update(touchPosition& touchPos)
 {
+    rtos_lockMutex(&gSpiMutex);
+
 #if PEN_DOWN_DEBOUNCE > 0
     static touchPosition lastTouchPosition;
     static bool lastPenDown = false;
@@ -142,5 +146,6 @@ noPenDown:
         touchPos = lastTouchPosition;
     }
 
+    rtos_unlockMutex(&gSpiMutex);
     return lastPenDown;
 }

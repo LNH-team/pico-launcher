@@ -19,10 +19,15 @@ RomBrowserTopScreenView::RomBrowserTopScreenView(
     : _viewModel(std::move(viewModel))
     , _themeFileIconFactory(themeFileIconFactory)
     , _fileInfoView(romBrowserViewFactory->CreateFileInfoView())
+    , _statusView(romBrowserViewFactory->CreateStatusView(_viewModel->GetStatusViewModel()))
     , _showCover(displayMode->ShowCoverOnTopScreen())
     , _coverPosition(romBrowserViewFactory->GetTopCoverPosition())
 {
     AddChildTail(_fileInfoView.GetPointer());
+    if (_statusView.IsValid())
+    {
+        AddChildTail(_statusView.GetPointer());
+    }
 }
 
 void RomBrowserTopScreenView::InitVram(const VramContext& vramContext)
@@ -47,12 +52,11 @@ void RomBrowserTopScreenView::Update()
     if (selectedItem != _lastSelectedItem && selectedItem >= 0)
     {
         auto& fileInfoManager = _viewModel->GetFileInfoManager();
-        // GetInternalFileInfo() covers both game banners and custom icon overrides (the
-        // latter apply to any file type, including folders), so check it directly instead
-        // of branching on FileType::HasInternalFileInfo() - that's a static per-type property
-        // and knows nothing about a per-item custom icon. IsFileInfoLoaded() distinguishes
-        // "still loading" from "loaded, and there's legitimately nothing" so this waits for
-        // the io thread instead of flashing the previous item's icon while undecided.
+        /**
+         * @brief Custom icons also surface through GetInternalFileInfo().
+         * @details Waiting for IsFileInfoLoaded() avoids briefly showing the previous item's icon
+         * while the I/O thread decides whether this item has a banner or override.
+         */
         if (fileInfoManager.IsFileInfoLoaded(selectedItem))
         {
             const auto& item = fileInfoManager.GetItem(selectedItem);
@@ -115,12 +119,10 @@ void RomBrowserTopScreenView::VBlank()
     if (!_showCover || !_selectedFileCover.IsValid() || !_selectedFileCover->IsActualCover() ||
         x0 >= x1 || y0 >= y1)
     {
-        // hide cover
         REG_DISPCNT_SUB &= ~(((1 << 3) | (1 << 5)) << 8);
     }
     else
     {
-        // display cover
         REG_BG3PA_SUB = 0x100;
         REG_BG3PB_SUB = 0;
         REG_BG3PC_SUB = 0;

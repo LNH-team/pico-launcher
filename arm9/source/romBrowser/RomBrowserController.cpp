@@ -17,7 +17,8 @@ RomBrowserController::RomBrowserController(
     TaskQueueBase* bgTaskQueue)
     : _appSettingsService(appSettingsService)
     , _ioTaskQueue(ioTaskQueue), _bgTaskQueue(bgTaskQueue)
-    , _fileTypeProvider(appSettingsService->GetAppSettings()) { }
+    , _fileTypeProvider(appSettingsService->GetAppSettings())
+    , _statusViewModel(*bgTaskQueue, appSettingsService->GetAppSettings().clockFormat) { }
 
 void RomBrowserController::NavigateToPath(const TCHAR* name)
 {

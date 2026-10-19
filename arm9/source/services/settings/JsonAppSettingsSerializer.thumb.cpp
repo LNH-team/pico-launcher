@@ -13,6 +13,7 @@
 #define KEY_ROM_BROWSER_LAYOUT       "romBrowserLayout"
 #define KEY_ROM_BROWSER_SORT_MODE    "romBrowserSortMode"
 #define KEY_THEME                    "theme"
+#define KEY_CLOCK_FORMAT             "clockFormat"
 #define KEY_LAST_USED_FILE_PATH      "lastUsedFilePath"
 #define KEY_FILE_ASSOCIATIONS        "fileAssociations"
 #define KEY_FILE_ASSOCIATIONS_APPLICATION_PATH  "appPath"
@@ -91,6 +92,34 @@ static bool tryParseRomBrowserSortMode(
     return true;
 }
 
+static const char* serializeClockFormat(ClockFormat clockFormat)
+{
+    switch (clockFormat)
+    {
+        case ClockFormat::TwentyFourHour:
+            return "24h";
+        case ClockFormat::TwelveHour:
+            return "12h";
+        default:
+            return "";
+    }
+}
+
+static bool tryParseClockFormat(const char* clockFormatString, ClockFormat& clockFormat)
+{
+    if (!clockFormatString)
+        return false;
+
+    if (!strcasecmp(clockFormatString, "24h"))
+        clockFormat = ClockFormat::TwentyFourHour;
+    else if (!strcasecmp(clockFormatString, "12h"))
+        clockFormat = ClockFormat::TwelveHour;
+    else
+        return false;
+
+    return true;
+}
+
 static bool tryParseFileAssociations(const JsonObjectConst& json, AppSettings* appSettings)
 {
     if (json.isNull())
@@ -128,6 +157,7 @@ static std::unique_ptr<u8[]> writeJson(const AppSettings* appSettings, u32& leng
     json[KEY_ROM_BROWSER_LAYOUT] = serializeRomBrowserLayout(appSettings->romBrowserDisplaySettings.layout);
     json[KEY_ROM_BROWSER_SORT_MODE] = serializeRomBrowserSortMode(appSettings->romBrowserDisplaySettings.sortMode);
     json[KEY_THEME] = appSettings->theme.GetString();
+    json[KEY_CLOCK_FORMAT] = serializeClockFormat(appSettings->clockFormat);
     json[KEY_LAST_USED_FILE_PATH] = appSettings->lastUsedFilePath.GetString();
     serializeFileAssociations(json, appSettings);
 
@@ -167,6 +197,12 @@ static void readJson(AppSettings* appSettings, const JsonDocument& json)
     appSettings->language = json[KEY_LANGUAGE] | appSettings->language.GetString();
     appSettings->theme = json[KEY_THEME] | appSettings->theme.GetString();
     appSettings->lastUsedFilePath = json[KEY_LAST_USED_FILE_PATH] | appSettings->lastUsedFilePath.GetString();
+
+    ClockFormat clockFormat;
+    if (tryParseClockFormat(json[KEY_CLOCK_FORMAT].as<const char*>(), clockFormat))
+    {
+        appSettings->clockFormat = clockFormat;
+    }
 
     RomBrowserLayout romBrowserLayout;
     if (tryParseRomBrowserLayout(json[KEY_ROM_BROWSER_LAYOUT].as<const char*>(),
