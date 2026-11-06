@@ -2,7 +2,7 @@
 
 Everything Pico Launcher Enhanced adds or changes on top of [upstream Pico Launcher](https://github.com/LNH-team/pico-launcher), one entry per feature, so each can be looked at on its own, though some build on others (the toast, the panels, the delete sheet, the game data file). Each entry says what it does, which commits make it up, whether upstream has an issue or a pull request about the same thing, and which upstream files it touches, which is where a merge can conflict.
 
-This page is up to date with v1.10.0, against upstream `develop` at `dc64a34`. The fork is not behind upstream: it merged upstream's latest commit, `dc64a34`, in `8f7d705`, so everything listed here is a change upstream does not have. Documentation files are left out of the file lists.
+This page is up to date with v1.11.0, against upstream `develop` at `dc64a34`. The fork is not behind upstream: it merged upstream's latest commit, `dc64a34`, in `8f7d705`, so everything listed here is a change upstream does not have. Documentation files are left out of the file lists.
 
 ## Browsing
 
@@ -585,6 +585,91 @@ New files:
 - `arm9/source/romBrowser/views/about/AboutBottomSheetView.h`
 - `arm9/source/romBrowser/views/menu/MenuBottomSheetView.cpp`
 - `arm9/source/romBrowser/views/menu/MenuBottomSheetView.h`
+
+</details>
+
+### In-game exit combo
+
+The menu's title row has a second small button, opening a sheet that picks the buttons held to leave a DS game. The combination is stored in `settings.json` and handed to the loader in a new API v4 header field at launch; a loader that does not report version 4 is never written to, so it keeps the combo it was built with. This exists for consoles whose L or R button no longer works.
+
+- **Commits:** pending.
+- **Upstream:** None found. The combination is compiled into the loader's ARM7 exit patch.
+- **Settings and data:** `loaderExitCombo` in `settings.json`, as names (`"Select+L+R+Right"`).
+- **Notes:** The loader side lives in `rasalopa/pico-loader` and is a separate PR; without it the setting is stored but changes nothing. While the sheet is picking buttons it keeps every one to itself, which is why `App::HandleInput` asks `DialogPresenter::IsCapturingInput()` before counting the START screenshot hold.
+
+<details><summary>Files: 18 upstream, 5 new</summary>
+
+Upstream files touched:
+
+- `arm9/source/App.cpp`
+- `arm9/source/App.h`
+- `arm9/source/DialogPresenter.h`
+- `arm9/source/gui/views/DialogView.h`
+- `arm9/source/picoLoaderBootstrap.cpp`
+- `arm9/source/picoLoaderBootstrap.h`
+- `arm9/source/romBrowser/IRomBrowserController.h`
+- `arm9/source/romBrowser/RomBrowserController.cpp`
+- `arm9/source/romBrowser/RomBrowserController.h`
+- `arm9/source/romBrowser/RomBrowserState.h`
+- `arm9/source/romBrowser/RomBrowserStateMachine.cpp`
+- `arm9/source/romBrowser/RomBrowserStateTrigger.h`
+- `arm9/source/romBrowser/viewModels/MenuViewModel.h`
+- `arm9/source/romBrowser/views/menu/MenuBottomSheetView.cpp`
+- `arm9/source/romBrowser/views/menu/MenuBottomSheetView.h`
+- `arm9/source/services/settings/AppSettings.h`
+- `arm9/source/services/settings/JsonAppSettingsSerializer.thumb.cpp`
+- `common/picoLoader7.h`
+
+New files:
+
+- `arm9/source/romBrowser/viewModels/ExitComboViewModel.h`
+- `arm9/source/romBrowser/views/exitcombo/ExitComboBottomSheetView.cpp`
+- `arm9/source/romBrowser/views/exitcombo/ExitComboBottomSheetView.h`
+- `arm9/source/services/settings/KeyCombo.cpp`
+- `arm9/source/services/settings/KeyCombo.h`
+
+</details>
+
+### Game info
+
+Roms without a banner (GB, SNES and anything else run through a file association) are shown by their file name. The menu's **Game info** sheet edits a name, developer and publisher, stored with the file's favorites and play time in `gamedata.json`; the browser, the top screen, the recents and favorites panels and the statistics panel then show the name instead, with the developer and the publisher on the two lines under it. The sheet carries its own on-screen keyboard because the launcher has no text input.
+
+- **Commits:** pending.
+- **Upstream:** None found. The game data file and the panels exist only in the fork.
+- **Settings and data:** `name`, `publisher` and `developer` in `gamedata.json`, per file name. No `settings.json` keys.
+- **Notes:** Saving rebuilds the browser the way a display-mode change does, but lands on the renamed game instead of the top of the folder; B closes without touching the stored values.
+
+<details><summary>Files: 21 upstream, 3 new</summary>
+
+Upstream files touched:
+
+- `arm9/source/App.cpp`
+- `arm9/source/App.h`
+- `arm9/source/romBrowser/DisplayMode/BannerListFileRecyclerAdapter.cpp`
+- `arm9/source/romBrowser/IRomBrowserController.h`
+- `arm9/source/romBrowser/RomBrowserController.cpp`
+- `arm9/source/romBrowser/RomBrowserController.h`
+- `arm9/source/romBrowser/RomBrowserState.h`
+- `arm9/source/romBrowser/RomBrowserStateMachine.cpp`
+- `arm9/source/romBrowser/RomBrowserStateTrigger.h`
+- `arm9/source/romBrowser/viewModels/MenuViewModel.h`
+- `arm9/source/romBrowser/viewModels/RomBrowserBottomScreenViewModel.h`
+- `arm9/source/romBrowser/views/BannerView.h`
+- `arm9/source/romBrowser/views/RomBrowserTopScreenView.cpp`
+- `arm9/source/romBrowser/views/menu/MenuBottomSheetView.cpp`
+- `arm9/source/romBrowser/views/menu/MenuBottomSheetView.h`
+- `arm9/source/romBrowser/views/recents/RecentListItemView.cpp`
+- `arm9/source/romBrowser/views/statistics/StatisticsBottomSheetView.cpp`
+- `arm9/source/services/gamedata/GameDataEntry.h`
+- `arm9/source/services/gamedata/IGameDataService.h`
+- `arm9/source/services/gamedata/JsonGameDataService.thumb.cpp`
+- `arm9/source/services/gamedata/JsonGameDataService.h`
+
+New files:
+
+- `arm9/source/romBrowser/viewModels/GameInfoEditViewModel.h`
+- `arm9/source/romBrowser/views/gameinfo/GameInfoEditBottomSheetView.cpp`
+- `arm9/source/romBrowser/views/gameinfo/GameInfoEditBottomSheetView.h`
 
 </details>
 

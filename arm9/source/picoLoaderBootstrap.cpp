@@ -22,6 +22,7 @@ static pload_params_t sLoadParams;
 static char sLauncherPath[256] alignas(32);
 static PicoLoaderBootDrive sBootDrive;
 static const pload_cheats_t* sCheatData = nullptr;
+static u16 sExitCombo = 0;
 
 pload_params_t* pload_getLoadParams()
 {
@@ -41,6 +42,11 @@ void pload_setLauncherPath(const char* launcherPath)
 void pload_setCheatData(const pload_cheats_t* cheatData)
 {
     sCheatData = cheatData;
+}
+
+void pload_setExitCombo(u16 exitCombo)
+{
+    sExitCombo = exitCombo;
 }
 
 void pload_start()
@@ -101,6 +107,13 @@ void pload_start()
     if (header->apiVersion >= 3)
     {
         header->v3.cheats = sCheatData;
+    }
+    if (header->apiVersion >= 4)
+    {
+        // A halfword store: byte writes are not allowed in VRAM. idleSeconds
+        // stays as the binary was built (zero, off) until the measured play
+        // clock exists.
+        header->v4.exitCombo = sExitCombo;
     }
     mem_setVramCMapping(MEM_VRAM_C_ARM7_00000);
     mem_setVramDMapping(MEM_VRAM_D_ARM7_20000);

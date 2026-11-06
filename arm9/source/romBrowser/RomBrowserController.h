@@ -48,6 +48,19 @@ public:
     void HideMenu() override;
     void ShowAbout() override;
     void HideAbout() override;
+    void ShowExitCombo() override;
+    void HideExitCombo() override;
+    u16 GetLoaderExitCombo() const override;
+    void SetLoaderExitCombo(u16 combo) override;
+    void ShowGameInfoEdit() override;
+    void HideGameInfoEdit() override;
+    void SetGameMetadata(const char* name, const char* publisher,
+        const char* developer) override;
+    bool CanEditSelected() const override;
+    bool IsBlocked(ParentalFeature feature) const override
+    {
+        return !_appSettingsService->GetAppSettings().parentalControls.Allows(feature);
+    }
     bool CanDeleteSelected() const override;
     void RequestDeleteSelected() override;
     void CancelDelete() override;
@@ -142,6 +155,9 @@ private:
     ///        _navigatePath. Used when going up a folder: the parent listing
     ///        preselects the folder just left instead of its first entry.
     TCHAR _navigateSelectName[256];
+    /// @brief Entry the next rebuilt listing should land on, set when a rename
+    ///        rebuilds the browser so it does not jump to the top of the folder.
+    TCHAR _refreshSelectName[256] = {};
     FileInfo _triggerFileInfo;
     QueueTask<void> _navigateTask;
     /// @brief Reads, on the io thread, whether the game about to launch is for
@@ -155,6 +171,10 @@ private:
     std::unique_ptr<BannerRepository> _bannerRepository;
     ExtensionFileTypeProvider _fileTypeProvider;
     std::unique_ptr<ICheatRepository> _cheatRepository;
+
+    /// @brief Whether the highlighted entry is a game at all: the question
+    ///        delete and game info share, before parental controls are asked.
+    bool IsSelectedGame() const;
 
     void HandleTrigger();
     void HandleNavigateTrigger();

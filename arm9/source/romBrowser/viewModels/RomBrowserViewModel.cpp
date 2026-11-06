@@ -33,6 +33,10 @@ RomBrowserViewModel::RomBrowserViewModel(IRomBrowserController* romBrowserContro
     filterSortParams.completedOnly = romBrowserController->IsCompletedFilterEnabled();
     filterSortParams.hideEmptyFolders = romBrowserController->GetRomBrowserDisplaySettings().hideEmptyFolders;
     filterSortParams.hideSavesFolders = romBrowserController->GetSaveLocation() == SaveLocation::SavesFolder;
+    // Hidden entries stay hidden in every layout, and there is no show-hidden
+    // toggle to take away: this is the one place that decides it, so it stays
+    // false.
+    filterSortParams.includeHiddenFiles = false;
     filterSortParams.gameDataService = romBrowserController->GetGameDataService();
     u64 startTick = gTickCounter.GetValue();
     const auto& sdFolder = romBrowserController->GetSdFolder();

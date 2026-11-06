@@ -47,6 +47,33 @@ public:
     /// @brief The about sheet, reached from the menu.
     virtual void ShowAbout() = 0;
     virtual void HideAbout() = 0;
+    /// @brief The in-game exit combo sheet, reached from the menu's title row.
+    virtual void ShowExitCombo() = 0;
+    virtual void HideExitCombo() = 0;
+    /// @brief Keys held to leave a DS game, as a KEY_* mask (see KeyCombo).
+    ///        Zero means the enhanced loader's default.
+    virtual u16 GetLoaderExitCombo() const = 0;
+    /// @brief Stores the combo, as names, in settings.json. Zero puts the
+    ///        loader's default back. It reaches a game at its next launch.
+    virtual void SetLoaderExitCombo(u16 combo) = 0;
+    /// @brief The game info sheet, reached from the menu: edits the name,
+    ///        publisher and developer shown for the highlighted game.
+    virtual void ShowGameInfoEdit() = 0;
+    virtual void HideGameInfoEdit() = 0;
+    /// @brief Stores the edited values for the game the sheet was opened on
+    ///        and rebuilds the browser on the same game, so the new name shows
+    ///        without reloading the folder. Empty strings clear a field.
+    virtual void SetGameMetadata(const char* name, const char* publisher,
+        const char* developer) = 0;
+    /// @brief Whether the highlighted entry has game info worth editing. Games
+    ///        yes, folders and support files no, and nothing while parental
+    ///        controls take the sheet away.
+    virtual bool CanEditSelected() const = 0;
+    /// @brief Whether parental controls take a feature away right now. Every
+    ///        action a blocked feature can be reached by asks this, not just
+    ///        the menu that draws it faded. The lock itself is the
+    ///        parentalControls flag in settings.json; no screen sets it.
+    virtual bool IsBlocked(ParentalFeature feature) const = 0;
     /// @brief Whether the highlighted entry can be deleted at all. Folders and
     ///        support files cannot, so the app bar dims its delete button rather
     ///        than offering one that does nothing.

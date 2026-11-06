@@ -1,7 +1,7 @@
 #pragma once
 
 /// @brief The Pico Loader API version supported by this header file.
-#define PICO_LOADER_API_VERSION     3
+#define PICO_LOADER_API_VERSION     4
 
 /// @brief Enum to specify the drive to boot from.
 typedef enum
@@ -83,6 +83,19 @@ typedef struct
     const pload_cheats_t* cheats;
 } pload_header7_v3_t;
 
+/// @brief Struct representing the API version 4 part of the header of picoLoader7.bin.
+typedef struct
+{
+    /// @brief Keys that must be held to exit a game, as an active-low KEY_* mask.
+    ///        0 keeps the loader's default (L + R + Right + Select).
+    u16 exitCombo;
+
+    /// @brief Seconds without input before measured play time stops counting,
+    ///        or 0 to count regardless of input. Reserved for the measured play
+    ///        clock; the launcher leaves it zero for now.
+    u16 idleSeconds;
+} pload_header7_v4_t;
+
 /// @brief Struct representing the header of picoLoader7.bin.
 typedef struct
 {
@@ -106,4 +119,7 @@ typedef struct
 
     /// @brief The API version 3 part of the header. Only access this when \see apiVersion >= 3.
     pload_header7_v3_t v3;
+
+    /// @brief The API version 4 part of the header. Only access this when \see apiVersion >= 4.
+    pload_header7_v4_t v4;
 } pload_header7_t;

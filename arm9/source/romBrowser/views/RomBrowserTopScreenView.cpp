@@ -132,12 +132,26 @@ void RomBrowserTopScreenView::Update()
             const auto& item = fileInfoManager.GetItem(selectedItem);
             auto info = fileInfoManager.GetInternalFileInfo(selectedItem);
 
+            // A name the user set replaces the banner title (these are the
+            // file types that have none) and leaves the file name in the chip.
+            const auto* entry = _gameDataService->GetEntry(item.GetFileName());
             bool fileNameAsTitle = true;
-            const char16_t* gameTitle = info ? info->GetGameTitle() : nullptr;
-            if (gameTitle && gameTitle[0] != 0)
+            if (entry && entry->displayName.GetString()[0] != 0)
             {
-                _fileInfoView->SetGameTitleAsync(_viewModel->GetBgTaskQueue(), gameTitle);
+                _fileInfoView->SetTitleText(entry->displayName.GetString());
+                // the developer and the publisher, one per line under the title
+                _fileInfoView->SetCreditsText(
+                    entry->developer.GetString(), entry->publisher.GetString());
                 fileNameAsTitle = false;
+            }
+            else
+            {
+                const char16_t* gameTitle = info ? info->GetGameTitle() : nullptr;
+                if (gameTitle && gameTitle[0] != 0)
+                {
+                    _fileInfoView->SetGameTitleAsync(_viewModel->GetBgTaskQueue(), gameTitle);
+                    fileNameAsTitle = false;
+                }
             }
 
             _selectedFileIcon = info ? info->CreateGameIcon() : nullptr;

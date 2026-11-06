@@ -44,6 +44,14 @@ public:
     virtual void RecordLaunch(const char* fileName, const char* gameCode,
         const char* fullPath, const char* lastPlayedDateTime) = 0;
 
+    /// @brief Replaces the user's display name, publisher and developer for a
+    ///        file. Any of them may be empty, which clears that field; all
+    ///        three empty leaves an entry with nothing but history. The strings
+    ///        are copied, so the caller's buffers are not kept. Refuses names
+    ///        that cannot be stored (see kMaxFileNameLength).
+    virtual void SetGameMetadata(const char* fileName, const char* name,
+        const char* publisher, const char* developer) = 0;
+
     /// @brief Drops the entry for a deleted rom file. By file name, matching how
     ///        marks are stored.
     virtual void RemoveEntry(const char* fileName) = 0;

@@ -4,6 +4,8 @@
 #include "../views/BannerListItemView.h"
 #include "../Theme/IRomBrowserViewFactory.h"
 #include "romBrowser/viewModels/RomBrowserItemViewModel.h"
+#include "romBrowser/IRomBrowserController.h"
+#include "services/gamedata/IGameDataService.h"
 #include "BannerListFileRecyclerAdapter.h"
 
 void BannerListFileRecyclerAdapter::GetViewSize(int& width, int& height) const
@@ -31,8 +33,17 @@ TaskResult<void> BannerListFileRecyclerAdapter::BindView(SharedPtr<View> view, i
     auto listItemView = static_cast<BannerListItemView*>(view.GetPointer());
     listItemView->GetViewModel().SetIndex(index);
     const auto& fileInfo = _fileInfoManager->GetItem(index);
+    const auto* entry = _romBrowserController->GetGameDataService()->GetEntry(fileInfo.GetFileName());
     bool fileNameAsTitle = true;
-    if (internalFileInfo)
+    if (entry && entry->displayName.GetString()[0] != 0)
+    {
+        listItemView->SetTitleText(entry->displayName.GetString());
+        // the developer and the publisher, one per line under the title
+        listItemView->SetCreditsText(
+            entry->developer.GetString(), entry->publisher.GetString());
+        fileNameAsTitle = false;
+    }
+    else if (internalFileInfo)
     {
         const char16_t* gameTitle = internalFileInfo->GetGameTitle();
         if (gameTitle && gameTitle[0] != 0)

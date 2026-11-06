@@ -71,11 +71,13 @@ private:
 /// @brief The sheet behind the app bar's "more" button: what the bar used to
 ///        hold as icons, and behind long presses, written out.
 ///
-/// Recently played, favorites, statistics and delete in two columns, then the
-/// two filters as full rows that say whether they are on. Picking a panel
-/// replaces this sheet with it; a filter closes the sheet through the display
-/// mode change it triggers; delete is faded while a folder is highlighted. A
-/// small button at the right of the title opens the about sheet.
+/// Eight entries in two columns: recently played and favorites over statistics
+/// and delete, game info beside the in-game exit combo, then the two filters,
+/// their colour saying whether they are on. Picking a panel replaces this
+/// sheet with it; a filter closes the sheet through the display mode change it
+/// triggers; delete and game info are faded while a folder is highlighted or
+/// parental controls take them away. The about sheet keeps its small button on
+/// the title row.
 class MenuBottomSheetView : public BottomSheetView
 {
     SHARED_ONLY(MenuBottomSheetView)
@@ -104,6 +106,8 @@ private:
         ITEM_FAVORITES,
         ITEM_STATISTICS,
         ITEM_DELETE,
+        ITEM_GAME_INFO,
+        ITEM_EXIT_COMBO,
         ITEM_FAVORITES_FILTER,
         ITEM_COMPLETED_FILTER,
         ITEM_COUNT

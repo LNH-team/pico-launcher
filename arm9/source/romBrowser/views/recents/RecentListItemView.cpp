@@ -2,6 +2,7 @@
 #include <string.h>
 #include "core/mini-printf.h"
 #include "themes/material/MaterialColorScheme.h"
+#include "services/gamedata/GameDataEntry.h"
 #include "themes/IFontRepository.h"
 #include "gui/palette/GradientPalette.h"
 #include "gui/GraphicsContext.h"
@@ -39,7 +40,7 @@ void RecentListItemView::SetEntry(const GameDataEntry* entry, int index)
 {
     _entry = entry;
     _index = index;
-    _nameLabel->SetText(entry->fileName.GetString());
+    _nameLabel->SetText(GameDataDisplayName(entry, entry->fileName.GetString()));
     char subtitle[16];
     if (_viewModel->GetKind() == GameListKind::Favorites)
     {

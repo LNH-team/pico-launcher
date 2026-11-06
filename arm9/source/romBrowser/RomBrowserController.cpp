@@ -18,6 +18,7 @@
 #include "core/mini-printf.h"
 #include "rtcIpc.h"
 #include "backlightIpc.h"
+#include "services/settings/KeyCombo.h"
 #include "RomBrowserController.h"
 
 RomBrowserController::RomBrowserController(
@@ -142,6 +143,9 @@ void RomBrowserController::ToggleCompletedFilter()
 
 void RomBrowserController::ShowGameInfo(const FileInfo& fileInfo)
 {
+    // this sheet is the cheats sheet; parental controls can take it away
+    if (IsBlocked(ParentalFeature::Cheats))
+        return;
     _triggerFileInfo = FileInfo(fileInfo);
     _stateMachine.Fire(RomBrowserStateTrigger::ShowGameInfo);
 }
@@ -186,6 +190,15 @@ void RomBrowserController::ShowStatistics()
 // same question to decide whether to dim its delete button, so the button and
 // the action can never disagree about what is deletable.
 bool RomBrowserController::CanDeleteSelected() const
+{
+    // the menu entry is drawn faded from this, but RequestDeleteSelected and
+    // ConfirmDelete ask it too, so no other route can delete while blocked
+    if (IsBlocked(ParentalFeature::Delete))
+        return false;
+    return IsSelectedGame();
+}
+
+bool RomBrowserController::IsSelectedGame() const
 {
     if (!_romBrowserViewModel.IsValid())
         return false;
@@ -258,6 +271,10 @@ void RomBrowserController::CancelDelete()
 
 void RomBrowserController::ConfirmDelete()
 {
+    // the sheet can only be here because RequestDeleteSelected let it, but the
+    // lock is checked again at the point the file actually goes
+    if (IsBlocked(ParentalFeature::Delete))
+        return;
     _ioTaskQueue->Enqueue([this] (const vu8& cancelRequested)
     {
         FRESULT result = f_unlink(_deleteRomFileName);
@@ -314,6 +331,93 @@ void RomBrowserController::ShowAbout()
 void RomBrowserController::HideAbout()
 {
     _stateMachine.Fire(RomBrowserStateTrigger::HideAbout);
+}
+
+void RomBrowserController::ShowExitCombo()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::ShowExitCombo);
+}
+
+void RomBrowserController::HideExitCombo()
+{
+    if (_saveSettingsPending)
+    {
+        _saveSettingsPending = false;
+        _ioTaskQueue->Enqueue([this] (const vu8& cancelRequested)
+        {
+            _appSettingsService->Save();
+            return TaskResult<void>::Completed();
+        });
+    }
+    _stateMachine.Fire(RomBrowserStateTrigger::HideExitCombo);
+}
+
+u16 RomBrowserController::GetLoaderExitCombo() const
+{
+    u16 combo;
+    if (!KeyCombo::TryParse(
+            _appSettingsService->GetAppSettings().loaderExitCombo.GetString(), combo))
+    {
+        return 0;
+    }
+    return combo;
+}
+
+void RomBrowserController::SetLoaderExitCombo(u16 combo)
+{
+    char text[KeyCombo::kMaxTextLength] = "";
+    if (combo != 0)
+    {
+        // The loader checks these rules too; refusing here keeps an unusable
+        // combination out of settings.json in the first place.
+        if (!KeyCombo::IsValid(combo))
+            return;
+        KeyCombo::Format(combo, text, sizeof(text));
+    }
+
+    auto& appSettings = _appSettingsService->GetAppSettings();
+    if (strcmp(appSettings.loaderExitCombo.GetString(), text) != 0)
+    {
+        appSettings.loaderExitCombo = text;
+        _saveSettingsPending = true;
+    }
+}
+
+void RomBrowserController::ShowGameInfoEdit()
+{
+    if (!CanEditSelected())
+        return;
+    int selectedItem = _romBrowserViewModel->GetSelectedItem();
+    const auto& item = _romBrowserViewModel->GetFileInfoManager().GetItem(selectedItem);
+    _triggerFileInfo = FileInfo(item);
+    _stateMachine.Fire(RomBrowserStateTrigger::ShowGameInfoEdit);
+}
+
+void RomBrowserController::HideGameInfoEdit()
+{
+    _stateMachine.Fire(RomBrowserStateTrigger::HideGameInfoEdit);
+}
+
+bool RomBrowserController::CanEditSelected() const
+{
+    if (IsBlocked(ParentalFeature::GameInfo))
+        return false;
+    // the same files that can be deleted: a game, not a folder or support file
+    return IsSelectedGame();
+}
+
+void RomBrowserController::SetGameMetadata(const char* name, const char* publisher,
+    const char* developer)
+{
+    const char* fileName = _triggerFileInfo.GetFileName();
+    _gameDataService->SetGameMetadata(fileName, name, publisher, developer);
+    _gameDataService->SaveAsync(_ioTaskQueue);
+    // Rebuild the browser the way a display-mode change does, but land on the
+    // game that was just named: the list rows and the top screen then show the
+    // new values without the cost of reloading the folder.
+    StringUtil::Copy(_refreshSelectName, fileName,
+        sizeof(_refreshSelectName) / sizeof(_refreshSelectName[0]));
+    _stateMachine.Fire(RomBrowserStateTrigger::ChangeDisplayMode);
 }
 
 void RomBrowserController::HideDisplaySettings()
@@ -696,7 +800,9 @@ void RomBrowserController::BeginLaunch()
 void RomBrowserController::HandleChangeDisplayModeTrigger()
 {
     LOG_DEBUG("RomBrowserStateTrigger::ChangeDisplayMode\n");
-    _romBrowserViewModel = SharedPtr<RomBrowserViewModel>::MakeShared(this);
+    _romBrowserViewModel = SharedPtr<RomBrowserViewModel>::MakeShared(this,
+        _refreshSelectName[0] != 0 ? _refreshSelectName : nullptr);
+    _refreshSelectName[0] = 0;
 }
 
 void RomBrowserController::HandleGotoSettingsScreenTrigger()
@@ -719,6 +825,7 @@ void RomBrowserController::UpdateLastUsedFilepath()
 
 void RomBrowserController::SetPicoLoaderParams() const
 {
+    pload_setExitCombo(GetLoaderExitCombo());
     auto loadParams = pload_getLoadParams();
     loadParams->savePath[0] = 0;
     loadParams->arguments[0] = 0;

@@ -14,5 +14,7 @@ enum class RomBrowserState
     Statistics,
     DeleteConfirm,
     Menu,
-    About
+    About,
+    ExitCombo,
+    GameInfoEdit
 };

@@ -18,4 +18,9 @@ public:
     ///        this dialog for the purpose of culling views behind it.
     /// @return A rectangle that is fully covered by the dialog.
     virtual Rectangle GetFullyCoveredArea() const = 0;
+
+    /// @brief Whether the dialog is capturing raw button combinations and so
+    ///        wants every key to itself. Global shortcuts, like the START
+    ///        screenshot hold, must not fire while this is true.
+    virtual bool IsCapturingInput() const { return false; }
 };

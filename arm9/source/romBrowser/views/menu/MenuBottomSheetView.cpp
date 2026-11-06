@@ -18,6 +18,7 @@
 #include "heartIcon.h"
 #include "checkIcon.h"
 #include "infoIcon.h"
+#include "settingsIcon.h"
 #include "MenuBottomSheetView.h"
 
 // Placed from the sheet's top edge, which rests at y 32 once the sheet is open.
@@ -25,18 +26,20 @@
 #define TITLE_Y             16
 
 // The about button shares the title row, where the display settings sheet
-// keeps its theme button.
+// keeps its theme button. The exit combo is an entry in the grid now, so the
+// title row has the one button again.
 #define ABOUT_BUTTON_X      212
 #define ABOUT_BUTTON_Y      (TITLE_Y - 7)
 
-// Two cells per row over the 224 px the recents list uses, then two full rows.
-// Rows sit 26 apart so the 24 px items keep a hairline between them; the last
-// one ends at 142, screen y 174, with the sheet's rounded edge below it.
+// Two cells per row over the 224 px the recents list uses, four rows of them:
+// the panels and delete, then game info beside the exit combo, then the two
+// filters under everything. Rows sit 24 apart so the 24 px items keep a
+// hairline between them.
 #define ITEMS_X             16
 #define CELL_WIDTH          112
 #define ROW_WIDTH           224
-#define ROWS_Y              40
-#define ROW_SPACING         26
+#define ROWS_Y              32
+#define ROW_SPACING         24
 
 // Inside an item.
 #define ICON_DX             4
@@ -192,19 +195,24 @@ MenuBottomSheetView::MenuBottomSheetView(SharedPtr<MenuViewModel> viewModel,
     }, this);
     AddChildTail(_aboutButton.GetPointer());
 
-    static const struct { const char* name; bool filter; } kEntries[ITEM_COUNT] =
+    static const char* const kEntries[ITEM_COUNT] =
     {
-        { "Recently played", false },
-        { "Favorites", false },
-        { "Statistics", false },
-        { "Delete game", false },
-        { "Only favorites", true },
-        { "Only completed", true }
+        "Recently played",
+        "Favorites",
+        "Statistics",
+        "Delete game",
+        "Game info",
+        "Quit combo",
+        "Only favorites",
+        "Only completed"
     };
     for (int i = 0; i < ITEM_COUNT; i++)
     {
-        _items[i] = MenuItemView::CreateShared(this, i, kEntries[i].filter ? ROW_WIDTH : CELL_WIDTH,
-            kEntries[i].name, kEntries[i].filter, i == ITEM_COMPLETED_FILTER ? kCompletedGreen : kFavoriteRed,
+        // The filters are cells now, so they carry no "on"/"off" text: their
+        // colour is the state (see MenuItemView::SetActive).
+        _items[i] = MenuItemView::CreateShared(this, i, CELL_WIDTH,
+            kEntries[i], false,
+            i == ITEM_COMPLETED_FILTER ? kCompletedGreen : kFavoriteRed,
             materialColorScheme, fontRepository);
         AddChildTail(_items[i].GetPointer());
     }
@@ -217,10 +225,15 @@ void MenuBottomSheetView::InitVram(const VramContext& vramContext)
     const auto objVramManager = vramContext.GetObjVramManager();
     if (!objVramManager)
         return;
+    // in item order: the four panels, game info (the about sheet's icon, which
+    // the game info sheet also stands for), the exit combo (the cog the title
+    // row used to hold), then the two filters
     static const unsigned int* const kTiles[ITEM_COUNT] =
-        { recentIconTiles, smallHeartIconFilledTiles, statsIconTiles, trashIconTiles, heartIconTiles, checkIconTiles };
+        { recentIconTiles, smallHeartIconFilledTiles, statsIconTiles, trashIconTiles,
+            infoIconTiles, settingsIconTiles, heartIconTiles, checkIconTiles };
     static const u32 kTilesLength[ITEM_COUNT] =
-        { recentIconTilesLen, smallHeartIconFilledTilesLen, statsIconTilesLen, trashIconTilesLen, heartIconTilesLen, checkIconTilesLen };
+        { recentIconTilesLen, smallHeartIconFilledTilesLen, statsIconTilesLen, trashIconTilesLen,
+            infoIconTilesLen, settingsIconTilesLen, heartIconTilesLen, checkIconTilesLen };
     _aboutButton->SetIconVramOffset(LoadSprite(*objVramManager, infoIconTiles, infoIconTilesLen));
     u32 selectorVramOffset = LoadSprite(*objVramManager, cheatSelectorTiles, cheatSelectorTilesLen);
     for (int i = 0; i < ITEM_COUNT; i++)
@@ -243,14 +256,11 @@ void MenuBottomSheetView::Update()
     _titleLabel->SetPosition(TITLE_X, y + TITLE_Y);
     _aboutButton->SetPosition(ABOUT_BUTTON_X, y + ABOUT_BUTTON_Y);
     for (int i = 0; i < ITEM_COUNT; i++)
-    {
-        // two rows of two cells, then the filters as the third and fourth row
-        bool cell = i < ITEM_FAVORITES_FILTER;
-        int row = cell ? i / 2 : i - 2;
-        int x = ITEMS_X + (cell ? (i % 2) * CELL_WIDTH : 0);
-        _items[i]->SetPosition(x, y + ROWS_Y + row * ROW_SPACING);
-    }
+        _items[i]->SetPosition(ITEMS_X + (i % 2) * CELL_WIDTH, y + ROWS_Y + (i / 2) * ROW_SPACING);
+    // delete and game info are faded when the highlighted entry cannot use them
+    // or parental controls take them away
     _items[ITEM_DELETE]->SetEnabled(_viewModel->CanDeleteSelected());
+    _items[ITEM_GAME_INFO]->SetEnabled(_viewModel->CanEditSelected());
     _items[ITEM_FAVORITES_FILTER]->SetActive(_viewModel->IsFavoritesFilterEnabled());
     _items[ITEM_COMPLETED_FILTER]->SetActive(_viewModel->IsCompletedFilterEnabled());
     BottomSheetView::Update();
@@ -285,7 +295,7 @@ SharedPtr<View> MenuBottomSheetView::MoveFocus(const SharedPtr<View>& currentFoc
     if (currentFocus.GetPointer() == _aboutButton.GetPointer())
     {
         if (direction == FocusMoveDirection::Down)
-            return _items[ITEM_FAVORITES];
+            return _items[ITEM_DELETE];
         return nullptr;
     }
     int idx = -1;
@@ -297,33 +307,24 @@ SharedPtr<View> MenuBottomSheetView::MoveFocus(const SharedPtr<View>& currentFoc
     if (idx < 0)
         return nullptr;
 
-    // 0 1 and 2 3 are the two-by-two grid, 4 and 5 the full rows under it.
-    bool cell = idx < ITEM_FAVORITES_FILTER;
+    // a plain two-by-four grid, with the about button above the top row
     switch (direction)
     {
         case FocusMoveDirection::Left:
-            if (cell && (idx % 2) == 1)
+            if ((idx % 2) == 1)
                 return _items[idx - 1];
             break;
         case FocusMoveDirection::Right:
-            if (cell && (idx % 2) == 0)
+            if ((idx % 2) == 0)
                 return _items[idx + 1];
             break;
         case FocusMoveDirection::Up:
-            if (idx == ITEM_COMPLETED_FILTER)
-                return _items[ITEM_FAVORITES_FILTER];
-            if (idx == ITEM_FAVORITES_FILTER)
-                return _items[ITEM_STATISTICS];
             if (idx >= 2)
                 return _items[idx - 2];
             return _aboutButton;
         case FocusMoveDirection::Down:
-            if (idx == ITEM_FAVORITES_FILTER)
-                return _items[ITEM_COMPLETED_FILTER];
-            if (idx < 2)
+            if (idx + 2 < ITEM_COUNT)
                 return _items[idx + 2];
-            if (cell)
-                return _items[ITEM_FAVORITES_FILTER];
             break;
     }
     return nullptr;
@@ -355,6 +356,12 @@ void MenuBottomSheetView::Activate(int index)
         case ITEM_DELETE:
             // faded on a folder and inert with it: the controller checks too
             _viewModel->RequestDeleteSelected();
+            break;
+        case ITEM_GAME_INFO:
+            _viewModel->ShowGameInfoEdit();
+            break;
+        case ITEM_EXIT_COMBO:
+            _viewModel->ShowExitCombo();
             break;
         case ITEM_FAVORITES_FILTER:
             _viewModel->ToggleFavoritesFilter();

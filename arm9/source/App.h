@@ -164,6 +164,10 @@ private:
     void HandleHideMenuTrigger();
     void HandleShowAboutTrigger();
     void HandleHideAboutTrigger();
+    void HandleShowExitComboTrigger();
+    void HandleHideExitComboTrigger();
+    void HandleShowGameInfoEditTrigger();
+    void HandleHideGameInfoEditTrigger();
     void CloseSheetIfLeavingMenu();
     void HandleNavigateTrigger();
     void HandleFolderLoadDoneTrigger();

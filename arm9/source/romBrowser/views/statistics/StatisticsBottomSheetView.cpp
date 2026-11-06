@@ -140,7 +140,10 @@ StatisticsBottomSheetView::StatisticsBottomSheetView(SharedPtr<StatisticsViewMod
         const auto& entry = _viewModel->GetTopEntry(t);
         mini_snprintf(text, sizeof(text), "%u", t + 1);
         _rankLabels[t] = AddLabel(fontRepository, FontType::Regular10, RANK_WIDTH, 3, text);
-        CopyNameWithoutExtension(name, sizeof(name), entry.fileName.GetString());
+        if (entry.displayName.GetString()[0] != 0)
+            mini_snprintf(name, sizeof(name), "%s", entry.displayName.GetString());
+        else
+            CopyNameWithoutExtension(name, sizeof(name), entry.fileName.GetString());
         _nameLabels[t] = AddLabel(fontRepository, FontType::Regular10, NAME_WIDTH, NAME_MAX_CHARS, name);
         mini_snprintf(text, sizeof(text), "%ux", entry.launchCount);
         _countLabels[t] = AddLabel(fontRepository, FontType::Regular10, COUNT_WIDTH, 10, text, Alignment::End);
@@ -149,7 +152,11 @@ StatisticsBottomSheetView::StatisticsBottomSheetView(SharedPtr<StatisticsViewMod
     const char* lastPlayed = _viewModel->GetLastPlayed().lastPlayed.GetString();
     if (strlen(lastPlayed) >= 16)
     {
-        CopyNameWithoutExtension(name, sizeof(name), _viewModel->GetLastPlayed().fileName.GetString());
+        const auto& lastEntry = _viewModel->GetLastPlayed();
+        if (lastEntry.displayName.GetString()[0] != 0)
+            mini_snprintf(name, sizeof(name), "%s", lastEntry.displayName.GetString());
+        else
+            CopyNameWithoutExtension(name, sizeof(name), lastEntry.fileName.GetString());
         mini_snprintf(text, sizeof(text), "Last: %s", name);
         _lastLabel = AddLabel(fontRepository, FontType::Regular10, LAST_TEXT_WIDTH, NAME_MAX_CHARS, text);
         // stored as "YYYY-MM-DD HH:MM", shown as "16/07 20:41"

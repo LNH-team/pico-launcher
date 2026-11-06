@@ -6,6 +6,9 @@
 
 A feature fork of [Pico Launcher](https://github.com/LNH-team/pico-launcher) by the LNH team, adding library features inspired by modern consoles, like favorites, play stats and recently played, while staying fully compatible with stock SD cards. It is a drop-in `_picoboot.nds` replacement, and all upstream features remain intact.
 
+> [!NOTE]
+> **This fork is a mockup, not an official Pico Launcher release.** It was developed with AI assistance, tested end to end on real hardware and verified working. The LNH team is advised to test it for themselves: read the code, change what they want to change, or take inspiration from any of the added features.
+
 ![Cover flow in the Material theme: the most launched game, a favorite and completed, with its star, heart and check above the icon](docs/images/enhanced/Coverflow.png)
 ![Icon grid in the Material theme: the most launched game, a favorite and completed, with its star, heart and check above the icon](docs/images/enhanced/Grid.png)
 ![A custom theme: the game markers sit above the game's icon, drawn to read on any art](docs/images/enhanced/CustomTheme.png)
@@ -21,6 +24,8 @@ A feature fork of [Pico Launcher](https://github.com/LNH-team/pico-launcher) by 
 Everything upstream Pico Launcher offers (display modes, [custom icons, banners & covers](docs/Customization.md) for games *and folders*, [themes](docs/Themes.md), [cheats](docs/Cheats.md), [file associations](docs/FileAssociations.md); see [Usage](docs/Usage.md)), plus:
 
 - **Go back to the launcher from inside a game** (optional): with Pico Loader Enhanced, the second zip in the release, hold L + R + Right + Select for a moment in a DS game; see [Installation](#optional-the-in-game-exit)
+- **Pick your own exit combination**: **Quit combo** in the menu records any two to four buttons that include Select, for consoles whose L or R button no longer works; needs Pico Loader Enhanced v1.1
+- **Parental controls**: one flag in `settings.json` locks the three actions that can destroy work - deleting a game, cheats, and the game info sheet - while favorites and completed marks stay untouched; no PIN to forget
 - **A menu instead of a row of icons**: the app bar keeps back and display settings and gains a three-dot button; recently played, favorites, statistics, deletion and the two filters live in the sheet it opens, each with its name
 - **About sheet**: from the menu's title row: who made what, the exact build and the repository it came from, and a cheat sheet of the controls that have no button
 - **Jump by initial**: press L or R to jump to the next initial letter in a folder sorted by name; the letter you land on shows for a moment at the bottom of the touch screen
@@ -28,7 +33,7 @@ Everything upstream Pico Launcher offers (display modes, [custom icons, banners 
 - **Random game launch** with SELECT + A
 - **Favorites**: press X on a game; a heart shows on the top screen
 - **Completed games**: hold X on a game; a green check shows on the top screen
-- **Favorites and completed filters**: Only favorites and Only completed in the menu, each saying when it is on
+- **Favorites and completed filters**: Only favorites and Only completed in the menu, lit in their colour while on
 - **Favorites panel**: every favorite across all folders, from the menu; tapping one jumps to it
 - **Recently played panel**: from the menu; tapping an entry jumps to the game
 - **Statistics panel**: totals, most-played games and the launcher version, from the menu
@@ -37,6 +42,7 @@ Everything upstream Pico Launcher offers (display modes, [custom icons, banners 
 - **Approximate play time**: per game, in the favorites panel
 - **Game deletion**: from the menu, with confirmation; removes the ROM, and its save for a DS or GBA game
 - **ROMs run by an emulator count as games**: GB, SNES or any ROM opened through a file association can be marked, deleted and picked at random; see [FileAssociations.md](docs/FileAssociations.md)
+- **Custom game names**: give those ROMs a proper name, publisher and developer from the menu's Game info sheet, and the browser shows that instead of the file name
 - **Theme deletion**: from the theme selector, with confirmation; the theme in use and the two that come with the launcher are kept
 - **A saves folder**: set `"saveLocation": "saves"` in `settings.json` and DS saves live in a `saves` folder next to the games, the layout TWiLight Menu++ uses, so both launchers can share one card; see [Usage.md](docs/Usage.md#settings)
 - **Brightness control**: set the DS Lite's backlight level from display settings
@@ -61,7 +67,7 @@ No other changes to your SD card are needed: themes, covers and the `_pico` fold
 
 ### Optional: the in-game exit
 
-The release also has a second zip, Pico Loader Enhanced: a version of Pico Loader that lets you go back to the launcher from inside a DS game by holding L + R + Right + Select for a moment. To use it, copy its `picoLoader7.bin` and `picoLoader9.bin` into `/_pico/`, over the official ones. It is optional, the launcher works the same with the official loader. Which games get the exit, and the known issues, are in the [release notes](../../releases/latest).
+The release also has a second zip, Pico Loader Enhanced: a version of Pico Loader that lets you go back to the launcher from inside a DS game by holding L + R + Right + Select for a moment. From Pico Loader Enhanced v1.1 the combination is yours to pick: **Quit combo** in the launcher's menu records any two to four buttons that include Select, for consoles whose L or R button no longer works (see [In-game exit combo](docs/Enhanced.md#in-game-exit-combo)). To use it, copy its `picoLoader7.bin` and `picoLoader9.bin` into `/_pico/`, over the official ones. It is optional, the launcher works the same with the official loader. Which games get the exit, and the known issues, are in the [release notes](../../releases/latest).
 
 ## Building from source
 We recommend using WSL (Windows Subsystem for Linux), or MSYS2 to compile this repository.

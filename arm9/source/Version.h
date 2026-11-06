@@ -4,7 +4,7 @@
 ///        rolls the changelog for a release, so the two always move together.
 ///        Between releases it names the release being worked towards, and the
 ///        build hash next to it is what tells one build from another.
-#define LAUNCHER_VERSION "1.10.0"
+#define LAUNCHER_VERSION "1.11.0"
 
 /// @brief Short hash of the commit this was built from, with a "+" after it when
 ///        the tree had uncommitted changes. Makefile.arm9 passes it in from git

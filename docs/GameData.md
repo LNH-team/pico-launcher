@@ -17,6 +17,8 @@ Regular users never need to edit this file. Deleting it simply resets all favori
       "path": "/Games/nds/Some Game.nds"
     },
     "tetris.gb": {
+      "name": "Tetris",
+      "publisher": "Nintendo",
       "launchCount": 2,
       "lastPlayed": "2026-07-10 18:40",
       "path": "/Games/gb/tetris.gb"
@@ -34,6 +36,9 @@ Each key in `games` is a file name (not a path). All keys inside an entry are op
 | Key | Type | Written when | Meaning |
 |---|---|---|---|
 | `gameCode` | string | non-empty | Internal game code from the NDS/GBA header, stored as information only: it is never used to identify an entry. Written when it is printable ASCII and not the `####` toolchain placeholder (homebrew ROMs often carry garbage or the placeholder there). |
+| `name` | string | non-empty | Name shown instead of the file name, set in the launcher's **Game info** sheet. Stored as information for display only: the entry is still keyed by the file name. |
+| `publisher` | string | non-empty | Free-form publisher, shown on the line under the developer when set. Never used to identify anything. |
+| `developer` | string | non-empty | Free-form developer, shown on the line under the name when set. Never used to identify anything. |
 | `favorite` | bool | `true` | Marked as favorite. Absent means not a favorite; `false` is never written. |
 | `completed` | bool | `true` | Marked as completed (finished). Absent means not completed; `false` is never written. |
 | `launchCount` | number | > 0 | How many times the game was launched. |
@@ -41,7 +46,7 @@ Each key in `games` is a file name (not a path). All keys inside an entry are op
 | `lastPlayed` | string | non-empty | `"YYYY-MM-DD HH:MM"`, 24-hour clock. Lexicographic order equals chronological order, so tools can sort these as plain strings. |
 | `path` | string | non-empty | Full path of the file at its last launch. Used by the recently played panel to navigate back to the game. |
 
-An entry whose `favorite` and `completed` are both false and whose `launchCount` and `playMinutes` are both 0 is pruned on the next write. Deleting a game through the launcher also removes its entry.
+An entry whose `favorite` and `completed` are both false, whose `launchCount` and `playMinutes` are both 0, and which has no `name`, `publisher` or `developer` is pruned on the next write. Deleting a game through the launcher also removes its entry.
 
 ## Session keys (root level)
 While a play session is open, the root object holds:
@@ -62,7 +67,7 @@ and play statistics all follow the file. Comparison is case-insensitive.
 
 - Two copies of the same game keep separate entries, with separate favorites and separate play time.
   A ROM hack and its base game never share data either, even though they share a game code.
-- `gameCode` is stored as information only. It is never used to look an entry up.
+- `gameCode`, `name`, `publisher` and `developer` are stored as information only. None of them is used to look an entry up: renaming a rom outside the launcher still starts the entry over, whatever `name` says.
 - **Renaming a ROM starts it over**: the launcher sees a different file, so the old entry stays behind
   (unused) and the renamed file begins with no favorite and no history.
 - Moving a ROM to another folder keeps its data, since the file name does not change, and the browser
@@ -84,6 +89,8 @@ Other values longer than these are truncated (lengths in bytes, so accented char
 
 - entry key / `sessionGame` (file name): 96 (longer names are refused, see above)
 - `gameCode`: 8
+- `name`: 48
+- `publisher` / `developer`: 32
 - `lastPlayed` / `sessionStart`: 20
 - `path`: 256
 

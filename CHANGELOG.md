@@ -2,6 +2,26 @@
 
 ## Enhanced fork
 
+### [enhanced-v1.11.0]
+
+#### Added
+
+- **Custom Quit Combo:** You can now choose which buttons are used to exit a DS game. Open the three-dot menu on the bottom screen and select **Quit Combo**. Hold your preferred button combination for one second to save it. Combinations must contain 2–4 buttons, including SELECT. Press Y to restore the default combination (L + R + Right + SELECT). Your chosen combination is saved in `settings.json` as `loaderExitCombo` and takes effect the next time you launch a game. Requires the latest version of Pico Loader Enhanced (API v4).
+
+- **On-Screen Keyboard:** Pico Launcher now has its own on-screen keyboard for entering text. It can be used by any menu feature that needs text input, rather than having a separate keyboard built into each screen. The keyboard uses a compact three-row layout designed to fit the DS screen, with keys arranged similarly to a standard QWERTY keyboard.
+  - Use the D-pad to select a key and A to enter it.
+  - B deletes the previous character.
+  - X enters a space.
+  - Y switches between uppercase and lowercase.
+  - Start and SELECT retain their normal functions outside of text entry.
+  - Additional pages provide access to numbers, punctuation and other symbols.
+
+- **Custom Game Information:** You can now give any game its own display name, developer and publisher. This is especially useful for games that don't have their own banner, such as GB and SNES games, which would otherwise display their filenames. Select **Game Info** from the menu to edit these details using the new on-screen keyboard. Your changes are saved per game in `gamedata.json` and are displayed throughout the launcher, including the game browser, top screen, recently played list and statistics panel. Games with custom information will display their chosen name instead of the filename, with the developer and publisher shown underneath.
+
+- **Parental Controls / Restricted Mode:** Added an optional restricted mode to help prevent accidental changes or unwanted actions when handing your DS to someone else. To enable it, set `parentalControls` to `true` in `settings.json` on your SD card. When enabled, the launcher prevents users from deleting games, opening the Cheats menu or editing game information. It also hides files and folders marked as hidden, regardless of the launcher's normal hidden-file settings. Favorites and completed-game marks remain available, along with other normal launcher features.
+  
+  Restricted Mode does not have an on-screen toggle or PIN. To disable it, change `parentalControls` back to `false` in `settings.json` on your SD card. Keep in mind that this is intended to prevent accidental changes, not to provide security against someone with access to the SD card.
+
 ### [enhanced-v1.10.0]
 
 #### Added

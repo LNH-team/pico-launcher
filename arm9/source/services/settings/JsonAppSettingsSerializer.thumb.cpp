@@ -4,10 +4,11 @@
 #include "AppSettings.h"
 #include "fat/File.h"
 #include "JsonAppSettingsSerializer.h"
+#include "KeyCombo.h"
 
 #pragma GCC optimize("Os")
 
-#define JSON_RESERVED_SIZE  2048
+#define JSON_RESERVED_SIZE  3072
 
 #define KEY_LANGUAGE                 "language"
 #define KEY_ROM_BROWSER_LAYOUT       "romBrowserLayout"
@@ -18,6 +19,8 @@
 #define KEY_BACKLIGHT_LEVEL          "backlightLevel"
 #define KEY_SAVE_LOCATION            "saveLocation"
 #define KEY_LAUNCH_TRACKING          "launchTracking"
+#define KEY_LOADER_EXIT_COMBO        "loaderExitCombo"
+#define KEY_PARENTAL_CONTROLS        "parentalControls"
 #define KEY_FILE_ASSOCIATIONS        "fileAssociations"
 #define KEY_FILE_ASSOCIATIONS_APPLICATION_PATH  "appPath"
 
@@ -167,6 +170,12 @@ static std::unique_ptr<u8[]> writeJson(const AppSettings* appSettings, u32& leng
         json[KEY_BACKLIGHT_LEVEL] = appSettings->backlightLevel;
     json[KEY_SAVE_LOCATION] = serializeSaveLocation(appSettings->saveLocation);
     json[KEY_LAUNCH_TRACKING] = appSettings->launchTracking;
+    // only written once a combo was picked; empty keeps the loader's default
+    if (appSettings->loaderExitCombo.GetString()[0] != 0)
+        json[KEY_LOADER_EXIT_COMBO] = appSettings->loaderExitCombo.GetString();
+    // Parental controls are always written: settings.json is the only place
+    // they are switched on or off, so the flag is always there to edit.
+    json[KEY_PARENTAL_CONTROLS] = appSettings->parentalControls.enabled;
     serializeFileAssociations(json, appSettings);
 
     u32 outputSize = measureJsonPretty(json);
@@ -232,6 +241,19 @@ static void readJson(AppSettings* appSettings, const JsonDocument& json)
     }
     appSettings->launchTracking = json[KEY_LAUNCH_TRACKING] | appSettings->launchTracking;
 
+    // An unknown name or a combination the loader would refuse leaves the
+    // default in place rather than making the launcher unlaunchable.
+    u16 loaderExitCombo = 0;
+    if (KeyCombo::TryParse(json[KEY_LOADER_EXIT_COMBO].as<const char*>(), loaderExitCombo) &&
+        loaderExitCombo != 0)
+    {
+        char comboText[KeyCombo::kMaxTextLength];
+        KeyCombo::Format(loaderExitCombo, comboText, sizeof(comboText));
+        appSettings->loaderExitCombo = comboText;
+    }
+
+    appSettings->parentalControls.enabled =
+        json[KEY_PARENTAL_CONTROLS] | appSettings->parentalControls.enabled;
     tryParseFileAssociations(json[KEY_FILE_ASSOCIATIONS], appSettings);
 }
 

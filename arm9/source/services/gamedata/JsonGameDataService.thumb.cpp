@@ -20,6 +20,9 @@
 #define KEY_LAUNCH_COUNT      "launchCount"
 #define KEY_PLAY_MINUTES      "playMinutes"
 #define KEY_LAST_PLAYED       "lastPlayed"
+#define KEY_DISPLAY_NAME      "name"
+#define KEY_PUBLISHER         "publisher"
+#define KEY_DEVELOPER         "developer"
 #define KEY_PATH              "path"
 #define KEY_SESSION_GAME      "sessionGame"
 #define KEY_SESSION_GAME_CODE "sessionGameCode"
@@ -236,6 +239,20 @@ void JsonGameDataService::RecordLaunch(const char* fileName, const char* gameCod
     _version++;
 }
 
+void JsonGameDataService::SetGameMetadata(const char* fileName, const char* name,
+    const char* publisher, const char* developer)
+{
+    // the sheet only opens on a game, but the service is the one that must
+    // refuse a name that cannot be a key
+    auto* entry = GetOrCreateEntry(fileName, nullptr);
+    if (!entry)
+        return;
+    entry->displayName = name ? name : "";
+    entry->publisher = publisher ? publisher : "";
+    entry->developer = developer ? developer : "";
+    _version++;
+}
+
 bool JsonGameDataService::CloseOpenSession(const char* nowDateTime)
 {
     if (_sessionStart.GetString()[0] == 0)
@@ -308,12 +325,21 @@ void JsonGameDataService::SaveAsync(TaskQueueBase* ioTaskQueue)
     for (u32 i = 0; i < _entryCount; i++)
     {
         const auto& entry = _entries[i];
-        // entries reset back to all-default state are pruned on write
-        if (!entry.favorite && !entry.completed && entry.launchCount == 0 && entry.playMinutes == 0)
+        // entries reset back to all-default state are pruned on write; the
+        // edited name/credits count as data, so an entry the user renamed is
+        // kept even though it was never played
+        if (!entry.favorite && !entry.completed && entry.launchCount == 0 &&
+            entry.playMinutes == 0 && !entry.HasDisplayMetadata())
             continue;
         auto game = games[entry.fileName.GetString()].to<JsonObject>();
         if (entry.gameCode.GetString()[0] != 0)
             game[KEY_GAME_CODE] = entry.gameCode.GetString();
+        if (entry.displayName.GetString()[0] != 0)
+            game[KEY_DISPLAY_NAME] = entry.displayName.GetString();
+        if (entry.publisher.GetString()[0] != 0)
+            game[KEY_PUBLISHER] = entry.publisher.GetString();
+        if (entry.developer.GetString()[0] != 0)
+            game[KEY_DEVELOPER] = entry.developer.GetString();
         if (entry.favorite)
             game[KEY_FAVORITE] = true;
         if (entry.completed)
@@ -471,6 +497,9 @@ void JsonGameDataService::Load()
         // collision; it would be unreachable from the browser anyway
         if (!entry)
             continue;
+        entry->displayName = item.value()[KEY_DISPLAY_NAME] | "";
+        entry->publisher = item.value()[KEY_PUBLISHER] | "";
+        entry->developer = item.value()[KEY_DEVELOPER] | "";
         entry->favorite = item.value()[KEY_FAVORITE] | false;
         entry->completed = item.value()[KEY_COMPLETED] | false;
         entry->launchCount = item.value()[KEY_LAUNCH_COUNT] | 0u;

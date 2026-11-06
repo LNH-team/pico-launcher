@@ -75,6 +75,14 @@ public:
         return _curState != State::Idle;
     }
 
+    /// @brief True while the shown sheet is capturing a button combination
+    ///        (see DialogView::IsCapturingInput).
+    bool IsCapturingInput() const
+    {
+        return _curState == State::BottomSheetVisible && _currentDialog &&
+            _currentDialog->IsCapturingInput();
+    }
+
     /// @brief True while one sheet is on its way out with the next already
     ///        waiting - the menu handing over to the panel picked from it.
     bool IsSwitchingDialog() const

@@ -1,6 +1,7 @@
 #pragma once
 #include "gui/views/ViewContainer.h"
 #include "../FileType/FileIcon.h"
+#include "core/StringUtil.h"
 
 class TaskQueueBase;
 
@@ -22,6 +23,53 @@ public:
     }
 
     void SetGameTitleAsync(TaskQueueBase* taskQueue, const char16_t* gameTitle);
+
+    /// @brief Shows a name the user set, synchronously. The text is copied at
+    ///        once, so a buffer that does not outlive the call is fine.
+    void SetTitleText(const TCHAR* title)
+    {
+        _lines = 1;
+        SetFirstLineAsync(nullptr, title, true);
+        SetSecondLineAsync(nullptr, u"", 0);
+        SetThirdLineAsync(nullptr, u"", 0);
+    }
+
+    /// @brief Shows the developer on the second line and the publisher on the
+    ///        third, the two rows a DS banner gives the pair, instead of running
+    ///        them together on one line. A row with nothing in it is left out,
+    ///        and a publisher on its own takes the second line so no blank row is
+    ///        left above it.
+    void SetCreditsText(const char* developer, const char* publisher)
+    {
+        // the lines take wide text only; copied at once, since the caller's
+        // buffer may be a local
+        char16_t wideDeveloper[68] = {};
+        char16_t widePublisher[68] = {};
+        if (developer && developer[0] != 0)
+            StringUtil::Copy(wideDeveloper, developer, sizeof(wideDeveloper) / sizeof(wideDeveloper[0]));
+        if (publisher && publisher[0] != 0)
+            StringUtil::Copy(widePublisher, publisher, sizeof(widePublisher) / sizeof(widePublisher[0]));
+
+        if (wideDeveloper[0] != 0)
+        {
+            _lines = widePublisher[0] != 0 ? 3 : 2;
+            SetSecondLineAsync(nullptr, wideDeveloper);
+        }
+        else if (widePublisher[0] != 0)
+        {
+            _lines = 2;
+            SetSecondLineAsync(nullptr, widePublisher);
+        }
+        else
+        {
+            _lines = 1;
+            SetSecondLineAsync(nullptr, u"", 0);
+        }
+        if (_lines >= 3)
+            SetThirdLineAsync(nullptr, widePublisher);
+        else
+            SetThirdLineAsync(nullptr, u"", 0);
+    }
 
     void SetIcon(std::unique_ptr<FileIcon> icon)
     {

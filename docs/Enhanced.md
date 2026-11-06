@@ -11,14 +11,63 @@ These controls are available in the rom browser, on top of the standard ones (se
 | X (hold ~half a second) | Toggle completed for the highlighted game |
 | SELECT + A | Launch a random game from the current folder |
 | START (hold ~half a second) | Save a screenshot of both screens (see [Screenshots](#screenshots)) |
-| Menu button (app bar, the three dots) | Open the menu: recently played, favorites, statistics, delete game and the two filters (see [The menu](#the-menu)) |
+| Menu button (app bar, the three dots) | Open the menu: recently played, favorites, statistics, delete game, game info, the quit combo and the two filters (see [The menu](#the-menu)) |
+| Quit combo (menu) | Pick the buttons held to leave a DS game (see [In-game exit combo](#in-game-exit-combo)) |
+| Game info (menu) | Name a ROM that has no banner, and its developer and publisher (see [Game info](#game-info)) |
 | Light row (display settings) | Set the DS Lite backlight level (4 levels) |
 | Folder button (display settings) | Toggle hiding empty folders |
 
 ## The menu
-The app bar has three buttons: back, the menu (three dots) and display settings. The menu opens a sheet with everything the bar used to hold as icons, each with its name: **Recently played**, **Favorites**, **Statistics** and **Delete game** in two columns, and under them the two filters, **Only favorites** and **Only completed**, each saying `on` or `off`. Tap an entry, or highlight it with the d-pad and press A. Picking a panel closes the menu and opens the panel in its place; a filter applies at once and closes the menu. B, or a tap outside the sheet, closes it. No app bar button hides a second action behind a hold any more; the X and START holds in the table above are unchanged.
+The app bar has three buttons: back, the menu (three dots) and display settings. The menu opens a sheet with everything the bar used to hold as icons, each with its name, in two columns: **Recently played** and **Favorites** over **Statistics** and **Delete game**, then **Game info** beside **Quit combo** (the keys held to leave a DS game, see [In-game exit combo](#in-game-exit-combo)), and **Only favorites** and **Only completed** under them, their colour saying whether they are on (red for favorites, green for completed). Tap an entry, or highlight it with the d-pad and press A. Picking a panel closes the menu and opens the panel in its place; a filter applies at once and closes the menu. B, or a tap outside the sheet, closes it. No app bar button hides a second action behind a hold any more; the X and START holds in the table above are unchanged.
 
 The small button at the right of the menu's title opens the **about** sheet: Pico Launcher by the LNH team on one side, Enhanced by rasalopa on the other, then the version with the commit it was built from and the repository the build came from, and a cheat sheet of the controls that have no button of their own, three at a time; up and down scroll it. A build made from another repository names that repository there, so you can always tell where a build came from.
+
+## Game info
+Roms that have no banner, such as GB and SNES games run by an emulator or anything else opened through a file association, only have their file name to be shown by. The browser uses it as the title, which is often an abbreviated release name or something that means nothing.
+
+**Game info** in the menu edits three fields for the highlighted game: **Name**, **Developer** and **Publisher**, the order they show in. The sheet opens on those three entries; picking one puts up the on-screen keyboard the launcher has instead of text input, and while it is up the keyboard owns the d-pad and the face buttons, so typing never leaves the keys:
+
+| Input | Entries | Editing |
+|---|---|---|
+| D-pad | Move between the three entries | Move over the keys |
+| A | Edit the selected entry | Type the selected key |
+| B | Go back, storing the entries | Delete the last character |
+| X | — | Type a space |
+| Y | — | Switch capitals and lower case |
+| SELECT | Go back, storing the entries | Back to the three entries |
+| START | Edit the selected entry | Confirm the entry, back to the entries |
+
+SELECT twice in a row leaves the sheet, so a name can be backed straight out of. The keys are a compact keyboard of three rows of ten, which leaves each key room for one character at a size the small screen can still show cleanly: the letters sit where a keyboard puts them, ten then nine then seven, and the last three keys of the bottom row hold space, delete and the page switch. The pages are capitals, lower case, digits with the punctuation a name uses, then the rest of the symbols; Y swaps the letters between the two cases without paging. The focused key is marked by a rounded bar in the theme's accent colour, with its character in the colour paired with that accent, so the key being typed on always stands out against the other twenty-nine.
+
+A name replaces the file name in the list, on the top screen, in the recently played and favorites panels and in the statistics panel; the developer and the publisher show on the two lines under it when set, developer first, the way a DS banner lays the pair out. The top screen keeps the file name on its small line, so the file is still identifiable. Values are stored in `gamedata.json` per file, next to the game's favorites and play time. They are written when the sheet is left with B or SELECT, which stores whatever was typed, and clearing all three returns the file to its own name.
+
+## Parental controls
+Parental controls have no screen of their own. They are one flag in `settings.json`, set from a PC before the console is handed to a child:
+
+```json
+"parentalControls": true
+```
+
+While it is `true`, the three actions that can destroy work are refused:
+
+| Action | With parental controls on |
+|---|---|
+| Delete game | Refused, from the menu and at the confirmation |
+| Cheats (Y on a game) | The cheats sheet does not open |
+| Game info (menu, and Y on a game) | The sheet does not open, so a name cannot be changed |
+
+Everything else stays as it is, and there is nothing to switch one at a time: the favorite and completed marks (X) are never blocked, and neither is any other button, panel or setting. The three actions are refused where they are carried out, not only faded in the menu, so no other route can reach them while the flag is on.
+
+Switch it off by setting the flag back to `false` on the SD card and starting the launcher again. There is no PIN and no menu row to get past, so there is nothing to remember and nothing to forget; this is a simple lock against a child poking at the console, not a secret that stands up to someone with the SD card.
+
+## In-game exit combo
+Holding L, R, Right and SELECT together in a DS game asks Pico Loader to close it and come back to the launcher. That combination is now a setting: **Quit combo** in the menu opens a sheet with the combination in use, A starts picking a new one, and Y puts the default back.
+
+Hold the buttons you want together and keep them held for about a second. A combination has to be two to four buttons and include SELECT, so it cannot fire by accident; SELECT on its own is never enough. The sheet shows the buttons as they go down and says what is still missing, and B cancels while picking. START is allowed and never saves a screenshot while the sheet is picking.
+
+The change reaches the loader at the next launch; a game that is already running keeps the combination it started with. It needs the enhanced Pico Loader (v1.1 or newer, Pico Loader API v4). With another loader the setting is saved, but L + R + Right + SELECT stays. Games the loader cannot patch to exit (DSi mode, DSi-enhanced games, DSiWare, homebrew and games with NAND saves) ignore the setting, just as they ignore the built-in combination.
+
+A combination a game uses itself still fires during play if held that long, so avoid the buttons a game needs for its own shortcuts.
 
 ## Jumping by initial
 In a folder with hundreds of games, paging through the list a screen at a time takes a
@@ -52,7 +101,7 @@ Favorites marked before this feature existed appear in the panel after you toggl
 Hold X on a highlighted game for about half a second to mark it as completed (hold again to unmark). Completed games show a small green check on the top screen when highlighted, next to the heart. Like favorites, the mark belongs to the ROM file.
 
 ## Favorites and completed filters
-**Only favorites** in the menu filters the browser down to favorites, and **Only completed** to completed games. Each row says `on` while its filter is active, in red and green, and the browser behind it updates as soon as the menu closes. With both filters on, only games that are favorite *and* completed remain. The filters apply per folder, and folders themselves always stay visible.
+**Only favorites** in the menu filters the browser down to favorites, and **Only completed** to completed games. Each row takes its colour while the filter is active, red for favorites and green for completed, and the browser behind it updates as soon as the menu closes. With both filters on, only games that are favorite *and* completed remain. The filters apply per folder, and folders themselves always stay visible.
 
 Marks, play counts and play time all belong to the ROM file, so what the top screen shows and what the filter matches are always the same thing (see [GameData.md](GameData.md)). Two copies of a game are marked separately, and a ROM hack no longer inherits its base game's mark. Renaming a ROM outside the launcher starts it over, and games whose file name is longer than 96 bytes cannot be marked at all (accented characters count double).
 
@@ -137,7 +186,7 @@ Custom themes can provide night variants of their backgrounds: place `topbg_nigh
 `tools/make_night_bg.py` can generate night variants from a theme's existing backgrounds; see [Tools.md](Tools.md).
 
 ## Data storage
-Favorites, completed marks, launch counts, play time and the recents list are all stored in a single file, `/_pico/gamedata.json`, written by the launcher itself. Saves are atomic, and if the file ever fails to parse the launcher refuses to overwrite it rather than starting over. Deleting the file resets all favorites and statistics.
+Favorites, completed marks, launch counts, play time, the recents list and the edited game names are all stored in a single file, `/_pico/gamedata.json`, written by the launcher itself. Saves are atomic, and if the file ever fails to parse the launcher refuses to overwrite it rather than starting over. Deleting the file resets all favorites and statistics.
 
 **Each entry belongs to one ROM file, identified by its file name.** That single rule explains most surprises:
 
