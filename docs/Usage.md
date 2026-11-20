@@ -18,6 +18,13 @@ The back arrow on the top left of the bottom screen can also be used to go up to
 
 Touch input is also supported.
 
+## Save slots
+Like the Acekard 2i, every DS game can have up to 10 separate save files. Press Y on a game to open its panel, then press SELECT (or tap the `Save:` text in the top right) to cycle through the slots:
+- `Default` uses `game.sav`
+- `Slot 1` to `Slot 9` use `game.1.sav` to `game.9.sav`
+
+An asterisk after the slot name (for example `Slot 2*`) means that a save file for that slot already exists. A slot that does not exist yet is created as a new, blank save the first time the game is started with it. The selected slot is remembered per game in `/_pico/saveslots.txt`. Save slots apply to retail DS(i) cartridge saves; DSiWare saves are not affected.
+
 ## Settings menu
 The settings menu can be accessed by using the DPAD to move the selector to the cogwheel icon and pressing A. When in the settings menu, press the B button will to return to the file browser.
 

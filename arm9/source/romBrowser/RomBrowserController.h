@@ -12,6 +12,7 @@
 #include "FileType/ExtensionFileTypeProvider.h"
 #include "services/settings/IAppSettingsService.h"
 #include "cheats/ICheatRepository.h"
+#include "SaveSlotRepository.h"
 
 class RomBrowserController : public IRomBrowserController
 {
@@ -56,6 +57,10 @@ public:
 
     virtual const FileInfo& GetTriggerFileInfo() const override { return _triggerFileInfo; }
 
+    void GetTriggerFilePath(TCHAR* path, u32 pathLength) const override;
+    u32 GetTriggerFileSaveSlot() const override;
+    void SetTriggerFileSaveSlot(u32 slot) override;
+
 private:
     IAppSettingsService* _appSettingsService;
     TaskQueueBase* _ioTaskQueue;
@@ -75,6 +80,9 @@ private:
     std::unique_ptr<BannerRepository> _bannerRepository;
     ExtensionFileTypeProvider _fileTypeProvider;
     std::unique_ptr<ICheatRepository> _cheatRepository;
+    SaveSlotRepository _saveSlotRepository;
+    bool _saveSlotRepositoryLoaded = false;
+    TCHAR _currentFolderPath[256] = "/";
 
     void HandleTrigger();
     void HandleNavigateTrigger();
@@ -85,4 +93,5 @@ private:
     void UpdateLastUsedFilepath();
     void SetPicoLoaderParams() const;
     void LoadCheats() const;
+    void SaveSaveSlotsIfDirty();
 };

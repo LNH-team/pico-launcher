@@ -47,6 +47,15 @@ public:
         const RomBrowserDisplaySettings& romBrowserDisplaySettings) = 0;
 
     virtual const FileInfo& GetTriggerFileInfo() const = 0;
+
+    /// @brief Gets the full path (including volume id) of the trigger file.
+    virtual void GetTriggerFilePath(TCHAR* path, u32 pathLength) const = 0;
+
+    /// @brief Gets the selected save slot (0 = default .sav, 1-9 = .N.sav) of the trigger file.
+    virtual u32 GetTriggerFileSaveSlot() const = 0;
+
+    /// @brief Sets the selected save slot (0 = default .sav, 1-9 = .N.sav) of the trigger file.
+    virtual void SetTriggerFileSaveSlot(u32 slot) = 0;
 };
 
 inline IRomBrowserController::~IRomBrowserController() { }

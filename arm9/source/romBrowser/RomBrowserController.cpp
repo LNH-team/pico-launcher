@@ -10,7 +10,10 @@
 #include "cheats/UsrCheatRepositoryFactory.h"
 #include "cheats/EmptyCheatRepository.h"
 #include "cheats/PicoLoaderCheatDataFactory.h"
+#include "FileType/Nds/NdsFileType.h"
 #include "RomBrowserController.h"
+
+#define SAVE_SLOTS_PATH     "/_pico/saveslots.txt"
 
 RomBrowserController::RomBrowserController(
     IAppSettingsService* appSettingsService, TaskQueueBase* ioTaskQueue,
@@ -39,6 +42,7 @@ void RomBrowserController::ShowGameInfo(const FileInfo& fileInfo)
 
 void RomBrowserController::HideGameInfo()
 {
+    SaveSaveSlotsIfDirty();
     _stateMachine.Fire(RomBrowserStateTrigger::HideGameInfo);
 }
 
@@ -163,6 +167,11 @@ void RomBrowserController::HandleNavigateTrigger()
             _bannerRepository = std::make_unique<BannerRepository>();
             _bannerRepository->Initialize();
         }
+        if (!_saveSlotRepositoryLoaded)
+        {
+            _saveSlotRepository.Load(SAVE_SLOTS_PATH);
+            _saveSlotRepositoryLoaded = true;
+        }
         if (!_cheatRepository)
         {
             _cheatRepository = UsrCheatRepositoryFactory().FromUsrCheatDat("/_pico/usrcheat.dat");
@@ -189,6 +198,10 @@ void RomBrowserController::HandleNavigateTrigger()
             }
         }
         f_chdir(_navigatePath);
+        if (f_getcwd(_currentFolderPath, sizeof(_currentFolderPath) / sizeof(_currentFolderPath[0])) != FR_OK)
+        {
+            _currentFolderPath[0] = 0;
+        }
         SdFolderFactory sdFolderFactory { &_fileTypeProvider };
         _newSdFolder = sdFolderFactory.CreateFromPath(".");
         u64 endTick = gTickCounter.GetValue();
@@ -249,6 +262,16 @@ void RomBrowserController::SetPicoLoaderParams() const
     loadParams->argumentsLength = 0;
     if (_triggerFileInfo.GetFileType()->TrySetLaunchParameters(loadParams, _navigatePath))
     {
+        if (_triggerFileInfo.GetFileType() == &NdsFileType::sInstance)
+        {
+            // Acekard 2i style save slots: slot N uses rom.N.sav instead of rom.sav
+            u32 saveSlot = _saveSlotRepository.GetSlot(_navigatePath);
+            if (SaveSlotRepository::TryCreateSavePath(loadParams->romPath, saveSlot,
+                loadParams->savePath, sizeof(loadParams->savePath)))
+            {
+                LOG_DEBUG("Using save slot %d: %s\n", saveSlot, loadParams->savePath);
+            }
+        }
         gProcessManager.Goto<PicoLoaderProcess>();
     }
     else
@@ -262,4 +285,45 @@ void RomBrowserController::LoadCheats() const
     auto cheats = _cheatRepository->GetCheatsForGame(_triggerFileInfo.GetFastFileRef());
     auto cheatData = PicoLoaderCheatDataFactory().CreateCheatData(cheats);
     pload_setCheatData(cheatData);
+}
+
+void RomBrowserController::GetTriggerFilePath(TCHAR* path, u32 pathLength) const
+{
+    StringUtil::Copy(path, _currentFolderPath, pathLength);
+    u32 length = strlen(path);
+    if (length == 0 || path[length - 1] != '/')
+    {
+        strlcat(path, "/", pathLength);
+    }
+    strlcat(path, _triggerFileInfo.GetFileName(), pathLength);
+}
+
+u32 RomBrowserController::GetTriggerFileSaveSlot() const
+{
+    TCHAR path[256];
+    GetTriggerFilePath(path, sizeof(path) / sizeof(path[0]));
+    return _saveSlotRepository.GetSlot(path);
+}
+
+void RomBrowserController::SetTriggerFileSaveSlot(u32 slot)
+{
+    TCHAR path[256];
+    GetTriggerFilePath(path, sizeof(path) / sizeof(path[0]));
+    _saveSlotRepository.SetSlot(path, slot);
+}
+
+void RomBrowserController::SaveSaveSlotsIfDirty()
+{
+    if (!_saveSlotRepository.IsDirty())
+    {
+        return;
+    }
+
+    u32 length = 0;
+    auto data = _saveSlotRepository.Serialize(length);
+    _ioTaskQueue->Enqueue([data = std::move(data), length] (const vu8& cancelRequested)
+    {
+        SaveSlotRepository::WriteFile(SAVE_SLOTS_PATH, data.get(), length);
+        return TaskResult<void>::Completed();
+    });
 }
