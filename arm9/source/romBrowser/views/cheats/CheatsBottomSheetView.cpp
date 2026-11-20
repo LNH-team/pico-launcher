@@ -12,6 +12,7 @@
 #include "checkboxUnchecked.h"
 #include "cheatSelector.h"
 #include "gui/DescendingStackVramManager.h"
+#include "core/mini-printf.h"
 #include "CheatsBottomSheetView.h"
 
 #define TITLE_LABEL_X               20
@@ -25,6 +26,10 @@
 
 #define DESCRIPTION_LABEL_X         16
 #define DESCRIPTION_LABEL_Y         147
+
+#define SAVE_SLOT_LABEL_X           96
+#define SAVE_SLOT_LABEL_Y           (TITLE_LABEL_Y + 1)
+#define SAVE_SLOT_LABEL_WIDTH       144
 
 #define UP_BUTTON_X                 212
 #define UP_BUTTON_Y                 (TITLE_LABEL_Y - 7)
@@ -40,6 +45,7 @@ CheatsBottomSheetView::CheatsBottomSheetView(SharedPtr<CheatsViewModel> viewMode
     : _viewModel(std::move(viewModel))
     , _titleLabel(Label2DView::CreateShared(64, 16, 25, fontRepository->GetFont(FontType::Medium11)))
     , _secondaryLabel(Label2DView::CreateShared(153, 16, 64, fontRepository->GetFont(FontType::Regular10)))
+    , _saveSlotLabel(Label2DView::CreateShared(SAVE_SLOT_LABEL_WIDTH, 16, 32, fontRepository->GetFont(FontType::Regular10)))
     , _descriptionLabel(Label2DView::CreateShared(224, 16, 256, fontRepository->GetFont(FontType::Medium7_5)))
     , _cheatListRecycler(RecyclerView::CreateShared(
         LIST_X, LIST_Y, LIST_WIDTH, LIST_HEIGHT, RecyclerView::Mode::VerticalList))
@@ -59,6 +65,9 @@ CheatsBottomSheetView::CheatsBottomSheetView(SharedPtr<CheatsViewModel> viewMode
     _descriptionLabel->SetText(u"");
     AddChildTail(_titleLabel.GetPointer());
     AddChildTail(_secondaryLabel.GetPointer());
+    _saveSlotLabel->SetHorizontalAlignment(Alignment::End);
+    UpdateSaveSlotText();
+    AddChildTail(_saveSlotLabel.GetPointer());
     AddChildTail(_descriptionLabel.GetPointer());
     AddChildTail(_cheatListRecycler.GetPointer());
     _upButton->SetAction([] (IconButtonView*, void* arg)
@@ -109,6 +118,12 @@ void CheatsBottomSheetView::Update()
     else
     {
         _secondaryLabel->SetPosition(NO_CHEATS_FOUND_LABEL_X, _position.y + NO_CHEATS_FOUND_LABEL_Y);
+    }
+    _saveSlotLabel->SetPosition(SAVE_SLOT_LABEL_X, _position.y + SAVE_SLOT_LABEL_Y);
+    if (_displayedSaveSlot != _viewModel->GetSaveSlot()
+        || _displayedSavesKnown != _viewModel->AreExistingSavesKnown())
+    {
+        UpdateSaveSlotText();
     }
     _descriptionLabel->SetPosition(DESCRIPTION_LABEL_X, _position.y + DESCRIPTION_LABEL_Y);
     _cheatListRecycler->SetPosition(LIST_X, _position.y + LIST_Y);
@@ -213,6 +228,14 @@ void CheatsBottomSheetView::Draw(GraphicsContext& graphicsContext)
             _secondaryLabel->Draw(graphicsContext);
         }
 
+        if (!_viewModel->IsInSubCategory())
+        {
+            // The category name and up button occupy the title row in sub-categories
+            _saveSlotLabel->SetBackgroundColor(backColor);
+            _saveSlotLabel->SetForegroundColor(_materialColorScheme->onSurfaceVariant);
+            _saveSlotLabel->Draw(graphicsContext);
+        }
+
         _descriptionLabel->SetBackgroundColor(backColor);
         _descriptionLabel->SetForegroundColor(_materialColorScheme->onSurfaceVariant);
         _descriptionLabel->Draw(graphicsContext);
@@ -262,7 +285,49 @@ bool CheatsBottomSheetView::HandleInput(const InputProvider& inputProvider, Focu
         _viewModel->DisableAllCheats();
         return true;
     }
+    else if (inputProvider.Triggered(InputKey::Select))
+    {
+        _viewModel->CycleSaveSlot();
+        UpdateSaveSlotText();
+        return true;
+    }
     return false;
+}
+
+void CheatsBottomSheetView::HandlePenDown(const Point& touchPoint, FocusManager& focusManager)
+{
+    BottomSheetView::HandlePenDown(touchPoint, focusManager);
+    _saveSlotPenDown = !_viewModel->IsInSubCategory() && _saveSlotLabel->GetBounds().Contains(touchPoint);
+}
+
+void CheatsBottomSheetView::HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager)
+{
+    BottomSheetView::HandlePenUp(lastTouchPoint, focusManager);
+    if (_saveSlotPenDown && !_viewModel->IsInSubCategory() && _saveSlotLabel->GetBounds().Contains(lastTouchPoint))
+    {
+        _viewModel->CycleSaveSlot();
+        UpdateSaveSlotText();
+    }
+    _saveSlotPenDown = false;
+}
+
+void CheatsBottomSheetView::UpdateSaveSlotText()
+{
+    _displayedSaveSlot = _viewModel->GetSaveSlot();
+    _displayedSavesKnown = _viewModel->AreExistingSavesKnown();
+
+    // An asterisk marks a slot that already has a save file
+    const char* saveExists = _displayedSavesKnown && _viewModel->DoesSaveExist(_displayedSaveSlot) ? "*" : "";
+    char text[32];
+    if (_displayedSaveSlot == 0)
+    {
+        mini_snprintf(text, sizeof(text), "Save: Default%s (SELECT)", saveExists);
+    }
+    else
+    {
+        mini_snprintf(text, sizeof(text), "Save: Slot %d%s (SELECT)", (int)_displayedSaveSlot, saveExists);
+    }
+    _saveSlotLabel->SetText(text);
 }
 
 void CheatsBottomSheetView::Close()

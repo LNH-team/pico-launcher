@@ -24,6 +24,8 @@ public:
     void Draw(GraphicsContext& graphicsContext) override;
     SharedPtr<View> MoveFocus(const SharedPtr<View>& currentFocus, FocusMoveDirection direction, View* source) override;
     bool HandleInput(const InputProvider& inputProvider, FocusManager& focusManager) override;
+    void HandlePenDown(const Point& touchPoint, FocusManager& focusManager) override;
+    void HandlePenUp(const Point& lastTouchPoint, FocusManager& focusManager) override;
 
     void Focus(FocusManager& focusManager) override
     {
@@ -37,6 +39,10 @@ private:
     SharedPtr<CheatsViewModel> _viewModel;
     SharedPtr<Label2DView> _titleLabel;
     SharedPtr<Label2DView> _secondaryLabel;
+    SharedPtr<Label2DView> _saveSlotLabel;
+    u32 _displayedSaveSlot = 0xFFFFFFFF;
+    bool _displayedSavesKnown = false;
+    bool _saveSlotPenDown = false;
     SharedPtr<Label2DView> _descriptionLabel;
     SharedPtr<RecyclerView> _cheatListRecycler;
     SharedPtr<CheatsAdapter> _cheatsAdapter;
@@ -55,5 +61,6 @@ private:
 
     void UpdateCheatList();
     void UpdateDescriptionText();
+    void UpdateSaveSlotText();
     u32 LoadSprite(IVramManager& vramManager, const unsigned int* tiles, u32 tilesLength) const;
 };

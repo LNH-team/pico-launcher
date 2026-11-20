@@ -1,6 +1,7 @@
 #include "common.h"
 #include "cheats/ICheatRepository.h"
 #include "fat/File.h"
+#include "romBrowser/SaveSlotRepository.h"
 #include "CheatsViewModel.h"
 
 CheatsViewModel::CheatsViewModel(const FileInfo& romFileInfo, IRomBrowserController* romBrowserController)
@@ -20,6 +21,16 @@ CheatsViewModel::CheatsViewModel(const FileInfo& romFileInfo, IRomBrowserControl
             _state = State::NoCheats;
         }
 
+        return TaskResult<void>::Completed();
+    });
+
+    // Check which save slots already have a save file, to mark them with an asterisk
+    _checkSavesTask = _romBrowserController->GetIoTaskQueue()->Enqueue([this] (const vu8& cancelRequested)
+    {
+        TCHAR romPath[256];
+        _romBrowserController->GetTriggerFilePath(romPath, sizeof(romPath) / sizeof(romPath[0]));
+        _existingSavesMask = SaveSlotRepository::GetExistingSavesMask(romPath);
+        _existingSavesKnown = true;
         return TaskResult<void>::Completed();
     });
 }
@@ -132,4 +143,14 @@ void CheatsViewModel::DisableAllCheats(const CheatEntry* cheatCategory)
             }
         }
     }
+}
+
+void CheatsViewModel::CycleSaveSlot()
+{
+    u32 slot = _romBrowserController->GetTriggerFileSaveSlot() + 1;
+    if (slot > SaveSlotRepository::MaxSlot)
+    {
+        slot = 0;
+    }
+    _romBrowserController->SetTriggerFileSaveSlot(slot);
 }

@@ -61,7 +61,23 @@ public:
         return _categoryStackLevel > 0;
     }
 
+    /// @brief Gets the selected save slot of the rom (0 = default .sav, 1-9 = .N.sav).
+    u32 GetSaveSlot() const { return _romBrowserController->GetTriggerFileSaveSlot(); }
+
+    /// @brief Cycles to the next save slot (Default -> 1 -> ... -> 9 -> Default).
+    void CycleSaveSlot();
+
+    /// @brief Returns whether the existing save files have been determined yet.
+    bool AreExistingSavesKnown() const { return _existingSavesKnown; }
+
+    /// @brief Returns whether the save file for \p slot exists on the SD card.
+    bool DoesSaveExist(u32 slot) const { return (_existingSavesMask >> slot) & 1; }
+
 private:
+    volatile u16 _existingSavesMask = 0;
+    volatile bool _existingSavesKnown = false;
+    QueueTask<void> _checkSavesTask;
+
     struct CategoryStackEntry
     {
         const CheatEntry* cheatCategory;
