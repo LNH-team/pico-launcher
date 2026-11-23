@@ -13,7 +13,7 @@ CustomFileInfoView::CustomFileInfoView(const CustomThemeInfo* customThemeInfo, c
     , _thirdLine(Label2DView::CreateShared(
         customThemeInfo->topBannerTextLine2Info.GetWidth(), 16, 128, fontRepository->GetFont(FontType::Regular10)))
     , _filenameLabelView(Label2DView::CreateShared(
-        customThemeInfo->topFileNameTextInfo.GetWidth(), 16, 256, fontRepository->GetFont(FontType::Medium7_5)))
+        customThemeInfo->topFileNameTextInfo.GetWidth(), 16, 256, fontRepository->GetFont(FontType::Regular10)))
     , _customThemeInfo(customThemeInfo)
 {
     AddChildTail(_firstLine.GetPointer());

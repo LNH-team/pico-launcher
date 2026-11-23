@@ -3,6 +3,7 @@
 #include "gui/PaletteManager.h"
 #include "gui/font/nitroFont2.h"
 #include "core/math/RgbMixer.h"
+#include "core/StringUtil.h"
 #include "gui/OamBuilder.h"
 #include "largeFolderIcon.h"
 #include "gui/palette/GradientPalette.h"
@@ -13,15 +14,19 @@ MaterialFileIcon::MaterialFileIcon(const TCHAR* name, const MaterialColorScheme*
     const IFontRepository* fontRepository)
     : _materialColorScheme(materialColorScheme), _fontRepository(fontRepository)
 {
-    int i;
-    for (i = 0; i < 3; i++)
+    // Filenames are UTF-8; copy complete characters rather than UTF-8 bytes.
+    u32 length = StringUtil::Copy(_displayName, name, 4);
+    auto font = _fontRepository->GetFont(FontType::Medium11);
+    while (length > 0)
     {
-        TCHAR c = name[i];
-        if (c == 0)
+        u32 textWidth, textHeight;
+        nft2_measureString(font, _displayName, textWidth, textHeight);
+        if (textWidth <= 32)
             break;
-        _displayName[i] = c;
+        // A 32-pixel icon fits two full-width Chinese characters, but normally
+        // retains the original three-character abbreviation for Latin names.
+        _displayName[--length] = 0;
     }
-    _displayName[i] = 0;
 }
 
 void MaterialFileIcon::UploadGraphics()

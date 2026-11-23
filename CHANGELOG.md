@@ -9,6 +9,8 @@
 - Support for custom folder covers via a cover.bmp file placed inside the folder - by @tasken
 
 ### Fixed
+- Decode UTF-8 file and folder icon abbreviations as complete characters and fit them to the icon width
+- Use the regular title font for top-screen filename captions in Material and custom themes
 - Top screen cover is now displayed/hidden correctly when placed partially or fully off-screen
 - DSi banners with missing DSi part now fall back to the DS icon
 - Game-code cover lookup no longer searches on a stale buffer when a file has no game code
